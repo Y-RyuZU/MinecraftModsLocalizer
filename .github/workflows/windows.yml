@@ -14,13 +14,16 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build Docker image
-        run: docker build  -f ./windows/Dockerfile -t pyinstaller-windows .
+        run: docker build -f ./windows/Dockerfile -t pyinstaller-windows .
+
+      - name: Create dist directory
+        run: mkdir windows\dist
 
       - name: Run Docker container
-        run: docker run --rm  -v ${{ github.workspace }}\windows\dist\:C:\dist\ pyinstaller-windows powershell -Command "pyinstaller main.py --onedir --onefile --clean  --console --distpath /dist --workpath /windows/build --specpath /windows"
+        run: docker run --rm -v "${{ github.workspace }}\windows\dist:C:\dist" pyinstaller-windows powershell -Command "pyinstaller main.py --onedir --onefile --clean --console --distpath C:\dist --workpath C:\build --specpath C:\"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: result-artifact
-          path: ./windows/dist/main.exe
+          name: windows-binary
+          path: windows/dist/main.exe
