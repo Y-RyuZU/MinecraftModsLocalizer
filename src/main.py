@@ -6,9 +6,10 @@ import time
 import zipfile
 import requests
 import PySimpleGUI as sg
+from pathlib import Path
 
-RESOURCE_DIR = './resourcepacks/japanese'
-MODS_DIR = './mods'
+RESOURCE_DIR = Path('./resourcepacks/japanese')
+MODS_DIR = Path('./mods')
 DEEPL_API_URL = 'https://api.deepl.com/v2/translate'
 UPLOAD_URL = "https://api.deepl.com/v2/document"
 CHECK_STATUS_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}"
@@ -27,7 +28,7 @@ def get_mod_name_from_jar(jar_path):
         asset_dirs_with_lang = set()
         for name in zip_ref.namelist():
             parts = name.split('/')
-            if len(parts) > 2 and parts[0] == 'assets' and parts[2] == 'lang':
+            if len(parts) > 3 and parts[0] == 'assets' and parts[2] == 'lang':
                 asset_dirs_with_lang.add(parts[1])
         if asset_dirs_with_lang:
             return list(asset_dirs_with_lang)[0]
@@ -163,7 +164,7 @@ def process_jar_file(jar_path, collected_keys, collected_values):
         print(f"Could not determine mod name for {jar_path}")
         return
 
-    lang_path_in_jar = f'assets/{mod_name}/lang/'
+    lang_path_in_jar = Path(f'assets/{mod_name}/lang/')
     ja_jp_path_in_jar = os.path.join(lang_path_in_jar, 'ja_jp.json')
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
@@ -272,11 +273,11 @@ def translate_from_jar():
     if os.path.exists(assets_dir_path):
         shutil.rmtree(assets_dir_path)
 
+
 def translate_quests():
     print("translating snbt files...")
-    # translate_snbt_files()
-    directory = "config/ftbquests/quests/chapters"
-    nbt_files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.snbt')]
+    directory = Path("config/ftbquests/quests/chapters")
+    nbt_files = list(directory.glob('*.snbt'))
     print(f"the number of snbt files: {len(nbt_files)}")
 
     for file in nbt_files:
