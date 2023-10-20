@@ -38,12 +38,12 @@ def get_mod_name_from_jar(jar_path):
 def split_file(file_path, max_size=800000):  # max_size is 1MB by default
     """Split file into smaller parts of max_size bytes."""
     parts = []
-    with open(file_path, 'rb', encoding="utf-8") as f:
+    with open(file_path, 'rb') as f:
         chunk = f.read(max_size)
         count = 1
         while chunk:
             part_name = f"tmp{count}.txt"
-            with open(part_name, 'wb', encoding="utf-8") as chunk_file:
+            with open(part_name, 'wb') as chunk_file:
                 chunk_file.write(chunk)
             parts.append(part_name)
             chunk = f.read(max_size)
@@ -67,7 +67,7 @@ def translate_batch(file_path):
         for key in part_keys:
             translated_values_dict[key] = None  # Initialize to None
 
-        with open(part, 'rb', encoding="utf-8") as f:
+        with open(part, 'rb') as f:
             response = requests.post(
                 UPLOAD_URL,
                 headers={
@@ -130,7 +130,7 @@ def translate_batch(file_path):
         )
 
         part_translated = f"translated_{part}"
-        with open(part_translated, 'wb', encoding="utf-8") as f:
+        with open(part_translated, 'wb') as f:
             f.write(download_response.content)
 
         # Update translated values for this part
@@ -144,9 +144,9 @@ def translate_batch(file_path):
 
     # Merge all translated parts
     final_output = 'translated_final.txt'
-    with open(final_output, 'wb', encoding="utf-8") as fout:
+    with open(final_output, 'wb') as fout:
         for part in translated_parts:
-            with open(part, 'rb', encoding="utf-8") as fin:
+            with open(part, 'rb') as fin:
                 fout.write(fin.read())
 
     # Cleanup
