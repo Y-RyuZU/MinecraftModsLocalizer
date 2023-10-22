@@ -24,6 +24,7 @@ def extract_specific_file(zip_filepath, file_name, dest_dir):
             return True
         else:
             logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
+    return False
 
 
 def get_mod_name_from_jar(jar_path):
@@ -177,7 +178,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
     ja_jp_path_in_jar = os.path.join(lang_path_in_jar, 'ja_jp.json')
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
-    logging.info(f"Extract en_us.json(or ja_jp.json) in {lang_path_in_jar}")
+    logging.info(f"Extract en_us.json or ja_jp.json in {lang_path_in_jar} in {jar_path}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
         if ja_jp_path_in_jar in zip_ref.namelist():
             extract_specific_file(jar_path, ja_jp_path_in_jar, log_directory)
@@ -253,8 +254,6 @@ def translate_from_jar(log_directory):
     extracted_pack_mcmeta = False
     for filename in os.listdir(MODS_DIR):
         if filename.endswith('.jar'):
-            logging.info(f"Processing {filename}...")
-
             # Extract pack.mcmeta if it exists in the jar
             if not extracted_pack_mcmeta:
                 extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
