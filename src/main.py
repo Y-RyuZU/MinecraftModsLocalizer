@@ -334,13 +334,13 @@ def translate_quests_from_json(file_path):
 
 def translate_quests(log_directory):
     # バックアップ用のディレクトリを作成
-    backup_directory = log_directory / "quests"
+    backup_directory = log_directory / 'quests'
     backup_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info("translating snbt files...")
     json_path = os.path.join(QUESTS_DIR1, 'en_us.json')
 
-    if json_path.exists():
+    if os.path.exists(json_path)):
         logging.info("en_us.json found, translating from json...")
         shutil.copy(json_path, backup_directory)
         translate_quests_from_json(json_path)
