@@ -12,6 +12,8 @@ from datetime import datetime
 
 RESOURCE_DIR = Path('./resourcepacks/japanese')
 MODS_DIR = Path('./mods')
+QUESTS_DIR1 = Path('./kubejs/assets/ftbquests/lang')
+QUESTS_DIR2 = Path('./kubejs/assets/kubejs/lang')
 DEEPL_API_URL = 'https://api.deepl.com/v2/translate'
 UPLOAD_URL = "https://api.deepl.com/v2/document"
 CHECK_STATUS_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}"
@@ -178,7 +180,7 @@ def translate_batch(file_path, translated_map=None):
 
         translated_parts.append(part_translated)
 
-    Merge all translated parts
+    # Merge all translated parts
     final_output = 'translated_final.txt'
     with open(final_output, 'wb') as fout:
         for part in translated_parts:
@@ -314,10 +316,9 @@ def translate_from_jar(log_directory):
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
-def translate_quests_from_json(file_direrctory, file_name='en_us.json'):
+def translate_quests_from_json(file_path):
     collected_map = {}
 
-    file_path = os.path.join(file_direrctory, file_name)
     extract_map_from_json(file_path, collected_map)
 
     with open('tmp.txt', 'w', encoding='utf-8') as f:
@@ -326,7 +327,9 @@ def translate_quests_from_json(file_direrctory, file_name='en_us.json'):
 
     translated_map = translate_batch('tmp.txt', collected_map)
 
-    with open(os.path.join(file_direrctory, 'ja_jp.json'), 'w', encoding="utf-8") as f:
+    with open(os.path.join(QUESTS_DIR1 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+    with open(os.path.join(QUESTS_DIR2 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
 def translate_quests(log_directory):
@@ -335,10 +338,11 @@ def translate_quests(log_directory):
     backup_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info("translating snbt files...")
-    json_path = Path("kubejs/assets/kubejs/lang")
+    json_path = os.path.join(QUESTS_DIR1, 'en_us.json')
 
     if json_path.exists():
         logging.info("en_us.json found, translating from json...")
+        shutil.copy(json_path, backup_directory)
         translate_quests_from_json(json_path)
     else:
         logging.info("en_us.json not found, translating snbt files in directory...")
