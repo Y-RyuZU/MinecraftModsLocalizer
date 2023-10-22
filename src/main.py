@@ -40,7 +40,9 @@ def extract_map_from_json(file_path, collected_map):
             # 値が英語でコメント以外のキーのみを保存します。
             for key, value in content.items():
                 if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
-                    collected_map[key] = value  # 辞書にキーと値を追加します。
+                    # 改行を削除(翻訳時扱いがめんどくさいため)
+                    sanitized_value = value.replace('\n', '')
+                    collected_map[key] = sanitized_value
 
         except json.JSONDecodeError:
             logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation. Please check the file for syntax errors.")
