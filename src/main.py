@@ -9,6 +9,7 @@ import PySimpleGUI as sg
 from pathlib import Path
 import logging
 from datetime import datetime
+from io import BytesIO
 
 RESOURCE_DIR = Path('./resourcepacks/japanese')
 MODS_DIR = Path('./mods')
@@ -194,15 +195,27 @@ def translate_batch(file_path, translated_map=None):
             }
         )
 
-        part_translated = f"translated_{part}"
-        with open(part_translated, 'wb') as f:
-            f.write(download_response.content)
+        # part_translated = f"translated_{part}"
+        # with open(part_translated, 'wb') as f:
+        #     f.write(download_response.content)
+        #
+        # with open(part_translated, 'r', encoding='utf-8') as f:
+        #     for line in f:
+        #         translated_parts_value.append(line.rstrip('\n'))
 
-        with open(part_translated, 'r', encoding='utf-8') as f:
-            for line in f:
-                translated_parts_value.append(line.rstrip('\n'))
+        buffer = BytesIO(download_response.content)
 
-        os.remove(part_translated)
+        # バッファの内容を文字列として読み取る（エンコーディングを指定）
+        buffer.seek(0)  # バッファの先頭にカーソルを移動
+        text_data = buffer.read().decode('utf-8')
+
+        # テキストデータを行ごとに処理
+        translated_parts_value = []
+        for line in text_data.splitlines():
+            translated_parts_value.append(line.rstrip('\n'))
+
+        # バッファを閉じる（メモリをクリーンアップ）
+        buffer.close()
 
     # Read the final output and update the translated map
     result_map = {}
