@@ -249,13 +249,14 @@ def process_jar_file(log_directory, jar_path, collected_map):
 
     logging.info(f"Extract en_us.json or ja_jp.json in {jar_path / lang_path_in_jar}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
+        if en_us_path_in_jar_str in zip_ref.namelist():
+            extract_specific_file(jar_path, en_us_path_in_jar_str, log_directory)
         if ja_jp_path_in_jar_str in zip_ref.namelist():
             extract_specific_file(jar_path, ja_jp_path_in_jar_str, log_directory)
-        elif en_us_path_in_jar_str in zip_ref.namelist():
-            extract_specific_file(jar_path, en_us_path_in_jar_str, log_directory)
-            os.rename(os.path.join(log_directory, en_us_path_in_jar), os.path.join(log_directory, ja_jp_path_in_jar))
 
+    en_us_path = os.path.join(log_directory, en_us_path_in_jar)
     ja_jp_path = os.path.join(log_directory, ja_jp_path_in_jar)
+    extract_map_from_json(en_us_path, collected_map)
     extract_map_from_json(ja_jp_path, collected_map)
 
 def translate_from_jar(log_directory):
