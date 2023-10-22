@@ -7,6 +7,8 @@ import zipfile
 import requests
 import PySimpleGUI as sg
 from pathlib import Path
+import logging
+from datetime import datetime
 
 RESOURCE_DIR = Path('./resourcepacks/japanese')
 MODS_DIR = Path('./mods')
@@ -20,7 +22,7 @@ def extract_specific_file(zip_filepath, file_name, dest_dir):
         if file_name in zip_ref.namelist():
             zip_ref.extract(file_name, dest_dir)
         else:
-            print(f"The file {file_name} was not found in the ZIP archive.")
+            logging.info(f"The file {file_name} was not found in the ZIP archive.")
 
 
 def get_mod_name_from_jar(jar_path):
@@ -51,11 +53,15 @@ def split_file(file_path, max_size=800000):  # max_size is 1MB by default
     return parts
 
 
-def translate_batch(file_path):
+def translate_batch(file_path, translated_map=None):
     chunks = split_file(file_path)
     translated_parts = []
-    translated_values_dict = {}  # This will store the key and its translated value
     timeout = 60 * 10
+
+    key_count = 0
+
+    if translated_map is None:
+        translated_map = {}
 
     for part in chunks:
         start_time = time.time()
@@ -64,9 +70,6 @@ def translate_batch(file_path):
         with open(part, 'r', encoding='utf-8') as f:
             part_keys = [line.strip() for line in f]
 
-        for key in part_keys:
-            translated_values_dict[key] = None  # Initialize to None
-
         with open(part, 'rb') as f:
             response = requests.post(
                 UPLOAD_URL,
@@ -74,6 +77,7 @@ def translate_batch(file_path):
                     'Authorization': f'DeepL-Auth-Key {API_KEY}'
                 },
                 data={
+                    'source_lang': 'EN',
                     'target_lang': 'JA'
                 },
                 files={
@@ -86,17 +90,17 @@ def translate_batch(file_path):
         document_key = response_data.get('document_key')
 
         if not document_id or not document_key:
-            print(response.status_code)
-            print(response.text)
-            print(f"Failed to translate {part}. Skipping...")
+            logging.info(response.status_code)
+            logging.info(response.text)
+            logging.error(f"Failed to translate {part} in {file_path}. Skipping...")
             continue
 
-        print(f"Translating {part}...")
+        logging.info(f"Translating {part} in {file_path}...")
 
         while True:
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout:
-                print("Timeout reached while waiting for translation.")
+                logging.error(f"Timeout reached while waiting for translation for {part} in {file_path}.")
                 break
 
             status_response = requests.post(
@@ -112,10 +116,10 @@ def translate_batch(file_path):
             status_data = status_response.json()
 
             if status_data['status'] == "done":
-                print(f"Translation for {part} completed!")
+                logging.info(f"Translation for {part} in {file_path} completed!")
                 break
             else:
-                print(status_data)
+                logging.info(status_data)
                 time.sleep(10)
 
         download_response = requests.post(
@@ -138,16 +142,17 @@ def translate_batch(file_path):
             part_translated_values = [line.strip() for line in f]
 
         for key, translated_value in zip(part_keys, part_translated_values):
-            translated_values_dict[key] = translated_value
+            translated_map[key] = translated_value
+            key_count += 1
 
         translated_parts.append(part_translated)
 
     # Merge all translated parts
-    final_output = 'translated_final.txt'
-    with open(final_output, 'wb') as fout:
-        for part in translated_parts:
-            with open(part, 'rb') as fin:
-                fout.write(fin.read())
+    # final_output = 'translated_final.txt'
+    # with open(final_output, 'wb') as fout:
+    #     for part in translated_parts:
+    #         with open(part, 'rb') as fin:
+    #             fout.write(fin.read())
 
     # Cleanup
     for part in chunks:
@@ -155,47 +160,48 @@ def translate_batch(file_path):
     for part in translated_parts:
         os.remove(part)
 
-    return translated_values_dict
+    logging.info(f"Summary for {file_path}")
+    logging.info(f"Found {translated_map.__len__()} keys.")
+    logging.info(f"Translated {key_count} keys.")
 
+    return translated_map
 
-def process_jar_file(jar_path, collected_keys, collected_values):
+def process_jar_file(jar_path, collected_map):
     mod_name = get_mod_name_from_jar(jar_path)
     if mod_name is None:
-        print(f"Could not determine mod name for {jar_path}")
+        logging.info(f"Could not determine mod name for {jar_path}")
         return
 
     lang_path_in_jar = Path(f'assets/{mod_name}/lang/')
     ja_jp_path_in_jar = os.path.join(lang_path_in_jar, 'ja_jp.json')
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
-    if ja_jp_path_in_jar in zipfile.ZipFile(jar_path).namelist():
-        extract_specific_file(jar_path, ja_jp_path_in_jar, MODS_DIR)
-    elif en_us_path_in_jar in zipfile.ZipFile(jar_path).namelist():
-        extract_specific_file(jar_path, en_us_path_in_jar, MODS_DIR)
-        os.rename(os.path.join(MODS_DIR, en_us_path_in_jar), os.path.join(MODS_DIR, ja_jp_path_in_jar))
+    with zipfile.ZipFile(jar_path, 'r') as zip_ref:
+        if ja_jp_path_in_jar in zip_ref.namelist():
+            extract_specific_file(jar_path, ja_jp_path_in_jar, MODS_DIR)
+        elif en_us_path_in_jar in zip_ref.namelist():
+            extract_specific_file(jar_path, en_us_path_in_jar, MODS_DIR)
+            os.rename(os.path.join(MODS_DIR, en_us_path_in_jar), os.path.join(MODS_DIR, ja_jp_path_in_jar))
 
     ja_jp_path = os.path.join(MODS_DIR, ja_jp_path_in_jar)
     if os.path.exists(ja_jp_path):
-        print(f"Processing {ja_jp_path}")
+        logging.info(f"Processing {ja_jp_path}")
         try:
             with open(ja_jp_path, 'r', encoding="utf-8") as f:
                 content = json.load(f)
 
-            # Collect English values to translate and store their keys
-            english_keys = [key for key, value in content.items() if not key.startswith("_comment") and not re.search(
-                '[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value)]
-            english_values = [content[key] for key in english_keys]
+            # 日本語の含まれないキーのみを保存します。
+            for key, value in content.items():
+                if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
+                    collected_map[key] = value  # 辞書にキーと値を追加します。
 
-            collected_values.extend(english_values)
-            collected_keys.extend(english_keys)
         except json.JSONDecodeError:
-            print(f"Failed to load or process JSON from {ja_jp_path}. Skipping this mod for translation.")
-
+            logging.info(f"Failed to load or process JSON from {ja_jp_path}. Skipping this mod for translation.")
 
 def translate_snbt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-    print(f"Translating {file_path}...")
+    logging.info(f"Translating {file_path}...")
 
     extracted_strings = []
 
@@ -215,7 +221,7 @@ def translate_snbt(file_path):
             extracted_strings.append(inner_match)
 
     if len(extracted_strings) == 0:
-        print("No strings found. Skipping...")
+        logging.info("No strings found. Skipping...")
         return
 
     # Write the extracted strings to tmp.txt
@@ -238,54 +244,89 @@ def translate_from_jar():
     if not os.path.exists(RESOURCE_DIR):
         os.makedirs(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang'))
 
-    collected_values = []
-    collected_keys = []
+    collected_map = {}
 
     for filename in os.listdir(MODS_DIR):
         if filename.endswith('.jar'):
             # Extract pack.mcmeta if it exists in the jar
             extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
 
-            process_jar_file(os.path.join(MODS_DIR, filename), collected_keys, collected_values)
+            process_jar_file(os.path.join(MODS_DIR, filename), collected_map)
 
+    # 変数代入部分が消されないようDEEPL翻訳に送る前にクオートで囲みます。
+    pattern = re.compile(r'%[dscf]')
     with open('tmp.txt', 'w', encoding='utf-8') as f:
-        for value in collected_values:
+        for value in collected_map.values():
+            quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
             f.write(value + '\n')
 
     translated_map = translate_batch('tmp.txt')
 
-    content = {}
-    failed_translated_values_count = 0
-    collected_map = dict(zip(collected_values, collected_keys))
+    # content = {}
+    # failed_translated_values_count = 0
+    #
+    # for original_value, translated_value in translated_map.items():
+    #     if original_value not in collected_map:
+    #         logging.info(f"Could not find key for {original_value}. Skipping...")
+    #         failed_translated_values_count += 1
+    #         continue
+    #     lang_key = collected_map[original_value]
+    #     content[lang_key] = translated_value
 
-    for original_value, translated_value in translated_map.items():
-        if original_value not in collected_map:
-            print(f"Could not find key for {original_value}. Skipping...")
-            failed_translated_values_count += 1
-            continue
-        lang_key = collected_map[original_value]
-        content[lang_key] = translated_value
+    # クオートで囲まれた書式指定子を見つけ、クオートを取り除きます。
+    pattern = re.compile(r"['\"](%[dscf])['\"]")
+    for key, value in translated_map.items():
+        unquoted_value = pattern.sub(lambda match: match.group(1),value)
+        translated_map[key] = unquoted_value
 
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
-        json.dump(dict(sorted(content.items())), f, ensure_ascii=False, indent=4)
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
     assets_dir_path = os.path.join(MODS_DIR, 'assets')
     if os.path.exists(assets_dir_path):
         shutil.rmtree(assets_dir_path)
 
+def translate_quests(log_directory):
+    # バックアップ用のディレクトリを作成
+    backup_directory = log_directory / "quests"
+    backup_directory.mkdir(parents=True, exist_ok=True)
 
-def translate_quests():
-    print("translating snbt files...")
+    logging.info("translating snbt files...")
     directory = Path("config/ftbquests/quests/chapters")
     nbt_files = list(directory.glob('*.snbt'))
-    print(f"the number of snbt files: {len(nbt_files)}")
 
     for file in nbt_files:
+        backup_file = backup_directory / file.name
+        shutil.copy(file, backup_file)
         translate_snbt(file)
+
+    logging.info("Traslate snbt files Done!")
+
+def setup_logging(directory):
+
+    log_file = "translate.log"
+
+    # ディレクトリが存在しない場合は作成
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # ログファイルのフルパス
+    log_path = os.path.join(directory, log_file)
+
+    # ロガーの設定
+    logging.basicConfig(
+        level=logging.INFO,  # INFOレベル以上のログを取得
+        format='%(asctime)s %(levelname)s %(message)s',  # ログのフォーマット
+        handlers=[
+            logging.FileHandler(log_path),  # ログをファイルに出力
+            logging.StreamHandler(sys.stdout)  # ログをコンソールに出力
+        ]
+    )
+
 
 if __name__ == '__main__':
     # セレクトボックスのオプション
-    select_options = ['Mod', 'Quests', 'Both']
+    select_options = ['Mod', 'Quests', 'All']
 
     # レイアウトの定義
     layout = [
@@ -298,6 +339,19 @@ if __name__ == '__main__':
 
     # ウィンドウの作成
     window = sg.Window('MinecraftModLocalizer', layout)
+
+    # 現在の日時を取得
+    now = datetime.now()
+
+    # ファイル名として安全な形式に日時を整形
+    # 例：2023-10-15_17-30-29
+    current_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+    # ログを保存するディレクトリを指定
+    log_directory = Path(f"./logs/localizer/{current_time}")
+
+    # ログの設定
+    setup_logging(log_directory)
 
     # イベントループ
     while True:
@@ -316,7 +370,7 @@ if __name__ == '__main__':
             if target == select_options[0]:
                 translate_from_jar()
             elif target == select_options[1]:
-                translate_quests()
+                translate_quests(log_directory)
             elif target == select_options[2]:
                 translate_from_jar()
-                translate_quests()
+                translate_quests(log_directory)
