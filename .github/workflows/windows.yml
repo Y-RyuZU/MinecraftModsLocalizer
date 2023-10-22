@@ -25,5 +25,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: minecraft-mod-localizer-windows
+          name: minecraft-mods-localizer-windows
           path: windows/dist/main.exe

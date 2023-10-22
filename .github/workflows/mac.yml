@@ -33,5 +33,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: minecraft-mod-localizer-macos
+          name: minecraft-mods-localizer-macos
           path: ./dist/  # Or specify the exact file you want to upload, e.g., ./dist/main if "main" is the output binary
