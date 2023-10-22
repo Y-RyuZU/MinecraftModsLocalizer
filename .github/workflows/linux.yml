@@ -32,6 +32,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: minecraft-mod-localizer-linux
+          name: minecraft-mods-localizer-linux
           path: ./linux/dist/main  # Make sure this path is correct based on your build script
 
