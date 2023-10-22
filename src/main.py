@@ -26,6 +26,23 @@ def extract_specific_file(zip_filepath, file_name, dest_dir):
             logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
     return False
 
+def extract_map_from_json(file_path, collected_map):
+    if os.path.exists(file_path):
+        logging.info(f"Extract keys in en_us.json(or ja_jp.json) in {file_path}")
+        try:
+            with open(file_path, 'r', encoding="utf-8") as f:
+                content = json.load(f)
+
+            # 値が英語でコメント以外のキーのみを保存します。
+            for key, value in content.items():
+                if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
+                    collected_map[key] = value  # 辞書にキーと値を追加します。
+
+        except json.JSONDecodeError:
+            logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation.")
+    else:
+        logging.info(f"Could not find {file_path}. Skipping this mod for translation.")
+
 def get_mod_name_from_jar(jar_path):
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
         asset_dirs_with_lang = set()
@@ -37,21 +54,42 @@ def get_mod_name_from_jar(jar_path):
             return list(asset_dirs_with_lang)[0]
     return None
 
-
-def split_file(file_path, max_size=800000):  # max_size is 1MB by default
-    """Split file into smaller parts of max_size bytes."""
+def split_file(file_path, max_size=800000):  # max_size in bytes
+    """Split text file into smaller parts based on line endings, keeping the file size below max_size bytes."""
     parts = []
-    with open(file_path, 'rb') as f:
-        chunk = f.read(max_size)
-        count = 1
-        while chunk:
-            part_name = f"tmp{count}.txt"
-            with open(part_name, 'wb') as chunk_file:
-                chunk_file.write(chunk)
+    part_count = 1
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        current_part = []
+        current_size = 0
+
+        for line in f:
+            line_size = len(line.encode('utf-8'))  # Calculate the size of the line in bytes
+
+            if current_size + line_size > max_size and current_part:
+                # If adding the line exceeds the maximum size, write the current part to a file
+                part_name = f"tmp{part_count}.txt"
+                with open(part_name, 'w', encoding='utf-8') as part_file:
+                    part_file.writelines(current_part)
+                parts.append(part_name)
+
+                # Prepare for the next part
+                current_part = []
+                current_size = 0
+                part_count += 1
+
+            current_part.append(line)
+            current_size += line_size
+
+        # Save the last part if there's any content left
+        if current_part:
+            part_name = f"tmp{part_count}.txt"
+            with open(part_name, 'w', encoding='utf-8') as part_file:
+                part_file.writelines(current_part)
             parts.append(part_name)
-            chunk = f.read(max_size)
-            count += 1
+
     return parts
+
 
 
 def translate_batch(file_path, translated_map=None):
@@ -69,7 +107,7 @@ def translate_batch(file_path, translated_map=None):
 
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
-            part_keys = [line.strip() for line in f]
+            part_keys = [line.rstrip('\n') for line in f]
 
         with open(part, 'rb') as f:
             response = requests.post(
@@ -138,22 +176,21 @@ def translate_batch(file_path, translated_map=None):
         with open(part_translated, 'wb') as f:
             f.write(download_response.content)
 
-        # Update translated values for this part
-        with open(part_translated, 'r', encoding='utf-8') as f:
-            part_translated_values = [line.strip() for line in f]
-
-        for key, translated_value in zip(part_keys, part_translated_values):
-            translated_map[key] = translated_value
-            key_count += 1
-
         translated_parts.append(part_translated)
 
-    # Merge all translated parts
-    # final_output = 'translated_final.txt'
-    # with open(final_output, 'wb') as fout:
-    #     for part in translated_parts:
-    #         with open(part, 'rb') as fin:
-    #             fout.write(fin.read())
+    Merge all translated parts
+    final_output = 'translated_final.txt'
+    with open(final_output, 'wb') as fout:
+        for part in translated_parts:
+            with open(part, 'rb') as fin:
+                fout.write(fin.read())
+
+    # Read the final output and update the translated map
+    with open(final_output, 'r', encoding='utf-8') as f:
+        for key, value in translated_map.items():
+            translated_value = f.readline().rstrip('\n')
+            translated_map[key] = translated_value
+            key_count += 1
 
     # Cleanup
     for part in chunks:
@@ -188,23 +225,9 @@ def process_jar_file(log_directory, jar_path, collected_map):
             os.rename(os.path.join(log_directory, en_us_path_in_jar), os.path.join(log_directory, ja_jp_path_in_jar))
 
     ja_jp_path = os.path.join(log_directory, ja_jp_path_in_jar)
-    if os.path.exists(ja_jp_path):
-        logging.info(f"Extract keys in en_us.json(or ja_jp.json) in {ja_jp_path}")
-        try:
-            with open(ja_jp_path, 'r', encoding="utf-8") as f:
-                content = json.load(f)
+    extract_map_from_json(ja_jp_path, collected_map)
 
-            # 値が英語でコメント以外のキーのみを保存します。
-            for key, value in content.items():
-                if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
-                    collected_map[key] = value  # 辞書にキーと値を追加します。
-
-        except json.JSONDecodeError:
-            logging.info(f"Failed to load or process JSON from {ja_jp_path}. Skipping this mod for translation.")
-    else:
-        logging.info(f"Could not find {ja_jp_path}. Skipping this mod for translation.")
-
-def translate_snbt(file_path):
+def translate_quests_from_snbt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     logging.info(f"Translating {file_path}...")
@@ -291,19 +314,41 @@ def translate_from_jar(log_directory):
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
+def translate_quests_from_json(file_direrctory, file_name='en_us.json'):
+    collected_map = {}
+
+    file_path = os.path.join(file_direrctory, file_name)
+    extract_map_from_json(file_path, collected_map)
+
+    with open('tmp.txt', 'w', encoding='utf-8') as f:
+        for value in collected_map.values():
+            f.write(value + '\n')
+
+    translated_map = translate_batch('tmp.txt', collected_map)
+
+    with open(os.path.join(file_direrctory, 'ja_jp.json'), 'w', encoding="utf-8") as f:
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+
 def translate_quests(log_directory):
     # バックアップ用のディレクトリを作成
     backup_directory = log_directory / "quests"
     backup_directory.mkdir(parents=True, exist_ok=True)
 
     logging.info("translating snbt files...")
-    directory = Path("config/ftbquests/quests/chapters")
-    nbt_files = list(directory.glob('*.snbt'))
+    json_path = Path("kubejs/assets/kubejs/lang")
 
-    for file in nbt_files:
-        backup_file = backup_directory / file.name
-        shutil.copy(file, backup_file)
-        translate_snbt(file)
+    if json_path.exists():
+        logging.info("en_us.json found, translating from json...")
+        translate_quests_from_json(json_path)
+    else:
+        logging.info("en_us.json not found, translating snbt files in directory...")
+        directory = Path("config/ftbquests/quests/chapters")
+        nbt_files = list(directory.glob('*.snbt'))
+
+        for file in nbt_files:
+            backup_file = backup_directory / file.name
+            shutil.copy(file, backup_file)
+            translate_quests_from_snbt(file)
 
     logging.info("Traslate snbt files Done!")
 
