@@ -19,7 +19,7 @@ DOWNLOAD_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}/result"
 
 def extract_specific_file(zip_filepath, file_name, dest_dir):
     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
-        if file_name in zip_ref.namelist():
+        if file_name.replace('\\', '/') in zip_ref.namelist():
             zip_ref.extract(file_name, dest_dir)
             return True
         else:
@@ -180,9 +180,9 @@ def process_jar_file(log_directory, jar_path, collected_map):
     logging.info(f"Extract en_us.json or ja_jp.json in {jar_path / lang_path_in_jar}")
     logging.info(f"{ja_jp_path_in_jar} or {en_us_path_in_jar}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
-        if ja_jp_path_in_jar in zip_ref.namelist():
+        if ja_jp_path_in_jar.replace('\\', '/') in zip_ref.namelist():
             extract_specific_file(jar_path, ja_jp_path_in_jar, log_directory)
-        elif en_us_path_in_jar in zip_ref.namelist():
+        elif en_us_path_in_jar.replace('\\', '/') in zip_ref.namelist():
             extract_specific_file(jar_path, en_us_path_in_jar, log_directory)
             os.rename(os.path.join(log_directory, en_us_path_in_jar), os.path.join(log_directory, ja_jp_path_in_jar))
 
