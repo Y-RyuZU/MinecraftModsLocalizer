@@ -192,7 +192,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
             with open(ja_jp_path, 'r', encoding="utf-8") as f:
                 content = json.load(f)
 
-            # 日本語の含まれないキーのみを保存します。
+            # 値が英語でコメント以外のキーのみを保存します。
             for key, value in content.items():
                 if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
                     collected_map[key] = value  # 辞書にキーと値を追加します。
@@ -253,6 +253,8 @@ def translate_from_jar(log_directory):
     extracted_pack_mcmeta = False
     for filename in os.listdir(MODS_DIR):
         if filename.endswith('.jar'):
+            logging.info(f"Processing {filename}...")
+
             # Extract pack.mcmeta if it exists in the jar
             if not extracted_pack_mcmeta:
                 extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
