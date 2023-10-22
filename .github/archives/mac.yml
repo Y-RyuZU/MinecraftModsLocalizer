@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.12.0'  # Specify the Python version, or '3.x' for the latest
+          python-version: '3.12.0'
 
       - name: Install dependencies
         run: |
@@ -29,10 +29,10 @@ jobs:
           pyinstaller --onefile --clean --console --distpath ./dist --workpath ./build src/main.py
 
       - name: Check Artifacts
-        run: ls -R ./dist  # This will list the contents of the dist directory, helping verify if the build artifacts are generated correctly.
+        run: ls -R ./dist
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-macos
-          path: ./dist/  # Or specify the exact file you want to upload, e.g., ./dist/main if "main" is the output binary
+          path: ./dist/
