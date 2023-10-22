@@ -47,11 +47,13 @@ ModPackなどの一括翻訳などにご利用ください
 構成ファイル/
 │
 |── main.exe
-├── mods/
-├── resourcepacks/
 ├── config/
+├── kubejs/
+├── mods/
 └── logs/
     └── localizer/
+        └── {日付}/
+├── resourcepacks/
 ```
 
 ## 使い方
@@ -64,14 +66,12 @@ ModPackなどの一括翻訳などにご利用ください
 - modは`mods`フォルダ内にあります。
 - questsは`config/ftbquests/quests/chapters`の中にあります。
 
-## ファイル構造
+## 出力ファイル
 
 - mod本体の翻訳は、リソースパックとして出力され、`resourcepacks/japanese`に保存されます。
-- questsの翻訳は、直接questsファイル(.snbt)を書き換えます。
-
-## 翻訳のカスタマイズ
-
-翻訳したい項目（"description"、"title"、"subtitle"）を選択し、必要に応じて翻訳をカスタマイズします。
+- questsの翻訳は、kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
+- 存在する場合jsonファイルを使用して翻訳
+- 存在しない場合直接questsファイル(.snbt)を書き換え翻訳します。
 
 ## ログとバックアップ
 
