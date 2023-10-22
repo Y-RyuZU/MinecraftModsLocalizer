@@ -70,8 +70,8 @@ ModPackなどの一括翻訳などにご利用ください
 
 - mod本体の翻訳は、リソースパックとして出力され、`resourcepacks/japanese`に保存されます。
 - questsの翻訳は、kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
-- 存在する場合jsonファイルを使用して翻訳
-- 存在しない場合直接questsファイル(.snbt)を書き換え翻訳します。
+- 存在する場合kubejs/assets/kubejs/lang/ja_jp.json と kubejs/assets/ftbquests/lang/ja_jp.jsonを作成し、そこに翻訳を追加します。
+- 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
 
 ## ログとバックアップ
 
@@ -87,7 +87,10 @@ ModPackなどの一括翻訳などにご利用ください
 
 - **mod本体翻訳:** modファイル(.jar)から`assets/{mod名}/lang/ja_jp.json` または `assets/{mod名}/lang/en_us.json`を抽出し、その中で日本語の値を持たないものを翻訳し、リソースパックを作成します。
 - リソースパックのpack.mcmetaは最初に見つけたjarファイルのものを使用します。descriptionなどはお好みで変更してください。
-- **quests翻訳:** questファイル(.snbt)内の特定の項目を直接翻訳します。
+- **quests翻訳:** kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
+- 存在する場合kubejs/assets/kubejs/lang/en_us.jsonを読み込み翻訳を行います
+- 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
+- また、kubejs/assets/kubejs/lang/en_us.jsonに本来jsonとして無効なコメントが含まれている場合消し飛ばします(Create Astralで確認)。
 
 ## 将来のアップデートと余談
 
