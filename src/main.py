@@ -21,8 +21,9 @@ def extract_specific_file(zip_filepath, file_name, dest_dir):
     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
         if file_name in zip_ref.namelist():
             zip_ref.extract(file_name, dest_dir)
+            return True
         else:
-            logging.info(f"The file {file_name} was not found in the ZIP archive.")
+            logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
 
 
 def get_mod_name_from_jar(jar_path):
@@ -30,7 +31,7 @@ def get_mod_name_from_jar(jar_path):
         asset_dirs_with_lang = set()
         for name in zip_ref.namelist():
             parts = name.split('/')
-            if len(parts) > 3 and parts[0] == 'assets' and parts[2] == 'lang':
+            if len(parts) > 3 and parts[0] == 'assets' and parts[2] == 'lang' and parts[1] != 'minecraft':
                 asset_dirs_with_lang.add(parts[1])
         if asset_dirs_with_lang:
             return list(asset_dirs_with_lang)[0]
@@ -166,7 +167,7 @@ def translate_batch(file_path, translated_map=None):
 
     return translated_map
 
-def process_jar_file(jar_path, collected_map):
+def process_jar_file(log_directory, jar_path, collected_map):
     mod_name = get_mod_name_from_jar(jar_path)
     if mod_name is None:
         logging.info(f"Could not determine mod name for {jar_path}")
@@ -176,16 +177,17 @@ def process_jar_file(jar_path, collected_map):
     ja_jp_path_in_jar = os.path.join(lang_path_in_jar, 'ja_jp.json')
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
+    logging.info(f"Extract en_us.json(or ja_jp.json) in {lang_path_in_jar}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
         if ja_jp_path_in_jar in zip_ref.namelist():
-            extract_specific_file(jar_path, ja_jp_path_in_jar, MODS_DIR)
+            extract_specific_file(jar_path, ja_jp_path_in_jar, log_directory)
         elif en_us_path_in_jar in zip_ref.namelist():
-            extract_specific_file(jar_path, en_us_path_in_jar, MODS_DIR)
-            os.rename(os.path.join(MODS_DIR, en_us_path_in_jar), os.path.join(MODS_DIR, ja_jp_path_in_jar))
+            extract_specific_file(jar_path, en_us_path_in_jar, log_directory)
+            os.rename(os.path.join(log_directory, en_us_path_in_jar), os.path.join(log_directory, ja_jp_path_in_jar))
 
-    ja_jp_path = os.path.join(MODS_DIR, ja_jp_path_in_jar)
+    ja_jp_path = os.path.join(log_directory, ja_jp_path_in_jar)
     if os.path.exists(ja_jp_path):
-        logging.info(f"Processing {ja_jp_path}")
+        logging.info(f"Extract keys in en_us.json(or ja_jp.json) in {ja_jp_path}")
         try:
             with open(ja_jp_path, 'r', encoding="utf-8") as f:
                 content = json.load(f)
@@ -197,6 +199,8 @@ def process_jar_file(jar_path, collected_map):
 
         except json.JSONDecodeError:
             logging.info(f"Failed to load or process JSON from {ja_jp_path}. Skipping this mod for translation.")
+    else
+        logging.info(f"Could not find {ja_jp_path}. Skipping this mod for translation.")
 
 def translate_snbt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -240,25 +244,28 @@ def translate_snbt(file_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
-def translate_from_jar():
+def translate_from_jar(log_directory):
     if not os.path.exists(RESOURCE_DIR):
         os.makedirs(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang'))
 
     collected_map = {}
 
+    extracted_pack_mcmeta = False
     for filename in os.listdir(MODS_DIR):
         if filename.endswith('.jar'):
             # Extract pack.mcmeta if it exists in the jar
-            extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
+            if not extracted_pack_mcmeta:
+                extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
+                update_description(os.path.join(RESOURCE_DIR, 'pack.mcmeta'), '日本語化パック')
 
-            process_jar_file(os.path.join(MODS_DIR, filename), collected_map)
+            process_jar_file(log_directory, os.path.join(MODS_DIR, filename), collected_map)
 
     # 変数代入部分が消されないようDEEPL翻訳に送る前にクオートで囲みます。
     pattern = re.compile(r'%[dscf]')
     with open('tmp.txt', 'w', encoding='utf-8') as f:
         for value in collected_map.values():
             quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
-            f.write(value + '\n')
+            f.write(quoted_value + '\n')
 
     translated_map = translate_batch('tmp.txt')
 
@@ -282,10 +289,6 @@ def translate_from_jar():
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
-    assets_dir_path = os.path.join(MODS_DIR, 'assets')
-    if os.path.exists(assets_dir_path):
-        shutil.rmtree(assets_dir_path)
-
 def translate_quests(log_directory):
     # バックアップ用のディレクトリを作成
     backup_directory = log_directory / "quests"
@@ -301,6 +304,33 @@ def translate_quests(log_directory):
         translate_snbt(file)
 
     logging.info("Traslate snbt files Done!")
+
+def update_description(file_path, new_description):
+    # ファイルが存在するか確認
+    if not os.path.exists(file_path):
+        return
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        try:
+            data = json.load(file)
+        except json.JSONDecodeError as e:
+            return
+
+    # 'description'の'text'を新しい値に更新
+    try:
+        if 'pack' in data and 'description' in data['pack'] and 'text' in data['pack']['description']:
+            data['pack']['description']['text'] = new_description
+        else:
+            return
+    except Exception as e:
+        return
+
+    # 変更を加えたデータを同じファイルに書き戻す
+    with open(file_path, 'w', encoding='utf-8') as file:
+        try:
+            json.dump(data, file, ensure_ascii=False, indent=2)  # JSONを整形して書き込み
+        except Exception as e:
+            return
 
 def setup_logging(directory):
 
@@ -322,7 +352,6 @@ def setup_logging(directory):
             logging.StreamHandler(sys.stdout)  # ログをコンソールに出力
         ]
     )
-
 
 if __name__ == '__main__':
     # セレクトボックスのオプション
@@ -368,9 +397,12 @@ if __name__ == '__main__':
             API_KEY = values['DEEPL_API_KEY']
 
             if target == select_options[0]:
-                translate_from_jar()
+                translate_from_jar(log_directory)
             elif target == select_options[1]:
                 translate_quests(log_directory)
             elif target == select_options[2]:
-                translate_from_jar()
+                translate_from_jar(log_directory)
                 translate_quests(log_directory)
+
+            sg.popup('Translate Done!')
+            break
