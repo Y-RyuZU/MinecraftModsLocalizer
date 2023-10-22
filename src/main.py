@@ -199,7 +199,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
 
         except json.JSONDecodeError:
             logging.info(f"Failed to load or process JSON from {ja_jp_path}. Skipping this mod for translation.")
-    else
+    else:
         logging.info(f"Could not find {ja_jp_path}. Skipping this mod for translation.")
 
 def translate_snbt(file_path):
