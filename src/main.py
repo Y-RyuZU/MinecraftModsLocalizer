@@ -43,6 +43,9 @@ def extract_map_from_json(file_path, collected_map):
                     # 改行を削除(翻訳時扱いがめんどくさいため)
                     sanitized_value = value.replace('\n', '')
                     collected_map[key] = sanitized_value
+                if re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
+                    collected_map.pop(key, None)
+                    break
 
         except json.JSONDecodeError:
             logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation. Please check the file for syntax errors.")
