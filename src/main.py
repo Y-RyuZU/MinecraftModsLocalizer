@@ -340,7 +340,7 @@ def translate_quests(log_directory):
     logging.info("translating snbt files...")
     json_path = os.path.join(QUESTS_DIR1, 'en_us.json')
 
-    if os.path.exists(json_path)):
+    if os.path.exists(json_path):
         logging.info("en_us.json found, translating from json...")
         shutil.copy(json_path, backup_directory)
         translate_quests_from_json(json_path)
