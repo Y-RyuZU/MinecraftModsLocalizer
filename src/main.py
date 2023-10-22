@@ -269,7 +269,7 @@ def translate_from_jar(log_directory):
             quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
             f.write(quoted_value + '\n')
 
-    translated_map = translate_batch('tmp.txt')
+    translated_map = translate_batch('tmp.txt', collected_map)
 
     # content = {}
     # failed_translated_values_count = 0
