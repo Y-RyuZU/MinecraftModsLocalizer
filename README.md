@@ -91,7 +91,7 @@ ModPackなどの一括翻訳などにご利用ください
 - **quests翻訳:** kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
 - 存在する場合kubejs/assets/kubejs/lang/en_us.jsonを読み込み翻訳を行います
 - 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
-- また、kubejs/assets/kubejs/lang/en_us.jsonに本来jsonとして無効なコメントが含まれている場合消し飛ばします(Create Astralで確認)。
+- また、kubejs/assets/kubejs/lang/en_us.jsonに本来jsonとして無効なコメントが含まれている場合、改行コード(\n)がクエスト内容に存在する場合消し飛ばします(Create Astralで確認)。扱いめんどくさかった。許して❤
 
 ## 将来のアップデートと余談
 
