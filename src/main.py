@@ -202,6 +202,8 @@ def translate_batch(file_path, translated_map=None):
             for line in f:
                 translated_parts_value.append(line.rstrip('\n'))
 
+        os.remove(part_translated)
+
     # Read the final output and update the translated map
     result_map = {}
     for before, after in zip(translated_parts_keys, translated_parts_value):
@@ -211,8 +213,6 @@ def translate_batch(file_path, translated_map=None):
 
     # Cleanup
     for part in chunks:
-        os.remove(part)
-    for part in translated_parts_value:
         os.remove(part)
 
     logging.info(f"Translation for {file_path} completed!")
@@ -451,13 +451,18 @@ if __name__ == '__main__':
             target = values['target']
             API_KEY = values['DEEPL_API_KEY']
 
-            if target == select_options[0]:
-                translate_from_jar(log_directory)
-            elif target == select_options[1]:
-                translate_quests(log_directory)
-            elif target == select_options[2]:
-                translate_from_jar(log_directory)
-                translate_quests(log_directory)
+            try:
+                if target == select_options[0]:
+                    translate_from_jar(log_directory)
+                elif target == select_options[1]:
+                    translate_quests(log_directory)
+                elif target == select_options[2]:
+                    translate_from_jar(log_directory)
+                    translate_quests(log_directory)
+            except Exception as e:
+                logging.error(e)
+                sg.popup('Translate Failed!')
+                break
 
             sg.popup('Translate Done!')
             break
