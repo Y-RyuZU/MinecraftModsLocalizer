@@ -178,7 +178,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
     logging.info(f"Extract en_us.json or ja_jp.json in {jar_path / lang_path_in_jar}")
-    logging.info(f"{ja_jp_path_in_jar} or {en_us_path_in_jar}"}")
+    logging.info(f"{ja_jp_path_in_jar} or {en_us_path_in_jar}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
         if ja_jp_path_in_jar in zip_ref.namelist():
             extract_specific_file(jar_path, ja_jp_path_in_jar, log_directory)
