@@ -42,7 +42,7 @@ def extract_map_from_json(file_path, collected_map):
                     collected_map[key] = value  # 辞書にキーと値を追加します。
 
         except json.JSONDecodeError:
-            logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation.")
+            logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation. Please check the file for syntax errors.")
     else:
         logging.info(f"Could not find {file_path}. Skipping this mod for translation.")
 
@@ -56,6 +56,24 @@ def get_mod_name_from_jar(jar_path):
         if asset_dirs_with_lang:
             return list(asset_dirs_with_lang)[0]
     return None
+
+def clean_json_file(json_path):
+    # コメントおよび空白行のパターンを正規表現で定義します。
+    comment_pattern = re.compile(r'^\s*//.*$', re.MULTILINE)
+    blank_lines_pattern = re.compile(r'\n\s*\n', re.MULTILINE)
+
+    with open(json_path, 'r', encoding='utf-8') as file:
+        content = file.read()
+
+    # コメントを削除します。
+    content_without_comments = re.sub(comment_pattern, '', content)
+
+    # 空白行を削除します。
+    cleaned_content = re.sub(blank_lines_pattern, '\n', content_without_comments)
+
+    # 不要な内容が削除されたJSONを新しいファイルに書き出します。
+    with open(json_path, 'w', encoding='utf-8') as file:
+        file.write(cleaned_content.strip())
 
 def split_file(file_path, max_size=800000):  # max_size in bytes
     """Split text file into smaller parts based on line endings, keeping the file size below max_size bytes."""
@@ -97,10 +115,9 @@ def split_file(file_path, max_size=800000):  # max_size in bytes
 
 def translate_batch(file_path, translated_map=None):
     chunks = split_file(file_path)
-    translated_parts = []
+    translated_parts_value = []
+    translated_parts_keys = []
     timeout = 60 * 10
-
-    key_count = 0
 
     if translated_map is None:
         with open(part, 'r', encoding='utf-8') as f:
@@ -111,7 +128,8 @@ def translate_batch(file_path, translated_map=None):
 
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
-            part_keys = [line.rstrip('\n') for line in f]
+            for line in f:
+                translated_parts_keys.append(line.rstrip('\n'))
 
         with open(part, 'rb') as f:
             response = requests.post(
@@ -180,33 +198,26 @@ def translate_batch(file_path, translated_map=None):
         with open(part_translated, 'wb') as f:
             f.write(download_response.content)
 
-        translated_parts.append(part_translated)
-
-    # Merge all translated parts
-    final_output = 'translated_final.txt'
-    with open(final_output, 'wb') as fout:
-        for part in translated_parts:
-            with open(part, 'rb') as fin:
-                fout.write(fin.read())
+        with open(part_translated, 'r', encoding='utf-8') as f:
+            for line in f:
+                translated_parts_value.append(line.rstrip('\n'))
 
     # Read the final output and update the translated map
-    with open(final_output, 'r', encoding='utf-8') as f:
+    result_map = {}
+    for before, after in zip(translated_parts_keys, translated_parts_value):
         for key, value in translated_map.items():
-            translated_value = f.readline().rstrip('\n')
-            translated_map[key] = translated_value
-            key_count += 1
+            if value == before:
+                result_map[key] = after
 
     # Cleanup
     for part in chunks:
         os.remove(part)
-    for part in translated_parts:
+    for part in translated_parts_value:
         os.remove(part)
 
-    logging.info(f"Summary for {file_path}")
-    logging.info(f"Found {translated_map.__len__()} keys.")
-    logging.info(f"Translated {key_count} keys.")
-
-    return translated_map
+    logging.info(f"Translation for {file_path} completed!")
+    logging.info(f"Translated {len(result_map)} strings.")
+    return result_map
 
 def process_jar_file(log_directory, jar_path, collected_map):
     mod_name = get_mod_name_from_jar(jar_path)
@@ -259,7 +270,7 @@ def translate_from_jar(log_directory):
     # クオートで囲まれた書式指定子を見つけ、クオートを取り除きます。
     pattern = re.compile(r"['\"](%[dscf])['\"]")
     for key, value in translated_map.items():
-        unquoted_value = pattern.sub(lambda match: match.group(1),value)
+        unquoted_value = pattern.sub(lambda match: match.group(1), value)
         translated_map[key] = unquoted_value
 
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
@@ -268,6 +279,7 @@ def translate_from_jar(log_directory):
 def translate_quests_from_json(file_path):
     collected_map = {}
 
+    clean_json_file(file_path)
     extract_map_from_json(file_path, collected_map)
 
     # Write the extracted strings to tmp.txt
