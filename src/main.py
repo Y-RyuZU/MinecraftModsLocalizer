@@ -12,8 +12,9 @@ from datetime import datetime
 
 RESOURCE_DIR = Path('./resourcepacks/japanese')
 MODS_DIR = Path('./mods')
-QUESTS_DIR1 = Path('./kubejs/assets/ftbquests/lang')
-QUESTS_DIR2 = Path('./kubejs/assets/kubejs/lang')
+QUESTS_DIR1 = Path('./kubejs/assets/kubejs/lang')
+QUESTS_DIR2 = Path('./kubejs/assets/ftbquests/lang')
+QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
 DEEPL_API_URL = 'https://api.deepl.com/v2/translate'
 UPLOAD_URL = "https://api.deepl.com/v2/document"
 CHECK_STATUS_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}"
@@ -102,7 +103,8 @@ def translate_batch(file_path, translated_map=None):
     key_count = 0
 
     if translated_map is None:
-        translated_map = {}
+        with open(part, 'r', encoding='utf-8') as f:
+            translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in f}
 
     for part in chunks:
         start_time = time.time()
@@ -229,6 +231,57 @@ def process_jar_file(log_directory, jar_path, collected_map):
     ja_jp_path = os.path.join(log_directory, ja_jp_path_in_jar)
     extract_map_from_json(ja_jp_path, collected_map)
 
+def translate_from_jar(log_directory):
+    if not os.path.exists(RESOURCE_DIR):
+        os.makedirs(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang'))
+
+    collected_map = {}
+
+    extracted_pack_mcmeta = False
+    for filename in os.listdir(MODS_DIR):
+        if filename.endswith('.jar'):
+            # Extract pack.mcmeta if it exists in the jar
+            if not extracted_pack_mcmeta:
+                extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
+                update_description(os.path.join(RESOURCE_DIR, 'pack.mcmeta'), '日本語化パック')
+
+            process_jar_file(log_directory, os.path.join(MODS_DIR, filename), collected_map)
+
+    # 変数代入部分が消されないようDEEPL翻訳に送る前にクオートで囲みます。
+    pattern = re.compile(r'%[dscf]')
+    with open('tmp.txt', 'w', encoding='utf-8') as f:
+        for value in collected_map.values():
+            quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
+            f.write(quoted_value + '\n')
+
+    translated_map = translate_batch('tmp.txt', collected_map)
+
+    # クオートで囲まれた書式指定子を見つけ、クオートを取り除きます。
+    pattern = re.compile(r"['\"](%[dscf])['\"]")
+    for key, value in translated_map.items():
+        unquoted_value = pattern.sub(lambda match: match.group(1),value)
+        translated_map[key] = unquoted_value
+
+    with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+
+def translate_quests_from_json(file_path):
+    collected_map = {}
+
+    extract_map_from_json(file_path, collected_map)
+
+    # Write the extracted strings to tmp.txt
+    with open('tmp.txt', 'w', encoding='utf-8') as f:
+        for value in collected_map.values():
+            f.write(value + '\n')
+
+    translated_map = translate_batch('tmp.txt', collected_map)
+
+    with open(os.path.join(QUESTS_DIR1 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+    with open(os.path.join(QUESTS_DIR2 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
+        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+
 def translate_quests_from_snbt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -271,67 +324,6 @@ def translate_quests_from_snbt(file_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
-def translate_from_jar(log_directory):
-    if not os.path.exists(RESOURCE_DIR):
-        os.makedirs(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang'))
-
-    collected_map = {}
-
-    extracted_pack_mcmeta = False
-    for filename in os.listdir(MODS_DIR):
-        if filename.endswith('.jar'):
-            # Extract pack.mcmeta if it exists in the jar
-            if not extracted_pack_mcmeta:
-                extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
-                update_description(os.path.join(RESOURCE_DIR, 'pack.mcmeta'), '日本語化パック')
-
-            process_jar_file(log_directory, os.path.join(MODS_DIR, filename), collected_map)
-
-    # 変数代入部分が消されないようDEEPL翻訳に送る前にクオートで囲みます。
-    pattern = re.compile(r'%[dscf]')
-    with open('tmp.txt', 'w', encoding='utf-8') as f:
-        for value in collected_map.values():
-            quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
-            f.write(quoted_value + '\n')
-
-    translated_map = translate_batch('tmp.txt', collected_map)
-
-    # content = {}
-    # failed_translated_values_count = 0
-    #
-    # for original_value, translated_value in translated_map.items():
-    #     if original_value not in collected_map:
-    #         logging.info(f"Could not find key for {original_value}. Skipping...")
-    #         failed_translated_values_count += 1
-    #         continue
-    #     lang_key = collected_map[original_value]
-    #     content[lang_key] = translated_value
-
-    # クオートで囲まれた書式指定子を見つけ、クオートを取り除きます。
-    pattern = re.compile(r"['\"](%[dscf])['\"]")
-    for key, value in translated_map.items():
-        unquoted_value = pattern.sub(lambda match: match.group(1),value)
-        translated_map[key] = unquoted_value
-
-    with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
-        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
-
-def translate_quests_from_json(file_path):
-    collected_map = {}
-
-    extract_map_from_json(file_path, collected_map)
-
-    with open('tmp.txt', 'w', encoding='utf-8') as f:
-        for value in collected_map.values():
-            f.write(value + '\n')
-
-    translated_map = translate_batch('tmp.txt', collected_map)
-
-    with open(os.path.join(QUESTS_DIR1 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
-        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
-    with open(os.path.join(QUESTS_DIR2 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
-        json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
-
 def translate_quests(log_directory):
     # バックアップ用のディレクトリを作成
     backup_directory = log_directory / 'quests'
@@ -341,13 +333,12 @@ def translate_quests(log_directory):
     json_path = os.path.join(QUESTS_DIR1, 'en_us.json')
 
     if os.path.exists(json_path):
-        logging.info("en_us.json found, translating from json...")
+        logging.info(f"en_us.json found in {QUESTS_DIR1}, translating from json...")
         shutil.copy(json_path, backup_directory)
         translate_quests_from_json(json_path)
     else:
-        logging.info("en_us.json not found, translating snbt files in directory...")
-        directory = Path("config/ftbquests/quests/chapters")
-        nbt_files = list(directory.glob('*.snbt'))
+        logging.info(f"en_us.json not found in {QUESTS_DIR1}, translating snbt files in directory...")
+        nbt_files = list(QUESTS_DIR3.glob('*.snbt'))
 
         for file in nbt_files:
             backup_file = backup_directory / file.name
