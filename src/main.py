@@ -17,15 +17,43 @@ UPLOAD_URL = "https://api.deepl.com/v2/document"
 CHECK_STATUS_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}"
 DOWNLOAD_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}/result"
 
-def extract_specific_file(zip_filepath, file_name, dest_dir):
-    with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
-        if file_name in zip_ref.namelist():
-            zip_ref.extract(file_name, dest_dir)
-            return True
-        else:
-            logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
-    return False
+# def extract_specific_file(zip_filepath, file_name, dest_dir):
+#     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
+#         if file_name in zip_ref.namelist():
+#             zip_ref.extract(file_name, dest_dir)
+#             return True
+#         else:
+#             logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
+#     return False
 
+import zipfile
+import os
+import logging
+
+
+def extract_specific_file(zip_filepath, file_name, dest_dir):
+    try:
+        with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
+            # ZIPファイルの内容をログ出力
+            logging.info(f"Contents of the ZIP file {zip_filepath}:")
+            logging.info(zip_ref.namelist())
+
+            if file_name in zip_ref.namelist():
+                zip_ref.extract(file_name, dest_dir)
+                logging.info(f"Extracted '{file_name}' to '{dest_dir}'")
+                # 実際に抽出されたファイルが存在するか確認
+                extracted_file_path = os.path.join(dest_dir, file_name)
+                if os.path.exists(extracted_file_path):
+                    logging.info(f"File is successfully extracted at {extracted_file_path}")
+                    return True
+                else:
+                    logging.error(f"File extraction failed or file not present at {extracted_file_path}")
+            else:
+                logging.error(f"The file {file_name} was not found in the ZIP archive.")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}", exc_info=True)
+
+    return False
 
 def get_mod_name_from_jar(jar_path):
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
@@ -178,7 +206,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
     ja_jp_path_in_jar = os.path.join(lang_path_in_jar, 'ja_jp.json')
     en_us_path_in_jar = os.path.join(lang_path_in_jar, 'en_us.json')
 
-    logging.info(f"Extract en_us.json or ja_jp.json in {lang_path_in_jar} in {jar_path}")
+    logging.info(f"Extract en_us.json or ja_jp.json in {jar_path / lang_path_in_jar}}")
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
         if ja_jp_path_in_jar in zip_ref.namelist():
             extract_specific_file(jar_path, ja_jp_path_in_jar, log_directory)
