@@ -91,6 +91,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      releases: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
