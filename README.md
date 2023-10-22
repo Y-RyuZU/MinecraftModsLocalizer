@@ -84,7 +84,7 @@ ModPackなどの一括翻訳などにご利用ください
 
 ## 内部実装について
 
-- **mod本体翻訳:** modファイル(.jar)から`assets/{mod名}/lang/en_us.json`を抽出し、リソースパックを作成します。
+- **mod本体翻訳:** modファイル(.jar)から`assets/{mod名}/lang/ja_jp.json` または `assets/{mod名}/lang/en_us.json`を抽出し、その中で日本語の値を持たないものを翻訳し、リソースパックを作成します。
 - **quests翻訳:** questファイル(.snbt)内の特定の項目を直接翻訳します。
 
 ## 将来のアップデートと余談
