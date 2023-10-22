@@ -216,6 +216,7 @@ def translate_batch(file_path, translated_map=None):
         os.remove(part)
 
     logging.info(f"Translation for {file_path} completed!")
+    logging.info(f"Found {len(translated_map)} strings.")
     logging.info(f"Translated {len(result_map)} strings.")
     return result_map
 
