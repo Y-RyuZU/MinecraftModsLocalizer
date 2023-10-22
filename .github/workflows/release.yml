@@ -7,6 +7,10 @@ on:
 
 jobs:
   create-release:
+    needs:
+      - build_for_linux
+      - build_for_macos
+      - build_for_windows
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

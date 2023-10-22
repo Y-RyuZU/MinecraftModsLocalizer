@@ -3,12 +3,13 @@ name: Build for macOS
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

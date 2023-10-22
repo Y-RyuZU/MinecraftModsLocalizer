@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 jobs:
-  build-and-run:
+  build-windows:
     runs-on: windows-2019
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
