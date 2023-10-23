@@ -40,7 +40,7 @@ ModPackなどの一括翻訳などにご利用ください
 
 ## インストール方法
 
-実行ファイル（例: main.exe）は、Minecraftのメインディレクトリ内、`mods`、`resourcepacks`、`config`、`logs`フォルダが存在する場所に配置してください。
+実行ファイル（例: minecraft-mods-localizer-windows.exe）は、Minecraftのメインディレクトリ内、`mods`、`resourcepacks`、`config`、`logs`フォルダが存在する場所に配置してください。
 
 以下にWindows環境のディレクトリツリーの例を示します。
 
