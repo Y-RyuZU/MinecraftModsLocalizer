@@ -47,7 +47,7 @@ ModPackなどの一括翻訳などにご利用ください
 ```
 構成ファイル/
 │
-|── main.exe
+|── minecraft-mods-localizer-windows.exe
 ├── config/
 ├── kubejs/
 ├── mods/
