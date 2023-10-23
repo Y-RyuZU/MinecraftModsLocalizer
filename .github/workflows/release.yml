@@ -131,7 +131,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/windows
+          asset_path: artifacts/windows/minecraft-mods-localizer-windows.zip
           asset_name: minecraft-mods-localizer-windows.zip
           asset_content_type: application/zip
 
@@ -141,7 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/macos
+          asset_path: artifacts/macos/minecraft-mods-localizer-macos.zip
           asset_name: minecraft-mods-localizer-macos.zip
           asset_content_type: application/zip
 
@@ -151,6 +151,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/linux
+          asset_path: artifacts/linux/minecraft-mods-localizer-linux.zip
           asset_name: minecraft-mods-localizer-linux.zip
           asset_content_type: application/zip
