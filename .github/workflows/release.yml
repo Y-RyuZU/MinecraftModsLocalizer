@@ -25,7 +25,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-windows
-          path: windows/dist/main.exe
+          path: windows/dist/minecraft-mods-localizer-windows.exe
   build-macos:
     runs-on: macos-latest
     steps:
@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-macos
-          path: ./dist/main
+          path: ./dist/minecraft-mods-localizer-macos
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-linux
-          path: ./linux/dist/main
+          path: ./linux/dist/minecraft-mods-localizer-linux
 
   create-release:
     needs:
@@ -136,22 +136,22 @@ jobs:
         asset_name: minecraft-mods-localizer-windows.exe
         asset_content_type: application/vnd.microsoft.portable-executable
 
-    - name: Upload Release Asset for MacOS
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/macos/minecraft-mods-localizer-macos
-        asset_name: minecraft-mods-localizer-macos
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset for MacOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/macos/minecraft-mods-localizer-macos
+          asset_name: minecraft-mods-localizer-macos
+          asset_content_type: application/octet-stream
 
-    - name: Upload Release Asset for Linux
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: artifacts/linux/minecraft-mods-localizer-linux.zip
-        asset_name: minecraft-mods-localizer-linux.zip
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset for Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts/linux/minecraft-mods-localizer-linux.zip
+          asset_name: minecraft-mods-localizer-linux.zip
+          asset_content_type: application/octet-stream
