@@ -3,7 +3,7 @@ name: Build for Windows
 on:
   push:
     tags:
-      - 'build'
+      - 'dev'
 
 jobs:
   build-windows:
