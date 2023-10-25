@@ -3,7 +3,7 @@ name: Build for Linux
 on:
   push:
     tags:
-      - 'build'
+      - 'dev'
 
 jobs:
   build-macos:
