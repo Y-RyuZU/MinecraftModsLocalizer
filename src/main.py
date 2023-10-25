@@ -476,10 +476,10 @@ if __name__ == '__main__':
             API_KEY = values['DEEPL_API_KEY']
             suffix = "-free" if values['free'] else ""
 
-            DEEPL_API_URL = f'https://api.deepl.com/v2{suffix}/translate'
-            UPLOAD_URL = f"https://api.deepl.com/v2{suffix}/document"
-            CHECK_STATUS_URL_TEMPLATE = f"https://api.deepl.com/v2{suffix}/document/{{}}"
-            DOWNLOAD_URL_TEMPLATE = f"https://api.deepl.com/v2{suffix}/document/{{}}/result"
+            DEEPL_API_URL = f'https://api.deepl{suffix}.com/v2/translate'
+            UPLOAD_URL = f"https://api.deepl{suffix}.com/v2/document"
+            CHECK_STATUS_URL_TEMPLATE = f"https://api.deepl{suffix}.com/v2/document/{{}}"
+            DOWNLOAD_URL_TEMPLATE = f"https://api.deepl{suffix}.com/v2/document/{{}}/result"
 
             try:
                 if target == select_options[0]:
