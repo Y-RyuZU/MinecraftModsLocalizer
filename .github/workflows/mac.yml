@@ -2,7 +2,7 @@ name: Build for macOS
 
 on:
   push:
-    tags:
+    branches:
       - 'dev'
 
 jobs:
