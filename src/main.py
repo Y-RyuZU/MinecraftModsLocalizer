@@ -16,10 +16,6 @@ MODS_DIR = Path('./mods')
 QUESTS_DIR1 = Path('./kubejs/assets/kubejs/lang')
 QUESTS_DIR2 = Path('./kubejs/assets/ftbquests/lang')
 QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
-DEEPL_API_URL = 'https://api.deepl.com/v2/translate'
-UPLOAD_URL = "https://api.deepl.com/v2/document"
-CHECK_STATUS_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}"
-DOWNLOAD_URL_TEMPLATE = "https://api.deepl.com/v2/document/{}/result"
 
 def extract_specific_file(zip_filepath, file_name, dest_dir):
     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
@@ -445,6 +441,7 @@ if __name__ == '__main__':
         [sg.Combo(select_options, default_value=select_options[2], key='target', size=(20, 1))],
         [sg.Text("DEEPL API KEY")],
         [sg.InputText(key='DEEPL_API_KEY')],
+        [sg.Checkbox('Use Free API', default=True, key='free')],
         [sg.Button("Translate", key='translate')]
     ]
 
@@ -477,6 +474,12 @@ if __name__ == '__main__':
             # 入力された値を取得
             target = values['target']
             API_KEY = values['DEEPL_API_KEY']
+            suffix = "-free" if values['free'] else ""
+
+            DEEPL_API_URL = f'https://api.deepl.com/v2{suffix}/translate'
+            UPLOAD_URL = f"https://api.deepl.com/v2{suffix}/document"
+            CHECK_STATUS_URL_TEMPLATE = f"https://api.deepl.com/v2{suffix}/document/{{}}"
+            DOWNLOAD_URL_TEMPLATE = f"https://api.deepl.com/v2{suffix}/document/{{}}/result"
 
             try:
                 if target == select_options[0]:
