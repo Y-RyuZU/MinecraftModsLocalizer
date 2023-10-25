@@ -127,8 +127,9 @@ def translate_batch_deepl(file_path, translated_map=None):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         char_count = len(f.read())
-        logging.info(f"The file {file_path} contains ({char_count} characters)..."
+        logging.info(f"The file {file_path} contains ({char_count} characters)...")
 
+        f.seek(0)
         if translated_map is None:
             translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in f}
 
@@ -140,6 +141,7 @@ def translate_batch_deepl(file_path, translated_map=None):
             char_count = len(f.read())
             logging.info(f"The file {part} contains ({char_count} characters)..."
 
+            f.seek(0)
             for line in f:
                 translated_parts_keys.append(line.rstrip('\n'))
 
