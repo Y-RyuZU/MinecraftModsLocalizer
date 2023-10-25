@@ -2,10 +2,8 @@ name: Build for macOS
 
 on:
   push:
-    branches:
-      - main
     tags:
-      - 'v*'
+      - 'build'
 
 jobs:
   build-macos:

@@ -19,7 +19,7 @@ jobs:
         run: mkdir windows\dist
 
       - name: Run Docker container
-        run: docker run --rm -v "${{ github.workspace }}\windows\dist:C:\dist" pyinstaller-windows powershell -Command "pyinstaller main.py --name minecraft-mods-localizer-windows --onedir --onefile --clean --console --distpath C:\dist --workpath C:\build --specpath C:\"
+        run: docker run --rm -v "${{ github.workspace }}\windows\dist:C:\dist" pyinstaller-windows powershell -Command "pyinstaller main.py --name minecraft-mods-localizer-windows-${{ github.ref_name }} --onedir --onefile --clean --console --distpath C:\dist --workpath C:\build --specpath C:\"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -44,7 +44,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --name minecraft-mods-localizer-macos --onefile --clean --console --distpath ./dist --workpath ./build src/main.py
+          pyinstaller --name minecraft-mods-localizer-macos-${{ github.ref_name }} --onefile --clean --console --distpath ./dist --workpath ./build src/main.py
 
       - name: Check Artifacts
         run: ls -R ./dist
@@ -68,7 +68,7 @@ jobs:
         run: |
           docker run --rm -v $(pwd)/src:/src -v $(pwd)/linux:/linux \
               pyinstaller-linux pyinstaller main.py \
-              --name minecraft-mods-localizer-linux \
+              --name minecraft-mods-localizer-linux-${{ github.ref_name }} \
               --onedir --onefile --clean --console \
               --distpath /linux/dist \
               --workpath /linux/build \
@@ -132,8 +132,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/windows/minecraft-mods-localizer-windows.exe
-          asset_name: minecraft-mods-localizer-windows.exe
+          asset_path: artifacts/windows/minecraft-mods-localizer-windows-${{ github.ref_name }}.exe
+          asset_name: minecraft-mods-localizer-windows-${{ github.ref_name }}.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Release Asset for MacOS
@@ -142,8 +142,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/macos/minecraft-mods-localizer-macos
-          asset_name: minecraft-mods-localizer-macos
+          asset_path: artifacts/macos/minecraft-mods-localizer-macos-${{ github.ref_name }}
+          asset_name: minecraft-mods-localizer-macos-${{ github.ref_name }}
           asset_content_type: application/octet-stream
 
       - name: Upload Release Asset for Linux
@@ -152,6 +152,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/linux/minecraft-mods-localizer-linux
-          asset_name: minecraft-mods-localizer-linux
+          asset_path: artifacts/linux/minecraft-mods-localizer-linux-${{ github.ref_name }}
+          asset_name: minecraft-mods-localizer-linux-${{ github.ref_name }}
           asset_content_type: application/octet-stream

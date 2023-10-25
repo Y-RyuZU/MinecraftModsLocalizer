@@ -119,14 +119,17 @@ def split_file(file_path, max_size=800000):  # max_size in bytes
 
 
 
-def translate_batch(file_path, translated_map=None):
+def translate_batch_deepl(file_path, translated_map=None):
     chunks = split_file(file_path)
     translated_parts_value = []
     translated_parts_keys = []
     timeout = 60 * 10
 
-    if translated_map is None:
-        with open(part, 'r', encoding='utf-8') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        char_count = len(f.read())
+        logging.info(f"The file {file_path} contains ({char_count} characters)..."
+
+        if translated_map is None:
             translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in f}
 
     for part in chunks:
@@ -134,6 +137,9 @@ def translate_batch(file_path, translated_map=None):
 
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
+            char_count = len(f.read())
+            logging.info(f"The file {part} contains ({char_count} characters)..."
+
             for line in f:
                 translated_parts_keys.append(line.rstrip('\n'))
 
@@ -285,7 +291,7 @@ def translate_from_jar(log_directory):
             quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
             f.write(quoted_value + '\n')
 
-    translated_map = translate_batch('tmp.txt', collected_map)
+    translated_map = translate_batch_deepl('tmp.txt', collected_map)
 
     # クオートで囲まれた書式指定子を見つけ、クオートを取り除きます。
     pattern = re.compile(r"['\"](%[dscf])['\"]")
@@ -307,7 +313,7 @@ def translate_quests_from_json(file_path):
         for value in collected_map.values():
             f.write(value + '\n')
 
-    translated_map = translate_batch('tmp.txt', collected_map)
+    translated_map = translate_batch_deepl('tmp.txt', collected_map)
 
     with open(os.path.join(QUESTS_DIR1 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
@@ -346,7 +352,7 @@ def translate_quests_from_snbt(file_path):
             f.write(s + "\n")
 
     # Translate the content of tmp.txt and get the translated values
-    translated_map = translate_batch('tmp.txt')
+    translated_map = translate_batch_deepl('tmp.txt')
 
     # Substitute back the translated content
     for original, translated in translated_map.items():
