@@ -25,7 +25,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-windows
-          path: windows/dist/minecraft-mods-localizer-windows.exe
+          path: windows/dist/minecraft-mods-localizer-windows-${{ github.ref_name }}.exe
   build-macos:
     runs-on: macos-latest
     steps:
@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-macos
-          path: ./dist/minecraft-mods-localizer-macos
+          path: ./dist/minecraft-mods-localizer-macos-${{ github.ref_name }}
   build-linux:
     runs-on: ubuntu-latest
     steps:
@@ -81,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: minecraft-mods-localizer-linux
-          path: ./linux/dist/minecraft-mods-localizer-linux
+          path: ./linux/dist/minecraft-mods-localizer-linux-${{ github.ref_name }}
 
   create-release:
     needs:
