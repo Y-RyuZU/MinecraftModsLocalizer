@@ -67,6 +67,11 @@ ModPackなどの一括翻訳などにご利用ください
 - modは`mods`フォルダ内にあります。
 - questsは`kubejs/assets/kubejs/lang/`または`config/ftbquests/quests/chapters`(両方ある場合はlangの方が翻訳元になります)の中にあります。
 
+### 各項目について
+- **Translate Target:** 翻訳対象を選択します。Mod本体の翻訳、Questsの翻訳、または両方を選択できます。
+- **API_KEY:** DEEPLのAPI_KEY(認証キー)を入力してください。
+- **Use Free API:** DEEPLの無料APIを使用するかどうかを選択します。契約しているプランで変更してください。Freeプランの方はチェック、Proプランなどそれ以外の方はチェックを外してください。
+
 ## 出力ファイル
 
 - mod本体の翻訳は、リソースパックとして出力され、`resourcepacks/japanese`に保存されます。
