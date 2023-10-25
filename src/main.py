@@ -139,7 +139,7 @@ def translate_batch_deepl(file_path, translated_map=None):
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
             char_count = len(f.read())
-            logging.info(f"The file {part} contains ({char_count} characters)..."
+            logging.info(f"The file {part} contains ({char_count} characters)...")
 
             f.seek(0)
             for line in f:
