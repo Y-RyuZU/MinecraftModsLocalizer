@@ -124,11 +124,12 @@ def translate_batch_deepl(file_path, translated_map=None):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         char_count = len(f.read())
-        logging.info(f"The file {file_path} contains ({char_count} characters)...")
 
         f.seek(0)
         if translated_map is None:
             translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in f}
+
+        logging.info(f"The file {file_path} contains ({len(translated_map)} strings, {char_count} characters)...")
 
     for part in chunks:
         start_time = time.time()
