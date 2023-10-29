@@ -2,6 +2,7 @@ import os
 import json
 import re
 import shutil
+import sys
 import time
 import zipfile
 import requests
@@ -228,10 +229,16 @@ def translate_batch_deepl(file_path, translated_map=None):
 
     # Read the final output and update the translated map
     result_map = {}
-    for before, after in zip(translated_parts_keys, translated_parts_value):
-        for key, value in translated_map.items():
-            if value == before:
+    if len(translated_parts_value) is len(translated_parts_keys):
+        for before, after in zip(translated_parts_keys, translated_parts_value):
+            for key, value in translated_map.items():
                 result_map[key] = after
+    else:
+        logging.error(f"the number of keys and values does not match.")
+        for before, after in zip(translated_parts_keys, translated_parts_value):
+            for key, value in translated_map.items():
+                if value == before:
+                    result_map[key] = after
 
     # Cleanup
     for part in chunks:
@@ -284,10 +291,14 @@ def translate_from_jar(log_directory):
 
     # 変数代入部分が消されないようDEEPL翻訳に送る前にクオートで囲みます。
     pattern = re.compile(r'%[dscf]')
+    for key, value in collected_map.items():
+        quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
+        collected_map[key] = quoted_value
+
+    # ファイルに書き込み
     with open('tmp.txt', 'w', encoding='utf-8') as f:
         for value in collected_map.values():
-            quoted_value = pattern.sub(lambda match: f'\'{match.group()}\'', value)
-            f.write(quoted_value + '\n')
+            f.write(value + '\n')
 
     translated_map = translate_batch_deepl('tmp.txt', collected_map)
 
