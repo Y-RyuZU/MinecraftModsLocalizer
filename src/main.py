@@ -20,7 +20,7 @@ QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
 
 USER = 'Y-RyuZU'
 REPO = 'MinecraftModsLocalizer'
-VERSION = 'v1.5.1'
+VERSION = 'v1.5.3'
 
 def get_latest_release_tag(user, repo):
     """
