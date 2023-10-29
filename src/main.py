@@ -123,8 +123,6 @@ def split_file(file_path, max_size=800000):  # max_size in bytes
 
 def translate_batch_deepl(file_path, translated_map=None):
     chunks = split_file(file_path)
-    translated_parts_value = []
-    translated_parts_keys = []
     result_map = {}
     timeout = 60 * 10
 
@@ -150,7 +148,7 @@ def translate_batch_deepl(file_path, translated_map=None):
             for line in content.splitlines():
                 part_keys.append(line.rstrip('\n'))
 
-            logging.info(f"The file {part} contains ({part_keys} lines, {char_count} characters)...")
+            logging.info(f"The file {part} contains ({len(part_keys)} lines, {char_count} characters)...")
 
         with open(part, 'rb') as f:
             response = requests.post(
@@ -238,11 +236,11 @@ def translate_batch_deepl(file_path, translated_map=None):
         # バッファを閉じる（メモリをクリーンアップ）
         buffer.close()
 
+        logging.info(f"key: {len(part_keys)}, value: {len(part_values)}")
         if len(part_keys) is len(part_values):
             result_map.update(dict(zip(part_keys, part_values)))
         else:
-            logging.info(
-                f"the number of keys and values does not match. key: {len(part_keys)}, value: {len(part_values)}")
+            logging.info("the number of keys and values does not match.")
             for key, value in translated_map.items():
                 if value == key:
                     result_map[key] = value
