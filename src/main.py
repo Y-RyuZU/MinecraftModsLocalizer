@@ -18,8 +18,8 @@ QUESTS_DIR1 = Path('./kubejs/assets/kubejs/lang')
 QUESTS_DIR2 = Path('./kubejs/assets/ftbquests/lang')
 QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
 
-USER = 'your_github_username'
-REPO = 'your_repository_name'
+USER = 'Y-RyuZU'
+REPO = 'MinecraftModsLocalizer'
 VERSION = 'v1.5.1'
 
 def get_latest_release_tag(user, repo):
