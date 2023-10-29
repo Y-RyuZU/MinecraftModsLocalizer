@@ -123,6 +123,8 @@ def split_file(file_path, max_size=800000):  # max_size in bytes
 
 def translate_batch_deepl(file_path, translated_map=None):
     chunks = split_file(file_path)
+    result_keys = []
+    result_values = []
     result_map = {}
     timeout = 60 * 10
 
@@ -236,17 +238,21 @@ def translate_batch_deepl(file_path, translated_map=None):
         # バッファを閉じる（メモリをクリーンアップ）
         buffer.close()
 
+        result_keys.extend(part_keys)
+        result_values.extend(part_values)
+
         logging.info(f"key: {len(part_keys)}, value: {len(part_values)}")
-        if len(part_keys) == len(part_values):
-            for before, after in zip(part_keys, part_values):
-                for key, value in translated_map.items():
+
+    if len(result_keys) == len(result_values):
+        for before, after in zip(result_keys, result_values):
+            for key, value in translated_map.items():
+                result_map[key] = after
+    else:
+        logging.info("the number of keys and values does not match.")
+        for before, after in zip(result_keys, result_values):
+            for key, value in translated_map.items():
+                if value == before:
                     result_map[key] = after
-        else:
-            logging.info("the number of keys and values does not match.")
-            for before, after in zip(part_keys, part_values):
-                for key, value in translated_map.items():
-                    if value == before:
-                        result_map[key] = after
 
     # Remove the temporary file
     for part in chunks:
