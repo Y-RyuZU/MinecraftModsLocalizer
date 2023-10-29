@@ -18,6 +18,32 @@ QUESTS_DIR1 = Path('./kubejs/assets/kubejs/lang')
 QUESTS_DIR2 = Path('./kubejs/assets/ftbquests/lang')
 QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
 
+USER = 'your_github_username'
+REPO = 'your_repository_name'
+VERSION = 'v1.5.1'
+
+def get_latest_release_tag(user, repo):
+    """
+    GitHubのリリースから最新のタグ名を取得する関数
+    """
+    url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()['tag_name']
+    else:
+        print(f"Error {response.status_code}: {response.text}")
+        return None
+
+def check_version():
+    """
+    定数VERSIONとGitHubの最新リリースのタグを比較する関数
+    """
+    latest_tag = get_latest_release_tag(USER, REPO)
+    if latest_tag:
+        if VERSION == latest_tag:
+            return True
+        else:
+            return False
 
 def extract_specific_file(zip_filepath, file_name, dest_dir):
     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
@@ -515,6 +541,11 @@ if __name__ == '__main__':
             UPLOAD_URL = f"https://api{suffix}.deepl.com/v2/document"
             CHECK_STATUS_URL_TEMPLATE = f"https://api{suffix}.deepl.com/v2/document/{{}}"
             DOWNLOAD_URL_TEMPLATE = f"https://api{suffix}.deepl.com/v2/document/{{}}/result"
+
+            # バージョンチェック
+            if not check_version():
+                sg.popup('Please update the localizer.')
+                break
 
             try:
                 if target == select_options[0]:
