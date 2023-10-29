@@ -18,6 +18,7 @@ QUESTS_DIR1 = Path('./kubejs/assets/kubejs/lang')
 QUESTS_DIR2 = Path('./kubejs/assets/ftbquests/lang')
 QUESTS_DIR3 = Path('./config/ftbquests/quests/chapters')
 
+
 def extract_specific_file(zip_filepath, file_name, dest_dir):
     with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
         if file_name in zip_ref.namelist():
@@ -26,6 +27,7 @@ def extract_specific_file(zip_filepath, file_name, dest_dir):
         else:
             logging.info(f"The file {file_name} in {zip_filepath} was not found in the ZIP archive.")
     return False
+
 
 def extract_map_from_json(file_path, collected_map):
     if os.path.exists(file_path):
@@ -45,9 +47,11 @@ def extract_map_from_json(file_path, collected_map):
                     break
 
         except json.JSONDecodeError:
-            logging.info(f"Failed to load or process JSON from {file_path}. Skipping this mod for translation. Please check the file for syntax errors.")
+            logging.info(
+                f"Failed to load or process JSON from {file_path}. Skipping this mod for translation. Please check the file for syntax errors.")
     else:
         logging.info(f"Could not find {file_path}. Skipping this mod for translation.")
+
 
 def get_mod_name_from_jar(jar_path):
     with zipfile.ZipFile(jar_path, 'r') as zip_ref:
@@ -59,6 +63,7 @@ def get_mod_name_from_jar(jar_path):
         if asset_dirs_with_lang:
             return list(asset_dirs_with_lang)[0]
     return None
+
 
 def clean_json_file(json_path):
     # コメントおよび空白行のパターンを正規表現で定義します。
@@ -77,6 +82,7 @@ def clean_json_file(json_path):
     # 不要な内容が削除されたJSONを新しいファイルに書き出します。
     with open(json_path, 'w', encoding='utf-8') as file:
         file.write(cleaned_content.strip())
+
 
 def split_file(file_path, max_size=800000):  # max_size in bytes
     """Split text file into smaller parts based on line endings, keeping the file size below max_size bytes."""
@@ -115,33 +121,36 @@ def split_file(file_path, max_size=800000):  # max_size in bytes
     return parts
 
 
-
 def translate_batch_deepl(file_path, translated_map=None):
     chunks = split_file(file_path)
     translated_parts_value = []
     translated_parts_keys = []
+    result_map = {}
     timeout = 60 * 10
 
     with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
         char_count = len(f.read())
 
-        f.seek(0)
         if translated_map is None:
-            translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in f}
+            translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in content.splitlines()}
 
-        logging.info(f"The file {file_path} contains ({len(translated_map)} strings, {char_count} characters)...")
+        logging.info(f"The file {file_path} contains ({len(translated_map)} lines, {char_count} characters)...")
 
     for part in chunks:
         start_time = time.time()
 
+        part_keys = []
+
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
+            content = f.read()
             char_count = len(f.read())
-            logging.info(f"The file {part} contains ({char_count} characters)...")
 
-            f.seek(0)
-            for line in f:
-                translated_parts_keys.append(line.rstrip('\n'))
+            for line in content.splitlines():
+                part_keys.append(line.rstrip('\n'))
+
+            logging.info(f"The file {part} contains ({part_keys} lines, {char_count} characters)...")
 
         with open(part, 'rb') as f:
             response = requests.post(
@@ -216,30 +225,27 @@ def translate_batch_deepl(file_path, translated_map=None):
 
         buffer = BytesIO(download_response.content)
 
+        part_values = []
+
         # バッファの内容を文字列として読み取る（エンコーディングを指定）
         buffer.seek(0)  # バッファの先頭にカーソルを移動
         text_data = buffer.read().decode('utf-8')
 
         # テキストデータを行ごとに処理
-        translated_parts_value = []
         for line in text_data.splitlines():
-            translated_parts_value.append(line.rstrip('\n'))
+            part_values.append(line.rstrip('\n'))
 
         # バッファを閉じる（メモリをクリーンアップ）
         buffer.close()
 
-    # Read the final output and update the translated map
-    result_map = {}
-    if len(translated_parts_value) is len(translated_parts_keys):
-        for before, after in zip(translated_parts_keys, translated_parts_value):
+        if len(part_keys) is len(part_values):
+            result_map.update(dict(zip(part_keys, part_values)))
+        else:
+            logging.info(
+                f"the number of keys and values does not match. key: {len(part_keys)}, value: {len(part_values)}")
             for key, value in translated_map.items():
-                result_map[key] = after
-    else:
-        logging.info(f"the number of keys and values does not match. key: {len(translated_parts_keys)}, value: {len(translated_parts_value)}")
-        for before, after in zip(translated_parts_keys, translated_parts_value):
-            for key, value in translated_map.items():
-                if value == before:
-                    result_map[key] = after
+                if value == key:
+                    result_map[key] = value
 
     # Cleanup
     for part in chunks:
@@ -249,6 +255,7 @@ def translate_batch_deepl(file_path, translated_map=None):
     logging.info(f"Found {len(translated_map)} strings.")
     logging.info(f"Translated {len(result_map)} strings.")
     return result_map
+
 
 def process_jar_file(log_directory, jar_path, collected_map):
     mod_name = get_mod_name_from_jar(jar_path)
@@ -274,6 +281,7 @@ def process_jar_file(log_directory, jar_path, collected_map):
     extract_map_from_json(en_us_path, collected_map)
     extract_map_from_json(ja_jp_path, collected_map)
 
+
 def translate_from_jar(log_directory):
     if not os.path.exists(RESOURCE_DIR):
         os.makedirs(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang'))
@@ -285,7 +293,8 @@ def translate_from_jar(log_directory):
         if filename.endswith('.jar'):
             # Extract pack.mcmeta if it exists in the jar
             if not extracted_pack_mcmeta:
-                extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta', RESOURCE_DIR)
+                extracted_pack_mcmeta = extract_specific_file(os.path.join(MODS_DIR, filename), 'pack.mcmeta',
+                                                              RESOURCE_DIR)
                 update_description(os.path.join(RESOURCE_DIR, 'pack.mcmeta'), '日本語化パック')
 
             process_jar_file(log_directory, os.path.join(MODS_DIR, filename), collected_map)
@@ -312,6 +321,7 @@ def translate_from_jar(log_directory):
     with open(os.path.join(RESOURCE_DIR, 'assets', 'japanese', 'lang', 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
 
+
 def translate_quests_from_json(file_path):
     collected_map = {}
 
@@ -329,6 +339,7 @@ def translate_quests_from_json(file_path):
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
     with open(os.path.join(QUESTS_DIR2 / 'ja_jp.json'), 'w', encoding="utf-8") as f:
         json.dump(dict(sorted(translated_map.items())), f, ensure_ascii=False, indent=4)
+
 
 def translate_quests_from_snbt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -372,6 +383,7 @@ def translate_quests_from_snbt(file_path):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
+
 def translate_quests(log_directory):
     # バックアップ用のディレクトリを作成
     backup_directory = log_directory / 'quests'
@@ -394,6 +406,7 @@ def translate_quests(log_directory):
             translate_quests_from_snbt(file)
 
     logging.info("Traslate snbt files Done!")
+
 
 def update_description(file_path, new_description):
     # ファイルが存在するか確認
@@ -422,8 +435,8 @@ def update_description(file_path, new_description):
         except Exception as e:
             return
 
-def setup_logging(directory):
 
+def setup_logging(directory):
     log_file = "translate.log"
 
     # ディレクトリが存在しない場合は作成
@@ -442,6 +455,7 @@ def setup_logging(directory):
             logging.StreamHandler(sys.stdout)  # ログをコンソールに出力
         ]
     )
+
 
 if __name__ == '__main__':
     # セレクトボックスのオプション
