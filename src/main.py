@@ -237,7 +237,7 @@ def translate_batch_deepl(file_path, translated_map=None):
         buffer.close()
 
         logging.info(f"key: {len(part_keys)}, value: {len(part_values)}")
-        if len(part_keys) is len(part_values):
+        if len(part_keys) == len(part_values):
             result_map.update(dict(zip(part_keys, part_values)))
         else:
             logging.info("the number of keys and values does not match.")
