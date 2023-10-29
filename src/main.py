@@ -241,9 +241,10 @@ def translate_batch_deepl(file_path, translated_map=None):
             result_map.update(dict(zip(part_keys, part_values)))
         else:
             logging.info("the number of keys and values does not match.")
-            for key, value in translated_map.items():
-                if value == key:
-                    result_map[key] = value
+            for before, after in zip(part_keys, part_values):
+                for key, value in translated_map.items():
+                    if value == before:
+                        result_map[key] = after
 
     # Remove the temporary file
     for part in chunks:
