@@ -128,7 +128,7 @@ def translate_batch_deepl(file_path, translated_map=None):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-        char_count = len(f.read())
+        char_count = len(content)
 
         if translated_map is None:
             translated_map = {line.rstrip('\n'): line.rstrip('\n') for line in content.splitlines()}
@@ -143,7 +143,7 @@ def translate_batch_deepl(file_path, translated_map=None):
         # Get original keys for this part
         with open(part, 'r', encoding='utf-8') as f:
             content = f.read()
-            char_count = len(f.read())
+            char_count = len(content)
 
             for line in content.splitlines():
                 part_keys.append(line.rstrip('\n'))
