@@ -243,6 +243,7 @@ def translate_batch_deepl(file_path, translated_map=None):
 
         logging.info(f"key: {len(part_keys)}, value: {len(part_values)}")
 
+    logging.info(f"result_keys: {len(result_keys)}, result_values: {len(result_values)}")
     if len(result_keys) == len(result_values) and len(result_keys) == len(translated_map):
         keys_list = list(translated_map.keys())
         for idx, (before, after) in enumerate(zip(result_keys, result_values)):
@@ -250,8 +251,8 @@ def translate_batch_deepl(file_path, translated_map=None):
             result_map[key] = after
     else:
         logging.info("the number of keys and values does not match.")
-        for before, after in zip(result_keys, result_values):
-            for key, value in translated_map.items():
+        for key, value in translated_map.items():
+            for before, after in zip(result_keys, result_values):
                 if value == before:
                     result_map[key] = after
 
