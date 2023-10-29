@@ -245,7 +245,7 @@ def translate_batch_deepl(file_path, translated_map=None):
                 if value == key:
                     result_map[key] = value
 
-    # Cleanup
+    # Remove the temporary file
     for part in chunks:
         os.remove(part)
 
