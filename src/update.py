@@ -1,4 +1,4 @@
-from src.init import USER, REPO, VERSION
+from init import USER, REPO, VERSION
 import requests
 
 

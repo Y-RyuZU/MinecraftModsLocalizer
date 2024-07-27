@@ -4,9 +4,9 @@ import os
 import re
 import shutil
 
-from src.init import QUESTS_DIR1, QUESTS_DIR2, QUESTS_DIR3
-from src.provider import provide_log_directory
-from src.prepare import extract_map_from_json, prepare_translation
+from init import QUESTS_DIR1, QUESTS_DIR2, QUESTS_DIR3
+from provider import provide_log_directory
+from prepare import extract_map_from_json, prepare_translation
 
 
 def translate_quests_from_json(file_path):

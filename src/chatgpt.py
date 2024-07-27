@@ -3,7 +3,7 @@ import re
 import time
 from openai import OpenAI
 
-from src.provider import provide_api_key, provide_model, provide_prompt
+from provider import provide_api_key, provide_model, provide_prompt
 
 
 def translate_with_chatgpt(split_target, timeout):

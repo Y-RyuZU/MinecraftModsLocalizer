@@ -4,9 +4,9 @@ import logging
 import os
 import re
 
-from src.init import MAX_ATTEMPTS
-from src.chatgpt import translate_with_chatgpt
-from src.provider import provide_chunk_size
+from init import MAX_ATTEMPTS
+from chatgpt import translate_with_chatgpt
+from provider import provide_chunk_size
 
 
 def extract_map_from_json(file_path):

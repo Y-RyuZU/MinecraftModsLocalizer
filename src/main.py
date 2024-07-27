@@ -3,11 +3,11 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from src.provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory
-from src.jar import translate_from_jar
-from src.log import setup_logging
-from src.quests import translate_quests
-from src.update import check_version
+from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory
+from jar import translate_from_jar
+from log import setup_logging
+from quests import translate_quests
+from update import check_version
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ import time
 from io import BytesIO
 import requests
 
-from src.main import API_KEY
+from main import API_KEY
 
 # DEEPL_API_URL = f'https://api{suffix}.deepl.com/v2/translate'
 # UPLOAD_URL = f"https://api{suffix}.deepl.com/v2/document"
