@@ -13,4 +13,4 @@ COPY ./src /app/src
 WORKDIR /app/src
 
 # 依存関係のインストール
-RUN pip install --no-cache-dir pyzipper requests pyinstaller PySimpleGUI
+RUN pip install --no-cache-dir pyzipper requests pyinstaller TkEasyGUI openai
