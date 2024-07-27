@@ -90,7 +90,7 @@ ModPackなどの一括翻訳などにご利用ください
 - questsの翻訳は、kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
 - 存在する場合kubejs/assets/kubejs/lang/ja_jp.json と kubejs/assets/ftbquests/lang/ja_jp.jsonを作成し、そこに翻訳を追加します。
 - 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
-
+[dawncraft.snbt](src%2Fconfig%2Fftbquests%2Fquests%2Fchapters%2Fdawncraft.snbt)
 ## ログとバックアップ
 
 - 実行ログは`logs/localizer/{日付}`内に保存されます。これには、コンソールログと翻訳前ファイルのバックアップが含まれます。
