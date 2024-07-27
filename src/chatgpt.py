@@ -11,7 +11,7 @@ def translate_with_chatgpt(split_target, timeout):
     result = []
 
     # 改行を削除(翻訳時扱いがめんどくさいため)
-    split_target = [line.replace('\\n', '').replace('\n', '') for line in split_target]
+    split_target = [line.replace('\\n', '').replace('\n', '') for line in split_target] if len(split_target) > 1 else split_target
 
     # APIキーとクライアントの初期化
     client = OpenAI(api_key=provide_api_key())

@@ -9,6 +9,17 @@ from chatgpt import translate_with_chatgpt
 from provider import provide_chunk_size
 
 
+def extract_map_from_lang(filepath):
+    collected_map = {}
+    with open(filepath, 'r', encoding='utf-8') as file:
+        for line in file:
+            line = line.strip()  # 余分な空白や改行を削除
+            if line and not line.startswith('#'):
+                key, value = line.split('=', 1)
+                collected_map[key.strip()] = value.strip()
+    return collected_map
+
+
 def extract_map_from_json(file_path):
     collected_map = {}
 

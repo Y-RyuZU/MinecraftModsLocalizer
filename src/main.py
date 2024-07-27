@@ -6,18 +6,15 @@ from datetime import datetime
 from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory
 from jar import translate_from_jar
 from log import setup_logging
-from quests import translate_quests
+from quests import translate_ftbquests, translate_betterquesting
 from update import check_version
 
 
 if __name__ == '__main__':
-    # セレクトボックスのオプション
-    select_options = ['Mod', 'Quests', 'All']
-
     # レイアウトの定義
     layout = [
         [sg.Text("Translate Target")],
-        [sg.Combo(select_options, default_value=select_options[2], key='target', size=(20, 1), expand_x=True)],
+        [sg.Radio('Mod', key='target1', group_id=1, default=True), sg.Radio('FtbQuests', key='target2', group_id=1), sg.Radio('BetterQuesting', key='target3', group_id=1)],
         [sg.Text("OpenAI API KEY")],
         [sg.InputText(key='OPENAI_API_KEY', expand_x=True)],
         [sg.Text("Chunk Size")],
@@ -58,7 +55,6 @@ if __name__ == '__main__':
         # 送信ボタンが押された場合
         if event == 'translate':
             # 入力された値を取得
-            target = values['target']
             set_api_key(values['OPENAI_API_KEY'])
             set_chunk_size(int(values['CHUNK_SIZE']))
             set_model(values['MODEL'])
@@ -70,13 +66,12 @@ if __name__ == '__main__':
                 break
 
             try:
-                if target == select_options[0]:
+                if values['target1']:
                     translate_from_jar()
-                elif target == select_options[1]:
-                    translate_quests()
-                elif target == select_options[2]:
-                    translate_from_jar()
-                    translate_quests()
+                elif values['target2']:
+                    translate_ftbquests()
+                elif values['target3']:
+                    translate_betterquesting()
             except Exception as e:
                 logging.error(e)
                 sg.popup('翻訳失敗')
