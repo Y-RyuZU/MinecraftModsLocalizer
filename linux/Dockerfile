@@ -15,4 +15,4 @@ RUN rm -rf /var/lib/apt/lists/*
 
 # Copy code and install Python dependencies
 COPY ./src /src
-RUN pip install --no-cache-dir pyzipper requests pyinstaller PySimpleGUI
+RUN pip install --no-cache-dir pyzipper requests pyinstaller TkEasyGUI openai

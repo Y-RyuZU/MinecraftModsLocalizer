@@ -15,4 +15,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY . /src
 
 # 必要なPythonパッケージをインストール
-RUN pip install --no-cache-dir pyzipper requests pyinstaller PySimpleGUI
+RUN pip install --no-cache-dir pyzipper requests pyinstaller TkEasyGUI openai
