@@ -44,7 +44,7 @@ def translate_quests_from_snbt(file_path):
     description_pattern = r'description: \[\s*([\s\S]*?)\s*\]'
     description_matches = re.findall(description_pattern, content)
     for match in description_matches:
-        for inner_match in re.findall(r'"(.*?)"', match):
+        for inner_match in re.findall(r'(?<!\\)"(.*?)(?<!\\)"', match):
             if inner_match:  # Non-empty strings
                 extracted_strings.append(inner_match)
 
