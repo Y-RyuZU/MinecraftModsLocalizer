@@ -5,7 +5,7 @@ ENV chocolateyVersion=1.4.0
 RUN powershell -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
 
 # Pythonのインストール
-RUN powershell -Command "choco install -y python --version 3.8.10"
+RUN powershell -Command "choco install -y python --version 3.12.0"
 
 
 # ホストマシンのコードをコンテナにコピー
