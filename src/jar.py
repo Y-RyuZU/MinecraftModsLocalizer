@@ -5,9 +5,9 @@ import re
 import zipfile
 from pathlib import Path
 
-from src.init import RESOURCE_DIR, MODS_DIR
-from src.provider import provide_log_directory
-from src.prepare import extract_map_from_json, prepare_translation
+from init import RESOURCE_DIR, MODS_DIR
+from provider import provide_log_directory
+from prepare import extract_map_from_json, prepare_translation
 
 
 def process_jar_file(jar_path):
