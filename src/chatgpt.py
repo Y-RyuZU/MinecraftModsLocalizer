@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from openai import OpenAI
 
@@ -36,6 +37,7 @@ def translate_with_chatgpt(split_target, timeout):
         if response.choices and response.choices[0].message:
             translated_text = response.choices[0].message.content
             result = translated_text.splitlines() if len(split_target) > 1 else [translated_text.replace('\n', '')]
+            result = [re.sub(r'(?<!\\)"', r'\\"', line) for line in result]
         else:
             logging.error("Failed to get a valid response from the ChatGPT model.")
 
