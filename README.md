@@ -2,7 +2,7 @@
 
 
 # **New!! 翻訳に使用するAIをChatGPTに変更しました！API料金が大幅に安くなり、精度も格段に良くなりました！ファイル構造の崩壊、特殊文字無視とはバイバイ！**
-
+あとBetterQuestingに対応しました。RLCraftとかする人はどうぞ
 
 
 このツールは、MinecraftのModとModPackのQuestsを日本語に翻訳するためのものです。
@@ -25,7 +25,7 @@
 
 **ソフト名:** MinecraftModsLocalizer
 
-このソフトウェアは、ChatGPTを使用して、MinecraftのMod本体とftbquestsのQuestを日本語に翻訳する機能を提供します。
+このソフトウェアは、ChatGPTを使用して、MinecraftのMod本体とBetterQuestingまたはftbquestsのQuestを日本語に翻訳する機能を提供します。
 
 ModPackなどの一括翻訳などにご利用ください
 
@@ -41,6 +41,7 @@ ModPackなどの一括翻訳などにご利用ください
 - DawnCraft (Forge)
 - ATM9 (Forge)
 - Create Astral (Fabric)
+- RLCraft (Forge)
 
 ## インストール前の要件
 
@@ -58,6 +59,7 @@ ModPackなどの一括翻訳などにご利用ください
 ├── minecraft-mods-localizer-windows.exe
 ├── config/
 ├── kubejs/
+├── resources/
 ├── mods/
 └── logs/
     └── localizer/
@@ -78,7 +80,7 @@ ModPackなどの一括翻訳などにご利用ください
 - questsは`kubejs/assets/kubejs/lang/`または`config/ftbquests/quests/chapters`(両方ある場合はlangの方が翻訳元になります)の中にあります。
 
 ### 各項目について
-- **Translate Target:** 翻訳対象を選択します。Mod本体の翻訳、Questsの翻訳、または両方を選択できます。
+- **Translate Target:** 翻訳対象を選択します。
 - **OpenAI API KEY:** OpenAIのAPI_KEYを入力してください。
 - **Chunk Size** ファイルを分割して翻訳するため、一つあたりの行数を指定します。下げると翻訳速度が低下しますが精度が上昇します。また、下げると翻訳失敗時に翻訳されなかった部分が減ります。単体mod翻訳やクエストのみの翻訳では1、ModPackで大量のModを一括で翻訳するときは100くらいまで上げることをお勧めします(翻訳時間がすごいことになります)
 - **Model** 弄らないことをお勧めします。OpenAIからより良いモデルが出たときは変更してもよいかもしれません。
@@ -87,10 +89,10 @@ ModPackなどの一括翻訳などにご利用ください
 ## 出力ファイル
 
 - mod本体の翻訳は、リソースパックとして出力され、`resourcepacks/japanese`に保存されます。
-- questsの翻訳は、kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
-- 存在する場合kubejs/assets/kubejs/lang/ja_jp.json と kubejs/assets/ftbquests/lang/ja_jp.jsonを作成し、そこに翻訳を追加します。
-- 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
-[dawncraft.snbt](src%2Fconfig%2Fftbquests%2Fquests%2Fchapters%2Fdawncraft.snbt)
+- questsの翻訳は、`kubejs/assets/kubejs/lang/en_us.json`が存在するか調べます(BetterQuestingの場合`recourses/betterquesting/lang`)
+- 存在する場合`kubejs/assets/kubejs/lang/ja_jp.json` と `kubejs/assets/ftbquests/lang/ja_jp.json`を作成し、そこに翻訳を追加します。
+- 存在しない場合直接`config/ftbquests/quests/chapters/ファイル(.snbt)`を書き換え翻訳します。
+
 ## ログとバックアップ
 
 - 実行ログは`logs/localizer/{日付}`内に保存されます。これには、コンソールログと翻訳前ファイルのバックアップが含まれます。
@@ -110,10 +112,10 @@ ModPackなどの一括翻訳などにご利用ください
 
 - **mod本体翻訳:** modファイル(.jar)から`assets/{mod名}/lang/ja_jp.json` または `assets/{mod名}/lang/en_us.json`を抽出し、その中で日本語の値を持たないものを翻訳し、リソースパックを作成します。
 - リソースパックのpack.mcmetaは最初に見つけたjarファイルのものを使用します。descriptionなどはお好みで変更してください。
-- **quests翻訳:** kubejs/assets/kubejs/lang/en_us.jsonが存在するか調べます
-- 存在する場合kubejs/assets/kubejs/lang/en_us.jsonを読み込み翻訳を行います
-- 存在しない場合直接config/ftbquests/quests/chapters/ファイル(.snbt)を書き換え翻訳します。
-- また、kubejs/assets/kubejs/lang/en_us.jsonに本来jsonとして無効なコメントが含まれている場合、改行コード(\n)がクエスト内容に存在する場合消し飛ばします(Create Astralで確認)。扱いめんどくさかった。許して❤
+- **quests翻訳:** `kubejs/assets/kubejs/lang/en_us.json`が存在するか調べます
+- 存在する場合`kubejs/assets/kubejs/lang/en_us.json`を読み込み翻訳を行います
+- 存在しない場合直接`config/ftbquests/quests/chapters/ファイル(.snbt)`を書き換え翻訳します。
+- また、`kubejs/assets/kubejs/lang/en_us.json`に本来jsonとして無効なコメントが含まれている場合、改行コード(\n)がクエスト内容に存在する場合消し飛ばします(Create Astralで確認)。扱いめんどくさかった。許して❤
 - 翻訳前と後の行数が異なる場合最大5回までもう一度翻訳を試みます。それでもダメな場合はそのチャンクは翻訳されません。
 
 ## 将来のアップデートと余談
