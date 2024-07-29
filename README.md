@@ -1,5 +1,8 @@
 # MinecraftModsLocalizer ユーザーガイド
-
+![image1.png](/docs/assets/image1.png)
+![image2.png](/docs/assets/image2.png)
+![image3.png](/docs/assets/image3.png)
+![image4.png](/docs/assets/image4.png)
 
 # **New!! 翻訳に使用するAIをChatGPTに変更しました！API料金が大幅に安くなり(ATM9で0.5ドル以下)、精度も格段に良くなりました！ファイル構造の崩壊、特殊文字無視とはバイバイ！**
 あとBetterQuestingに対応しました。RLCraftとかする人はどうぞ
