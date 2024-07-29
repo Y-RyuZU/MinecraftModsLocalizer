@@ -4,7 +4,7 @@ import os
 import re
 import shutil
 
-from init import FTBQUESTS_DIR1, FTBQUESTS_DIR2, FTBQUESTS_DIR3, BETTERQUESTING_DIR
+from init import FTBQUESTS_DIR1, FTBQUESTS_DIR2, FTBQUESTS_DIR3, FTBQUESTS_DIR4, BETTERQUESTING_DIR
 from provider import provide_log_directory
 from prepare import extract_map_from_lang, extract_map_from_json, prepare_translation
 
@@ -105,6 +105,10 @@ def translate_ftbquests():
     else:
         logging.info(f"en_us.json not found in {FTBQUESTS_DIR1}, translating snbt files in directory...")
         nbt_files = list(FTBQUESTS_DIR3.glob('*.snbt'))
+
+        backup_file = backup_directory / FTBQUESTS_DIR4.name
+        shutil.copy(FTBQUESTS_DIR4, backup_file)
+        translate_ftbquests_from_snbt(FTBQUESTS_DIR4)
 
         for file in nbt_files:
             backup_file = backup_directory / file.name
