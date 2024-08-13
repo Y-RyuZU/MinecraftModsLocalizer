@@ -31,7 +31,7 @@ def extract_map_from_json(file_path):
 
             # 値が英語でコメント以外のキーのみを保存します。
             for key, value in content.items():
-                if not key.startswith("_comment") and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
+                if not key.startswith("_comment") and isinstance(value, str) and not re.search('[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF]', value):
                     collected_map[key] = value
 
         except json.JSONDecodeError:

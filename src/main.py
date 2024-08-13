@@ -80,5 +80,15 @@ if __name__ == '__main__':
                 sg.popup('翻訳失敗')
                 break
 
+
+            # if values['target1']:
+            #     translate_from_jar()
+            # elif values['target2']:
+            #     translate_ftbquests()
+            # elif values['target3']:
+            #     translate_betterquesting()
+            # elif values['target4']:
+            #     translate_patchouli()
+
             sg.popup('翻訳成功！')
             break
