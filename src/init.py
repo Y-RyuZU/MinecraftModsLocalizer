@@ -12,4 +12,4 @@ MAX_ATTEMPTS = 5
 
 USER = 'Y-RyuZU'
 REPO = 'MinecraftModsLocalizer'
-VERSION = 'v2.0.6'
+VERSION = 'v2.1.0'

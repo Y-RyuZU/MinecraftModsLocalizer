@@ -1,13 +1,12 @@
 import json
 import logging
 import os
-import re
 import zipfile
 from pathlib import Path
 
 from init import RESOURCE_DIR, MODS_DIR
-from provider import provide_log_directory
 from prepare import extract_map_from_json, prepare_translation
+from provider import provide_log_directory
 
 
 def process_jar_file(jar_path):
