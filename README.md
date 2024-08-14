@@ -3,7 +3,8 @@
 ![image2.png](/docs/assets/image2.png)
 ![image3.png](/docs/assets/image3.png)
 ![image4.png](/docs/assets/image4.png)
-![image4.png](/docs/assets/image5.png)
+![image5.png](/docs/assets/image5.png)
+![image6.png](/docs/assets/image6.png)
 
 # **New!! 翻訳に使用するAIをChatGPTに変更しました！API料金が大幅に安くなり(ATM9で0.5ドル以下)、精度も格段に良くなりました！ファイル構造の崩壊、特殊文字無視とはバイバイ！**
 あとBetterQuestingに対応しました。RLCraftとかする人はどうぞ
@@ -29,7 +30,7 @@
 
 **ソフト名:** MinecraftModsLocalizer
 
-このソフトウェアは、ChatGPTを使用して、MinecraftのMod本体とBetterQuestingまたはftbquestsのQuestを日本語に翻訳する機能を提供します。
+このソフトウェアは、ChatGPTを使用して、MinecraftのMod本体、BetterQuestingまたはftbquestsのQuest、Patchouliを日本語に翻訳する機能を提供します。
 
 ModPackなどの一括翻訳などにご利用ください
 
@@ -74,14 +75,15 @@ ModPackなどの一括翻訳などにご利用ください
 ## 使い方
 
 1. OpenAIのAPI KEYを取得し、ソフトウェアに提供します(ググると取得方法はいっぱい出ると思います)。
-2. ソフトウェアを起動し、指示に従ってModまたはQuestsの翻訳を開始します。
+2. ソフトウェアを起動し、指示に従って翻訳を開始します。
 
-**超巨大なModPack(ATM9のような)でも0.5ドル以下で翻訳できると思います。本当に安くなった。**
+**超巨大なModPack(ATM9のような)で全てを翻訳しても0.5ドル以下で翻訳できると思います。本当に安くなった。**
 
 特定のmod(.jar)やquestファイル(.snbt)のみを翻訳したい場合は、それらのファイルを取り除いてください。
 
 - modは`mods`フォルダ内にあります。
 - questsは`kubejs/assets/kubejs/lang/`または`config/ftbquests/quests/chapters`(両方ある場合はlangの方が翻訳元になります)の中にあります。
+
 
 ### 各項目について
 - **Translate Target:** 翻訳対象を選択します。
@@ -96,6 +98,7 @@ ModPackなどの一括翻訳などにご利用ください
 - questsの翻訳は、`kubejs/assets/kubejs/lang/en_us.json`が存在するか調べます(BetterQuestingの場合`recourses/betterquesting/lang`)
 - 存在する場合`kubejs/assets/kubejs/lang/ja_jp.json` と `kubejs/assets/ftbquests/lang/ja_jp.json`を作成し、そこに翻訳を追加します。
 - 存在しない場合直接`config/ftbquests/quests/chapters/ファイル(.snbt)`を書き換え翻訳します。
+- Patchouliは各Modのjarファイルを解析し、Patchouliのjsonファイルが確認できた場合に翻訳を行います。翻訳後のファイルは`{mod.jar}}/assets/{mod_name}/patchouli_books/{guide_name}/ja_jp`に保存されます。
 
 ## ログとバックアップ
 
@@ -110,7 +113,7 @@ ModPackなどの一括翻訳などにご利用ください
 - どうしても翻訳が失敗してしまうことがあるので、気になる方は
 - Mod: `logs/localizer/error`から手動でjsonを編集し、`resourcepacks/japanese/lang/ja_jp.json`に追記してください
 - Quest: `logs/localizer/error`から手動でjsonを編集し、`/kubejs/assets/kubejs/lang/ja_jp.json`に追記してください
-- ※なお、Questの場合snbtファイルに直書き形式であった場合errorディレクトリに記録が残りません。
+- ※なお、Questの場合snbtファイルに直書き形式であった場合errorディレクトリに記録が残りません。Patchouliのログも残りません。
 
 ## 内部実装について
 
