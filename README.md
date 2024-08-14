@@ -7,10 +7,12 @@
 ![image6.png](/docs/assets/image6.png)
 
 # **New!! 翻訳に使用するAIをChatGPTに変更しました！API料金が大幅に安くなり(ATM9で0.5ドル以下)、精度も格段に良くなりました！ファイル構造の崩壊、特殊文字無視とはバイバイ！**
-あとBetterQuestingに対応しました。RLCraftとかする人はどうぞ
 
-
-このツールは、MinecraftのModとModPackのQuestsを日本語に翻訳するためのものです。
+このツールは、Minecraft
+- Mod本体
+- FTBQuests、BetterQuestingによるModPackのクエスト
+- Patchouliによるガイドブック
+を日本語に翻訳するためのものです。
 ## 注意事項はより良い翻訳のために読むことを推奨します
 
 ## 目次
