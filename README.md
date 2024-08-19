@@ -12,6 +12,7 @@
 - Mod本体
 - FTBQuests、BetterQuestingによるModPackのクエスト
 - Patchouliによるガイドブック
+
 を日本語に翻訳するためのものです。
 ## 注意事項はより良い翻訳のために読むことを推奨します
 
