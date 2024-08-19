@@ -33,6 +33,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Install Docker on macOS
+        run: |
+          brew install --cask docker
+          open /Applications/Docker.app
+          while ! docker system info > /dev/null 2>&1; do sleep 1; done
+
       - name: Build Docker image
         run: docker build --no-cache -f ./linux/Dockerfile -t pyinstaller-linux .
 
@@ -85,7 +91,7 @@ jobs:
         with:
           name: minecraft-mods-localizer-linux
           path: ./linux/dist/minecraft-mods-localizer-linux-${{ github.ref_name }}
-
+  
   create-release:
     needs:
       - build-linux
