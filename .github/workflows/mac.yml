@@ -12,15 +12,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Install Docker on macOS
+        run: |
+          brew install --cask docker
+          open /Applications/Docker.app
+          while ! docker system info > /dev/null 2>&1; do sleep 1; done
+
       - name: Build Docker image
-        run: docker build --no-cache -f ./linux/Dockerfile -t pyinstaller-macos .
+        run: docker build --no-cache -f ./linux/Dockerfile -t pyinstaller-linux .
 
       - name: Create dist directory
         run: mkdir -p macos/dist
 
       - name: Run Docker container
         run: docker run --rm -v "${{ github.workspace }}/macos/dist:/dist" \
-          pyinstaller-macos pyinstaller main.py \
+          pyinstaller-linux pyinstaller main.py \
           --onedir --onefile --clean --console \
           --distpath /dist \
           --workpath /build \
