@@ -1,0 +1,6 @@
+services:
+  devcontainer:
+    build:
+      context: ../
+      dockerfile: .devcontainer/Dockerfile
+    container_name: minecraft_mods_localizer
