@@ -12,21 +12,51 @@ from update import check_version
 
 
 if __name__ == '__main__':
-    # レイアウトの定義
-    layout = [
+    # APIエンドポイントの選択肢
+    api_endpoints = [
+        "",
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "https://api.openai.com/v1",
+        "https://api.perplexity.ai",
+        "https://api.anthropic.com/v1",
+        "https://api.mistral.ai/v1",
+        "https://api.groq.com/openai/v1"
+    ]
+    
+    # 保存されている値があれば取得
+    current_api_base = provide_api_base() or ""
+    
+    # 既存のエンドポイントリストに含まれていない場合は追加
+    if current_api_base and current_api_base not in api_endpoints:
+        api_endpoints.insert(1, current_api_base)
+    
+    # メイン設定タブのレイアウト
+    main_tab_layout = [
         [sg.Text("Translate Target")],
         [sg.Radio('Mod', key='target1', group_id=1, default=True), sg.Radio('FtbQuests', key='target2', group_id=1), sg.Radio('BetterQuesting', key='target3', group_id=1), sg.Radio('Patchouli', key='target4', group_id=1)],
         [sg.Text("OpenAI API KEY")],
         [sg.InputText(key='OPENAI_API_KEY', expand_x=True)],
-        [sg.Text("API Base URL (Optional)")],
-        [sg.InputText(key='API_BASE', default_text=provide_api_base() or "", expand_x=True)],
         [sg.Text("Chunk Size")],
         [sg.Text("単体mod翻訳、クエスト、Patchouliの翻訳では1\nModPackで大量のModを一括で翻訳するときは100くらいまで上げることをお勧めします(1だと翻訳時間がすごいことになります)")],
         [sg.Slider(range=(1, 200), key='CHUNK_SIZE', default_value=provide_chunk_size(), expand_x=True)],
+    ]
+    
+    # 高度な設定タブのレイアウト
+    advanced_tab_layout = [
+        [sg.Text("API Base URL (Optional)")],
+        [sg.Combo(api_endpoints, default_value=current_api_base, key='API_BASE', expand_x=True, enable_events=True, readonly=False)],
         [sg.Text("Model")],
         [sg.InputText(key='MODEL', default_text=provide_model(), expand_x=True)],
         [sg.Text("Prompt")],
-        [sg.Multiline(key='PROMPT', default_text=provide_prompt(), expand_x=True)],
+        [sg.Multiline(key='PROMPT', default_text=provide_prompt(), expand_x=True, size=(80, 10))],
+    ]
+    
+    # 全体のレイアウトの定義
+    layout = [
+        [sg.TabGroup([
+            [sg.Tab('メイン設定', main_tab_layout), 
+             sg.Tab('高度な設定', advanced_tab_layout)]
+        ], expand_x=True, expand_y=True)],
         [sg.Button("Translate", key='translate')]
     ]
 
