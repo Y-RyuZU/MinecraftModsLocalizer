@@ -67,7 +67,7 @@ if __name__ == '__main__':
     ]
 
     # ウィンドウの作成
-    window = sg.Window('MinecraftModLocalizer', layout, size=(900, 500))
+    window = sg.Window('MinecraftModLocalizer', layout, size=(900, 500), resizable=True)
 
     # 現在の日時を取得
     now = datetime.now()
