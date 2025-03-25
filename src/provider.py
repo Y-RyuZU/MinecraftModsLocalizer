@@ -1,6 +1,7 @@
 API_KEY = None
 CHUNK_SIZE = 1
 MODEL = 'gpt-4o-mini-2024-07-18'
+API_BASE = None  # OpenAI互換APIのベースURL
 PROMPT = """You are a professional translator. Please translate the following English text into Japanese, one line at a time, step by step, in order
 Make sure that the number of lines of text before and after translation is the same. Never add or subtract extra lines.
 
@@ -61,6 +62,18 @@ def set_api_key(api_key):
     global API_KEY
 
     API_KEY = api_key
+
+
+def provide_api_base():
+    global API_BASE
+
+    return API_BASE
+
+
+def set_api_base(api_base):
+    global API_BASE
+
+    API_BASE = api_base
 
 
 def provide_chunk_size():

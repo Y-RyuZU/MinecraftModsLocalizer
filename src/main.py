@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory
+from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory, set_api_base, provide_api_base
 from mod import translate_from_jar
 from quests import translate_ftbquests, translate_betterquesting
 from patchouli import translate_patchouli
@@ -18,6 +18,8 @@ if __name__ == '__main__':
         [sg.Radio('Mod', key='target1', group_id=1, default=True), sg.Radio('FtbQuests', key='target2', group_id=1), sg.Radio('BetterQuesting', key='target3', group_id=1), sg.Radio('Patchouli', key='target4', group_id=1)],
         [sg.Text("OpenAI API KEY")],
         [sg.InputText(key='OPENAI_API_KEY', expand_x=True)],
+        [sg.Text("API Base URL (Optional)")],
+        [sg.InputText(key='API_BASE', default_text=provide_api_base() or "", expand_x=True)],
         [sg.Text("Chunk Size")],
         [sg.Text("単体mod翻訳、クエスト、Patchouliの翻訳では1\nModPackで大量のModを一括で翻訳するときは100くらいまで上げることをお勧めします(1だと翻訳時間がすごいことになります)")],
         [sg.Slider(range=(1, 200), key='CHUNK_SIZE', default_value=provide_chunk_size(), expand_x=True)],
@@ -57,6 +59,7 @@ if __name__ == '__main__':
         if event == 'translate':
             # 入力された値を取得
             set_api_key(values['OPENAI_API_KEY'])
+            set_api_base(values['API_BASE'] if values['API_BASE'].strip() else None)
             set_chunk_size(int(values['CHUNK_SIZE']))
             set_model(values['MODEL'])
             set_prompt(values['PROMPT'])
@@ -79,16 +82,6 @@ if __name__ == '__main__':
                 logging.error(e)
                 sg.popup('翻訳失敗')
                 break
-
-
-            # if values['target1']:
-            #     translate_from_jar()
-            # elif values['target2']:
-            #     translate_ftbquests()
-            # elif values['target3']:
-            #     translate_betterquesting()
-            # elif values['target4']:
-            #     translate_patchouli()
 
             sg.popup('翻訳成功！')
             break

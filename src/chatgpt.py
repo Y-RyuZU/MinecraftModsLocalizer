@@ -3,7 +3,7 @@ import re
 import time
 from openai import OpenAI
 
-from provider import provide_api_key, provide_model, provide_prompt
+from provider import provide_api_key, provide_model, provide_prompt, provide_api_base
 
 
 def translate_with_chatgpt(split_target, timeout):
@@ -14,7 +14,14 @@ def translate_with_chatgpt(split_target, timeout):
     split_target = [line.replace('\\n', '').replace('\n', '') for line in split_target] if len(split_target) > 1 else split_target
 
     # APIキーとクライアントの初期化
-    client = OpenAI(api_key=provide_api_key())
+    api_params = {"api_key": provide_api_key()}
+    
+    # APIベースURLが設定されている場合は追加
+    api_base = provide_api_base()
+    if api_base:
+        api_params["base_url"] = api_base
+    
+    client = OpenAI(**api_params)
 
     try:
         # ChatGPTを用いて翻訳を行う

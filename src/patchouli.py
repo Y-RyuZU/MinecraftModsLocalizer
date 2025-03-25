@@ -1,24 +1,16 @@
 import logging
 import re
 import os
-import shutil
 import zipfile
-from pathlib import Path
 
 from init import MODS_DIR
 from prepare import prepare_translation
-from provider import provide_log_directory
 from mod import get_mod_name_from_jar
 
 def translate_patchouli():
     for filename in os.listdir(MODS_DIR):
         if filename.endswith('.jar'):
             process_jar_file(os.path.join(MODS_DIR, filename))
-
-import zipfile
-import os
-import re
-import logging
 
 
 def process_jar_file(jar_path):
