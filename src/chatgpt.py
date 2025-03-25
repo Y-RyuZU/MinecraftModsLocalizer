@@ -3,7 +3,7 @@ import re
 import time
 from openai import OpenAI
 
-from provider import provide_api_key, provide_model, provide_prompt, provide_api_base
+from provider import provide_api_key, provide_model, provide_prompt, provide_api_base, provide_temperature
 
 
 def translate_with_chatgpt(split_target, timeout):
@@ -27,6 +27,7 @@ def translate_with_chatgpt(split_target, timeout):
         # ChatGPTを用いて翻訳を行う
         response = client.chat.completions.create(
             model=provide_model(),
+            temperature=provide_temperature(),
             messages=[
                 {
                     "role": "system",

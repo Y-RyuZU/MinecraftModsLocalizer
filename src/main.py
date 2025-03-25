@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory, set_api_base, provide_api_base
+from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory, set_api_base, provide_api_base, set_temperature, provide_temperature
 from mod import translate_from_jar
 from quests import translate_ftbquests, translate_betterquesting
 from patchouli import translate_patchouli
@@ -47,6 +47,9 @@ if __name__ == '__main__':
         [sg.Combo(api_endpoints, default_value=current_api_base, key='API_BASE', expand_x=True, enable_events=True, readonly=False)],
         [sg.Text("Model")],
         [sg.InputText(key='MODEL', default_text=provide_model(), expand_x=True)],
+        [sg.Text("Temperature")],
+        [sg.Text("APIリクエストの温度を制御します。低い値は予測可能な結果に、高い値は多様な結果になります。(0.0〜2.0)")],
+        [sg.Slider(range=(0.0, 2.0), resolution=0.1, key='TEMPERATURE', default_value=provide_temperature(), expand_x=True)],
         [sg.Text("Prompt")],
         [sg.Multiline(key='PROMPT', default_text=provide_prompt(), expand_x=True, size=(80, 10))],
     ]
@@ -92,6 +95,7 @@ if __name__ == '__main__':
             set_api_base(values['API_BASE'] if values['API_BASE'].strip() else None)
             set_chunk_size(int(values['CHUNK_SIZE']))
             set_model(values['MODEL'])
+            set_temperature(float(values['TEMPERATURE']))
             set_prompt(values['PROMPT'])
 
             # バージョンチェック
