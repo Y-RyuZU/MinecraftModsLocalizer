@@ -6,7 +6,7 @@ import re
 
 from init import MAX_ATTEMPTS
 from chatgpt import translate_with_chatgpt
-from provider import provide_chunk_size
+from provider import provide_chunk_size, provide_request_interval
 
 
 def extract_map_from_lang(filepath):
@@ -73,6 +73,11 @@ def prepare_translation(targets):
     split_targets = split_list(targets)  # ファイルを適切なサイズのチャンクに分割する関数
     result_map = {}
     timeout = 60 * 3  # 3分のタイムアウト
+    
+    # リクエスト間隔の情報をログに出力
+    request_interval = provide_request_interval()
+    if request_interval > 0:
+        logging.info(f"Using request interval: {request_interval} seconds between API requests")
 
     logging.info(f"The file contains {len(targets)} lines")
     logging.info(f"Splitting the file into {len(split_targets)} chunks for translation...")

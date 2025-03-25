@@ -2,7 +2,8 @@ API_KEY = None
 CHUNK_SIZE = 1
 MODEL = 'gpt-4o-mini-2024-07-18'
 API_BASE = None  # OpenAI互換APIのベースURL
-TEMPERATURE = 0.7  # デフォルト値として0.7を設定
+TEMPERATURE = 1.0  # デフォルト値として1.0を設定
+REQUEST_INTERVAL = 0.0  # APIリクエスト間隔（秒）- デフォルトは0秒（間隔なし）
 PROMPT = """You are a professional translator. Please translate the following English text into Japanese, one line at a time, step by step, in order
 Make sure that the number of lines of text before and after translation is the same. Never add or subtract extra lines.
 
@@ -135,3 +136,15 @@ def set_temperature(temperature):
     global TEMPERATURE
 
     TEMPERATURE = temperature
+
+
+def provide_request_interval():
+    global REQUEST_INTERVAL
+
+    return REQUEST_INTERVAL
+
+
+def set_request_interval(interval):
+    global REQUEST_INTERVAL
+
+    REQUEST_INTERVAL = interval

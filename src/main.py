@@ -3,7 +3,7 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
-from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory, set_api_base, provide_api_base, set_temperature, provide_temperature
+from provider import set_api_key, set_chunk_size, provide_chunk_size, set_model, provide_model, set_prompt, provide_prompt, set_log_directory, set_api_base, provide_api_base, set_temperature, provide_temperature, set_request_interval, provide_request_interval
 from mod import translate_from_jar
 from quests import translate_ftbquests, translate_betterquesting
 from patchouli import translate_patchouli
@@ -50,6 +50,9 @@ if __name__ == '__main__':
         [sg.Text("Temperature")],
         [sg.Text("APIリクエストの温度を制御します。低い値は予測可能な結果に、高い値は多様な結果になります。(0.0〜2.0)")],
         [sg.Slider(range=(0.0, 2.0), resolution=0.1, key='TEMPERATURE', default_value=provide_temperature(), expand_x=True)],
+        [sg.Text("Request Interval (seconds)")],
+        [sg.Text("APIリクエスト間の待機時間を設定します。レート制限対策や、リクエストの間隔を空けたい場合に使用します。(0.0〜10.0秒)")], 
+        [sg.Slider(range=(0.0, 10.0), resolution=0.1, key='REQUEST_INTERVAL', default_value=provide_request_interval(), expand_x=True)],
         [sg.Text("Prompt")],
         [sg.Multiline(key='PROMPT', default_text=provide_prompt(), expand_x=True, size=(80, 10))],
     ]
@@ -96,6 +99,7 @@ if __name__ == '__main__':
             set_chunk_size(int(values['CHUNK_SIZE']))
             set_model(values['MODEL'])
             set_temperature(float(values['TEMPERATURE']))
+            set_request_interval(float(values['REQUEST_INTERVAL']))
             set_prompt(values['PROMPT'])
 
             # バージョンチェック

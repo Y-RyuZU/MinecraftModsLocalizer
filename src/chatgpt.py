@@ -3,7 +3,7 @@ import re
 import time
 from openai import OpenAI
 
-from provider import provide_api_key, provide_model, provide_prompt, provide_api_base, provide_temperature
+from provider import provide_api_key, provide_model, provide_prompt, provide_api_base, provide_temperature, provide_request_interval
 
 
 def translate_with_chatgpt(split_target, timeout):
@@ -24,6 +24,12 @@ def translate_with_chatgpt(split_target, timeout):
     client = OpenAI(**api_params)
 
     try:
+        # リクエスト間隔の適用（APIリクエスト前の待機）
+        request_interval = provide_request_interval()
+        if request_interval > 0:
+            logging.info(f"Waiting for {request_interval} seconds before sending API request...")
+            time.sleep(request_interval)
+        
         # ChatGPTを用いて翻訳を行う
         response = client.chat.completions.create(
             model=provide_model(),
