@@ -1,6 +1,7 @@
 {
-	"name": "Ubuntu",
+	"name": "Minecraft Mods Localizer Container",
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+    "remoteUser": "localizer",
 	"features": {
 		"ghcr.io/devcontainers/features/desktop-lite:1": {
 			"version": "latest",
@@ -14,7 +15,13 @@
 		},
 		"ghcr.io/devcontainers/features/rust:1": {
 			"version": "latest"
-		}
+		},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+          "version": "latest",
+          "helm": "latest",
+          "minikube": "none"
+        }
 	},
 	"postCreateCommand": "/bin/sh ./.devcontainer/setup.sh"
 }
