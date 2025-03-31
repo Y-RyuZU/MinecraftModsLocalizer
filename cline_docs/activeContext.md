@@ -1,34 +1,80 @@
 # Active Context
 
-## What I'm Working On Now
-Based on the tasks document (`/docs/tasks.md`), I'm currently focusing on the highest priority tasks:
+## Current Work
+We have completed the implementation of the Minecraft Mods Localizer application according to the specifications in `/docs/spec.md`. The application now has the following features:
 
-### Project Initialization and Basic Structure
-- Setting up the Tauri + Next.js project
-- Defining the directory structure
-- Creating basic configuration files
+1. **UI Implementation**:
+   - Main layout with tabs for Mods, Quests, Guidebooks, and Settings
+   - Theme support (light/dark/system)
+   - Responsive design using Tailwind CSS and shadcn/ui components
 
-This is the first step in the development plan and involves establishing the foundation for the application.
+2. **Mod Translation**:
+   - Scanning for mods in the specified directory
+   - Analyzing mod JAR files to extract language files
+   - Translating language files using LLM adapters
+   - Creating resource packs with translated content
+
+3. **Quest Translation**:
+   - Support for FTB Quests and Better Quests
+   - Scanning for quest files in the config directory
+   - Translating quest content using LLM adapters
+   - Saving translated quest files
+
+4. **Guidebook Translation**:
+   - Support for Patchouli guidebooks
+   - Scanning for guidebooks in mod JAR files
+   - Translating guidebook content using LLM adapters
+   - Writing translated content back to JAR files
+
+5. **Settings Management**:
+   - LLM provider configuration (OpenAI, Anthropic, Google)
+   - Translation settings (source/target languages, chunk sizes)
+   - Path settings for Minecraft directories
+   - UI preferences
+
+6. **State Management**:
+   - Global state using Zustand
+   - Configuration persistence
+   - Translation progress tracking
+   - Error handling
 
 ## Recent Changes
-As this is the initial setup phase, there are no recent changes to report yet. The project is being set up from scratch.
+- Implemented UI components for all tabs (Mods, Quests, Guidebooks, Settings)
+- Completed Rust backend functions for file operations
+- Integrated LLM adapters for translation
+- Added state management with Zustand
+- Implemented file service for handling Minecraft files
+- Added configuration management
+- Fixed Tauri API integration issues by using mock functions for development
+- Successfully tested all UI components and functionality
+- Fixed duplicate key issues in component rendering
+- Fixed theme hydration mismatch issues
+- Fixed CORS issues with fonts
+- Improved UI layout with centered content and proper margins
+- Enhanced Settings tab with language selection dropdown
+- Added support for custom language addition
+- Refactored Settings tab into modular components for better maintainability
+- Added default model selection based on LLM provider
+- Set OpenAI default model to gpt-4o-mini-2024-07-18
+- Enhanced UI with Card components for better visual grouping of settings
 
 ## Next Steps
-After completing the project initialization, the next steps will be:
+1. **Testing and Debugging**:
+   - Test all translation workflows with real Minecraft mods
+   - Fix any bugs or issues found during testing
+   - Improve error handling
 
-1. **Core Architecture Design**
-   - Design LLM adapter interface
-   - Design implementation classes for each LLM API
-   - Design overall system dependencies
+2. **Performance Optimization**:
+   - Optimize translation process for large mods
+   - Improve file scanning performance
+   - Add caching for translated content
 
-2. **Data Model Design**
-   - Define configuration data model
-   - Define translation data model
-   - Design application state management (zustand)
+3. **Packaging and Distribution**:
+   - Create installers for Windows, macOS, and Linux
+   - Add auto-update functionality
+   - Create documentation for users
 
-3. **File Operation Core Feature Design**
-   - Design jar file analysis module
-   - Design file reading/writing utilities
-   - Design resource pack generation functionality
-
-These steps will establish the architectural foundation for the application before moving on to implementing the main features.
+4. **Additional Features**:
+   - Add support for more Minecraft mod formats
+   - Improve translation quality with context-aware prompts
+   - Add batch translation functionality

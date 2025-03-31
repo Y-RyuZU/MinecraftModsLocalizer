@@ -1,3 +1,8 @@
+// Minecraft module
+pub mod minecraft;
+
+use minecraft::{analyze_mod_jar, extract_lang_files, extract_patchouli_books, write_patchouli_book};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -11,6 +16,12 @@ pub fn run() {
       }
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![
+      analyze_mod_jar,
+      extract_lang_files,
+      extract_patchouli_books,
+      write_patchouli_book
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

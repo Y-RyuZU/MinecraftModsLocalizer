@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   },
   // Configure assetPrefix or else the server won't properly resolve your assets.
   assetPrefix: isProd ? undefined : `http://${internalHost}:3000`,
+  // Note: We can't use headers with output: 'export', so we'll need to handle CORS in Tauri
 };
 
 export default nextConfig;

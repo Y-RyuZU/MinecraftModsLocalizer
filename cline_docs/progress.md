@@ -1,69 +1,71 @@
 # Progress
 
 ## What Works
-As this is the initial setup phase, no features are currently working. The project is being set up from scratch.
+- Project initialization with Tauri (Rust + Next.js)
+- Core architecture design
+- Data model design for Minecraft mods, quests, and guidebooks
+- LLM adapter interfaces for translation services
+- UI component foundation with shadcn/ui
+- State management with Zustand
+- Configuration management
+- File service for handling Minecraft files
+- Translation service using LLM adapters
+- UI components for all tabs (Mods, Quests, Guidebooks, Settings)
+- Rust functions for analyzing Minecraft mods, quests, and guidebooks
+- Fixed duplicate key issues in component rendering
+- Fixed theme hydration mismatch issues
+- Fixed CORS issues with fonts
+- Improved UI layout with centered content and proper margins
+- Enhanced Settings tab with language selection dropdown
+- Added support for custom language addition
+- Refactored Settings tab into modular components:
+  - LLMSettings
+  - TranslationSettings
+  - PathSettings
+  - UISettings
+  - SettingsActions
+- Added provider-specific default models:
+  - OpenAI: gpt-4o-mini-2024-07-18
+  - Anthropic: claude-3-haiku-20240307
+  - Google: gemini-1.5-pro
+- Enhanced UI with Card components for better visual grouping of settings
 
 ## What's Left to Build
-Based on the tasks document (`/docs/tasks.md`), the following components need to be built:
-
-### Highest Priority Tasks (Architecture and Foundation Design)
-- Project Initialization and Basic Structure
-- Core Architecture Design
-- Data Model Design
-- File Operation Core Feature Design
-
-### High Priority Tasks (Main Feature Implementation)
-- LLM Translation Feature Implementation
-- Minecraft-related File Analysis Implementation
-- UI Component Foundation Implementation
-- Settings and Storage Feature Implementation
-
-### Medium Priority Tasks (UI Implementation)
-- Main Screen UI Implementation
-- Settings Screen UI Implementation
-- Log and Progress Display UI Implementation
-- Other Auxiliary Screen Implementation
-
-### Low Priority Tasks (Advanced Features & Finishing Touches)
-- Error Handling Implementation
-- Packaging and Distribution Setup
-- Optimization and Performance Improvement
-- Documentation and Testing
-
-### Very Low Priority Tasks (Additional Features)
-- Multilingual UI Support
-- Processing Speed Improvement Features
-- UX Improvements
-- Additional Features
+- Integration testing of all components
+- Error handling improvements
+- Logging system
+- Performance optimization
+- Packaging and distribution setup
+- Documentation
 
 ## Progress Status
-- **Project Initialization**: Not started
-- **Core Architecture**: Not started
-- **Data Model Design**: Not started
-- **File Operations**: Not started
-- **LLM Translation**: Not started
-- **UI Implementation**: Not started
-- **Error Handling**: Not started
+- **Project Initialization**: Completed
+- **Core Architecture**: Completed
+- **Data Model Design**: Completed
+- **File Operations**: Completed
+- **LLM Translation**: Completed
+- **UI Implementation**: Completed
+- **Error Handling**: Partial
 - **Packaging**: Not started
 
 ## Testing Status for Each Translation Type
 
 ### Mod Lang File Translation
-- **Implementation Status**: Not started
-- **Testing Status**: Not started
-- **Known Issues**: None yet
+- **Implementation Status**: Completed
+- **Testing Status**: Partial
+- **Known Issues**: Fixed duplicate key issues in component rendering
 
 ### FTB Quests Translation
-- **Implementation Status**: Not started
-- **Testing Status**: Not started
-- **Known Issues**: None yet
+- **Implementation Status**: Completed
+- **Testing Status**: Partial
+- **Known Issues**: Fixed duplicate key issues in component rendering
 
 ### Better Quests Translation
-- **Implementation Status**: Not started
-- **Testing Status**: Not started
-- **Known Issues**: None yet
+- **Implementation Status**: Completed
+- **Testing Status**: Partial
+- **Known Issues**: Fixed duplicate key issues in component rendering
 
 ### Patchouli Guidebook Translation
-- **Implementation Status**: Not started
-- **Testing Status**: Not started
-- **Known Issues**: None yet
+- **Implementation Status**: Completed
+- **Testing Status**: Partial
+- **Known Issues**: Fixed duplicate key issues in component rendering
