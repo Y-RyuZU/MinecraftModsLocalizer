@@ -1,7 +1,6 @@
 {
 	"name": "Minecraft Mods Localizer Container",
 	"image": "mcr.microsoft.com/devcontainers/base:jammy",
-    "remoteUser": "localizer",
 	"features": {
 		"ghcr.io/devcontainers/features/desktop-lite:1": {
 			"version": "latest",
