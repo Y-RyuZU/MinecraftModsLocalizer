@@ -50,7 +50,7 @@ export interface TranslationServiceOptions {
   /** Chunk size */
   chunkSize?: number;
   /** Custom prompt template */
-  customPrompt?: string;
+  prompt_template?: string;
   /** Maximum number of retries */
   maxRetries?: number;
   /** Callback for progress updates */
@@ -73,7 +73,7 @@ export class TranslationService {
   private chunkSize: number;
   
   /** Custom prompt template */
-  private customPrompt?: string;
+  private prompt_template?: string;
   
   /** Maximum number of retries */
   private maxRetries: number;
@@ -100,7 +100,7 @@ export class TranslationService {
   constructor(options: TranslationServiceOptions) {
     this.adapter = LLMAdapterFactory.getAdapter(options.llmConfig);
     this.chunkSize = options.chunkSize ?? this.adapter.getMaxChunkSize();
-    this.customPrompt = options.customPrompt;
+    this.prompt_template = options.prompt_template;
     this.maxRetries = options.maxRetries ?? 5;
     this.onProgress = options.onProgress;
     this.onComplete = options.onComplete;
@@ -350,7 +350,7 @@ export class TranslationService {
         const request: TranslationRequest = {
           content,
           targetLanguage,
-          customPrompt: this.customPrompt
+          prompt_template: this.prompt_template
         };
         
         // Translate using the adapter

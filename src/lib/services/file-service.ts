@@ -1,25 +1,108 @@
 /**
  * File service for handling Minecraft files
  */
-import { ModInfo, LangFile, PatchouliBook, ResourcePackManifest } from "../types/minecraft";
+
+// Check if we're running in a Tauri context
+const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+
+// Mock invoke function for development
+const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  console.log(`[MOCK] Invoking command: ${command}`, args);
+  
+  switch (command) {
+    case "get_mod_files":
+      return [
+        `${args?.dir}/example-mod-1.jar`,
+        `${args?.dir}/example-mod-2.jar`,
+        `${args?.dir}/example-mod-3.jar`,
+      ] as unknown as T;
+      
+    case "get_ftb_quest_files":
+      return [
+        `${args?.dir}/ftb/quests/chapter1.snbt`,
+        `${args?.dir}/ftb/quests/chapter2.snbt`,
+        `${args?.dir}/ftb/quests/chapter3.snbt`,
+      ] as unknown as T;
+      
+    case "get_better_quest_files":
+      return [
+        `${args?.dir}/betterquests/DefaultQuests.json`,
+        `${args?.dir}/betterquests/QuestLines.json`,
+      ] as unknown as T;
+      
+    case "get_files_with_extension":
+      if (args?.extension === ".json") {
+        return [
+          `${args?.dir}/example1.json`,
+          `${args?.dir}/example2.json`,
+          `${args?.dir}/subfolder/example3.json`,
+        ] as unknown as T;
+      } else if (args?.extension === ".snbt") {
+        return [
+          `${args?.dir}/example1.snbt`,
+          `${args?.dir}/example2.snbt`,
+        ] as unknown as T;
+      }
+      return [] as unknown as T;
+      
+    case "read_text_file":
+      return `Mock content for ${args?.path}` as unknown as T;
+      
+    case "write_text_file":
+      return true as unknown as T;
+      
+    case "create_directory":
+      return true as unknown as T;
+      
+    case "open_directory_dialog":
+      return `/mock/path` as unknown as T;
+      
+    case "create_resource_pack":
+      return `${args?.dir}/${args?.name}` as unknown as T;
+      
+    case "write_lang_file":
+      return true as unknown as T;
+      
+    default:
+      return {} as T;
+  }
+};
+
+// Use the real invoke function if available, otherwise use the mock
+const tauriInvoke = isTauri 
+  ? window.__TAURI__?.invoke 
+  : mockInvoke;
 
 /**
  * File service
  */
 export class FileService {
   /**
+   * Invoke a Tauri command
+   * @param command Command to invoke
+   * @param args Command arguments
+   * @returns Command result
+   */
+  static async invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+    try {
+      return await tauriInvoke<T>(command, args);
+    } catch (error) {
+      console.error(`Failed to invoke command ${command}:`, error);
+      throw error;
+    }
+  }
+  /**
    * Get mod files from a directory
    * @param dir Directory path
    * @returns Array of mod file paths
    */
   static async getModFiles(dir: string): Promise<string[]> {
-    // Mock implementation for development
-    console.log(`Getting mod files from ${dir}`);
-    return [
-      `${dir}/example-mod-1.jar`,
-      `${dir}/example-mod-2.jar`,
-      `${dir}/example-mod-3.jar`,
-    ];
+    try {
+      return await tauriInvoke<string[]>("get_mod_files", { dir });
+    } catch (error) {
+      console.error("Failed to get mod files:", error);
+      throw error;
+    }
   }
 
   /**
@@ -28,13 +111,12 @@ export class FileService {
    * @returns Array of FTB quest file paths
    */
   static async getFTBQuestFiles(dir: string): Promise<string[]> {
-    // Mock implementation for development
-    console.log(`Getting FTB quest files from ${dir}`);
-    return [
-      `${dir}/ftb/quests/chapter1.snbt`,
-      `${dir}/ftb/quests/chapter2.snbt`,
-      `${dir}/ftb/quests/chapter3.snbt`,
-    ];
+    try {
+      return await tauriInvoke<string[]>("get_ftb_quest_files", { dir });
+    } catch (error) {
+      console.error("Failed to get FTB quest files:", error);
+      throw error;
+    }
   }
 
   /**
@@ -43,12 +125,12 @@ export class FileService {
    * @returns Array of Better Quests file paths
    */
   static async getBetterQuestFiles(dir: string): Promise<string[]> {
-    // Mock implementation for development
-    console.log(`Getting Better Quests files from ${dir}`);
-    return [
-      `${dir}/betterquests/DefaultQuests.json`,
-      `${dir}/betterquests/QuestLines.json`,
-    ];
+    try {
+      return await tauriInvoke<string[]>("get_better_quest_files", { dir });
+    } catch (error) {
+      console.error("Failed to get Better Quests files:", error);
+      throw error;
+    }
   }
 
   /**
@@ -63,9 +145,16 @@ export class FileService {
     language: string,
     dir: string
   ): Promise<string> {
-    // Mock implementation for development
-    console.log(`Creating resource pack ${name} for ${language} in ${dir}`);
-    return `${dir}/${name}`;
+    try {
+      return await tauriInvoke<string>("create_resource_pack", { 
+        name, 
+        language, 
+        dir 
+      });
+    } catch (error) {
+      console.error("Failed to create resource pack:", error);
+      throw error;
+    }
   }
 
   /**
@@ -82,9 +171,17 @@ export class FileService {
     content: Record<string, string>,
     dir: string
   ): Promise<boolean> {
-    // Mock implementation for development
-    console.log(`Writing lang file for ${modId} in ${language} to ${dir}`);
-    return true;
+    try {
+      return await tauriInvoke<boolean>("write_lang_file", { 
+        modId, 
+        language, 
+        content: JSON.stringify(content), 
+        dir 
+      });
+    } catch (error) {
+      console.error("Failed to write language file:", error);
+      throw error;
+    }
   }
 
   /**
@@ -93,9 +190,12 @@ export class FileService {
    * @returns File content
    */
   static async readTextFile(path: string): Promise<string> {
-    // Mock implementation for development
-    console.log(`Reading text file ${path}`);
-    return `Mock content for ${path}`;
+    try {
+      return await tauriInvoke<string>("read_text_file", { path });
+    } catch (error) {
+      console.error("Failed to read text file:", error);
+      throw error;
+    }
   }
 
   /**
@@ -105,8 +205,55 @@ export class FileService {
    * @returns Success status
    */
   static async writeTextFile(path: string, content: string): Promise<boolean> {
-    // Mock implementation for development
-    console.log(`Writing text file ${path}`);
-    return true;
+    try {
+      return await tauriInvoke<boolean>("write_text_file", { path, content });
+    } catch (error) {
+      console.error("Failed to write text file:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get files with a specific extension from a directory
+   * @param dir Directory path
+   * @param extension File extension (e.g., ".json")
+   * @returns Array of file paths
+   */
+  static async getFilesWithExtension(dir: string, extension: string): Promise<string[]> {
+    try {
+      return await tauriInvoke<string[]>("get_files_with_extension", { dir, extension });
+    } catch (error) {
+      console.error(`Failed to get files with extension ${extension}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a directory
+   * @param path Directory path
+   * @returns Success status
+   */
+  static async createDirectory(path: string): Promise<boolean> {
+    try {
+      return await tauriInvoke<boolean>("create_directory", { path });
+    } catch (error) {
+      console.error("Failed to create directory:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Open a directory dialog
+   * @param title Dialog title
+   * @returns Selected directory path or null if canceled
+   */
+  static async openDirectoryDialog(title: string): Promise<string | null> {
+    try {
+      const result = await tauriInvoke<string | null>("open_directory_dialog", { title });
+      return result;
+    } catch (error) {
+      console.error("Failed to open directory dialog:", error);
+      throw error;
+    }
   }
 }

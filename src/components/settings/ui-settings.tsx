@@ -1,8 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig } from "@/lib/types/config";
 
@@ -39,28 +37,7 @@ export function UISettings({ config, setConfig }: UISettingsProps) {
             </Select>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Language</label>
-            <Input 
-              value={config.ui.language}
-              onChange={(e) => {
-                config.ui.language = e.target.value;
-                setConfig({ ...config });
-              }}
-              placeholder="e.g., en"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Switch 
-              checked={config.ui.showAdvancedOptions}
-              onCheckedChange={(checked) => {
-                config.ui.showAdvancedOptions = checked;
-                setConfig({ ...config });
-              }}
-            />
-            <label className="text-sm font-medium">Show Advanced Options</label>
-          </div>
+          {/* Language setting removed as it's now handled by the language switcher */}
         </div>
       </CardContent>
     </Card>

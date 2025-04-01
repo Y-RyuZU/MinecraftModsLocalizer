@@ -31,7 +31,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   constructor(config: LLMConfig) {
     super({
       ...config,
-      promptTemplate: config.promptTemplate || DEFAULT_PROMPT_TEMPLATE,
+      prompt_template: config.prompt_template || DEFAULT_PROMPT_TEMPLATE,
     });
   }
 
@@ -47,7 +47,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const prompt = this.formatPrompt(
       request.content,
       request.targetLanguage,
-      request.customPrompt
+      request.prompt_template
     );
     
     // Prepare the API request

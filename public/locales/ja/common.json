@@ -1,0 +1,67 @@
+{
+  "app": {
+    "title": "マインクラフトMod翻訳ツール"
+  },
+  "tabs": {
+    "mods": "Mod",
+    "quests": "クエスト",
+    "guidebooks": "ガイドブック",
+    "customFiles": "カスタムファイル",
+    "settings": "設定"
+  },
+  "cards": {
+    "modTranslation": "Mod翻訳",
+    "questTranslation": "クエスト翻訳",
+    "guidebookTranslation": "ガイドブック翻訳",
+    "customFilesTranslation": "カスタムファイル翻訳",
+    "settings": "設定"
+  },
+  "buttons": {
+    "scanMods": "Modをスキャン",
+    "scanQuests": "クエストをスキャン",
+    "scanGuidebooks": "ガイドブックをスキャン",
+    "scanFiles": "ファイルをスキャン",
+    "selectDirectory": "ディレクトリを選択",
+    "translate": "選択したものを翻訳",
+    "translating": "翻訳中...",
+    "scanning": "スキャン中..."
+  },
+  "filters": {
+    "filterMods": "Modを検索...",
+    "filterFiles": "ファイルを検索..."
+  },
+  "tables": {
+    "modName": "Mod名",
+    "modId": "Mod ID",
+    "questName": "クエスト名",
+    "guidebookName": "ガイドブック名",
+    "fileName": "ファイル名",
+    "type": "タイプ",
+    "path": "パス",
+    "noModsFound": "Modが見つかりません。「Modをスキャン」をクリックしてModをスキャンしてください。",
+    "noQuestsFound": "クエストが見つかりません。「クエストをスキャン」をクリックしてクエストをスキャンしてください。",
+    "noGuidebooksFound": "ガイドブックが見つかりません。「ガイドブックをスキャン」をクリックしてガイドブックをスキャンしてください。",
+    "noFilesFound": "ファイルが見つかりません。「ファイルをスキャン」をクリックしてJSONとSNBTファイルをスキャンしてください。",
+    "scanningForMods": "Modをスキャン中...",
+    "scanningForQuests": "クエストをスキャン中...",
+    "scanningForGuidebooks": "ガイドブックをスキャン中...",
+    "scanningForFiles": "ファイルをスキャン中..."
+  },
+  "progress": {
+    "translatingMods": "Modを翻訳中...",
+    "translatingQuests": "クエストを翻訳中...",
+    "translatingGuidebooks": "ガイドブックを翻訳中...",
+    "translatingFiles": "ファイルを翻訳中..."
+  },
+  "errors": {
+    "noModsSelected": "翻訳するModが選択されていません",
+    "noQuestsSelected": "翻訳するクエストが選択されていません",
+    "noGuidebooksSelected": "翻訳するガイドブックが選択されていません",
+    "noFilesSelected": "翻訳するファイルが選択されていません",
+    "selectDirectoryFirst": "最初にディレクトリを選択してください"
+  },
+  "misc": {
+    "loading": "読み込み中...",
+    "selectedDirectory": "選択されたディレクトリ:"
+  }
+}

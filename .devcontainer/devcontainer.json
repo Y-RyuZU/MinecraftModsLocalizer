@@ -22,5 +22,8 @@
           "minikube": "none"
         }
 	},
+	"forwardPorts": [
+        6080
+    ],
 	"postCreateCommand": "/bin/sh ./.devcontainer/setup.sh"
 }

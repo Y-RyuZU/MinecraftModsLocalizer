@@ -29,7 +29,7 @@ export interface LLMProviderConfig {
   /** Maximum number of retries on failure */
   maxRetries: number;
   /** Custom prompt template */
-  promptTemplate?: string;
+  prompt_template?: string;
 }
 
 /**
@@ -41,11 +41,11 @@ export interface TranslationConfig {
   /** Target language */
   targetLanguage: string;
   /** Chunk size for mod translations */
-  modChunkSize: number;
+  mod_chunk_size: number;
   /** Chunk size for quest translations */
-  questChunkSize: number;
+  quest_chunk_size: number;
   /** Chunk size for guidebook translations */
-  guidebookChunkSize: number;
+  guidebook_chunk_size: number;
   /** Custom languages */
   customLanguages: SupportedLanguage[];
   /** Resource pack name */
@@ -58,10 +58,6 @@ export interface TranslationConfig {
 export interface UIConfig {
   /** Theme (light or dark) */
   theme: "light" | "dark" | "system";
-  /** UI language */
-  language: string;
-  /** Show advanced options */
-  showAdvancedOptions: boolean;
 }
 
 /**
@@ -93,16 +89,14 @@ export const DEFAULT_CONFIG: AppConfig = {
   translation: {
     sourceLanguage: "en_us",
     targetLanguage: "ja_jp",
-    modChunkSize: 50,
-    questChunkSize: 1,
-    guidebookChunkSize: 1,
+    mod_chunk_size: 50,
+    quest_chunk_size: 1,
+    guidebook_chunk_size: 1,
     customLanguages: [],
     resourcePackName: "MinecraftModsLocalizer"
   },
   ui: {
-    theme: "system",
-    language: "en",
-    showAdvancedOptions: false
+    theme: "system"
   },
   paths: {
     minecraftDir: "",

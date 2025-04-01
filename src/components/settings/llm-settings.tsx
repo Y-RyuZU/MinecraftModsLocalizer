@@ -117,6 +117,18 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
               placeholder="Enter max retries"
             />
           </div>
+          
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">Custom Prompt Template</label>
+            <Input 
+              value={config.llm.prompt_template || ""}
+              onChange={(e) => {
+                config.llm.prompt_template = e.target.value;
+                setConfig({ ...config });
+              }}
+              placeholder="Enter custom prompt template"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

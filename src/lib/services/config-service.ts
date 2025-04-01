@@ -1,5 +1,28 @@
 import { AppConfig, DEFAULT_CONFIG } from "../types/config";
 
+// Check if we're running in a Tauri context
+const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+
+// Mock invoke function for development
+const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  console.log(`[MOCK] Invoking command: ${command}`, args);
+  
+  if (command === "load_config") {
+    return JSON.stringify(DEFAULT_CONFIG) as unknown as T;
+  }
+  
+  if (command === "save_config") {
+    return true as unknown as T;
+  }
+  
+  return {} as T;
+};
+
+// Use the real invoke function if available, otherwise use the mock
+const tauriInvoke = isTauri 
+  ? window.__TAURI__?.invoke 
+  : mockInvoke;
+
 /**
  * Configuration service
  * Manages application configuration
@@ -18,19 +41,26 @@ export class ConfigService {
    * Load configuration from storage
    * @returns Configuration
    */
-  public static load(): AppConfig {
+  public static async load(): Promise<AppConfig> {
     if (this.loaded) {
       return this.config;
     }
     
     try {
-      // Try to load from localStorage
-      const storedConfig = localStorage.getItem(this.STORAGE_KEY);
-      
-      if (storedConfig) {
-        // Parse and merge with default config to ensure all fields are present
-        const parsedConfig = JSON.parse(storedConfig) as Partial<AppConfig>;
-        this.config = this.mergeWithDefault(parsedConfig);
+      if (isTauri) {
+        // Load from Tauri backend
+        const configJson = await tauriInvoke<string>("load_config");
+        const parsedConfig = JSON.parse(configJson) as AppConfig;
+        this.config = parsedConfig;
+      } else {
+        // Try to load from localStorage for development
+        const storedConfig = localStorage.getItem(this.STORAGE_KEY);
+        
+        if (storedConfig) {
+          // Parse and merge with default config to ensure all fields are present
+          const parsedConfig = JSON.parse(storedConfig) as Partial<AppConfig>;
+          this.config = this.mergeWithDefault(parsedConfig);
+        }
       }
       
       this.loaded = true;
@@ -45,13 +75,20 @@ export class ConfigService {
    * Save configuration to storage
    * @param config Configuration to save
    */
-  public static save(config: AppConfig): void {
+  public static async save(config: AppConfig): Promise<void> {
     try {
       // Update current configuration
       this.config = config;
       
-      // Save to localStorage
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+      if (isTauri) {
+        // Save to Tauri backend
+        await tauriInvoke<boolean>("save_config", { 
+          config_json: JSON.stringify(config) 
+        });
+      } else {
+        // Save to localStorage for development
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+      }
     } catch (error) {
       console.error("Failed to save configuration:", error);
     }
@@ -62,17 +99,17 @@ export class ConfigService {
    * @param partialConfig Partial configuration to update
    * @returns Updated configuration
    */
-  public static update(partialConfig: Partial<AppConfig>): AppConfig {
+  public static async update(partialConfig: Partial<AppConfig>): Promise<AppConfig> {
     // Load current configuration if not loaded
     if (!this.loaded) {
-      this.load();
+      await this.load();
     }
     
     // Merge with current configuration
     const updatedConfig = this.deepMerge(this.config, partialConfig);
     
     // Save updated configuration
-    this.save(updatedConfig);
+    await this.save(updatedConfig);
     
     return updatedConfig;
   }
@@ -81,9 +118,9 @@ export class ConfigService {
    * Reset configuration to defaults
    * @returns Default configuration
    */
-  public static reset(): AppConfig {
+  public static async reset(): Promise<AppConfig> {
     this.config = { ...DEFAULT_CONFIG };
-    this.save(this.config);
+    await this.save(this.config);
     return this.config;
   }
 
@@ -91,10 +128,10 @@ export class ConfigService {
    * Get current configuration
    * @returns Current configuration
    */
-  public static getConfig(): AppConfig {
+  public static async getConfig(): Promise<AppConfig> {
     // Load current configuration if not loaded
     if (!this.loaded) {
-      this.load();
+      await this.load();
     }
     
     return this.config;

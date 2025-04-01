@@ -9,60 +9,19 @@ import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
 import { TranslationTarget, ModInfo, LangFile } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
+import { useAppTranslation } from "@/lib/i18n";
 
-// Mock functions for development
-const mockInvoke = async <T,>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  console.log(`Invoking command: ${command}`, args);
-  
-  if (command === "analyze_mod_jar") {
-    // Extract the mod number from the path to create unique IDs
-    const modPath = args?.jarPath as string;
-    const modNumber = modPath.match(/example-mod-(\d+)\.jar$/)?.[1] || "1";
-    
-    return {
-      id: `example-mod-${modNumber}`,
-      name: `Example Mod ${modNumber}`,
-      version: "1.0.0",
-      jar_path: args?.jarPath,
-      lang_files: [{ language: "en_us", path: `assets/example/lang/en_us.json`, content: {} }],
-      patchouli_books: []
-    } as unknown as T;
-  }
-  
-  if (command === "extract_lang_files") {
-    return [
-      {
-        language: "en_us",
-        path: "assets/example/lang/en_us.json",
-        content: {
-          "block.example.test": "Test Block",
-          "item.example.test": "Test Item"
-        }
-      }
-    ] as unknown as T;
-  }
-  
-  return {} as T;
-};
-
-interface DialogOptions {
-  directory: boolean;
-  multiple: boolean;
-  title: string;
-}
-
-const mockOpen = async (options: DialogOptions): Promise<string | null> => {
-  console.log('Opening dialog with options:', options);
-  return '/mock/path';
-};
+import { TranslationService } from "@/lib/services/translation-service";
 
 export function ModsTab() {
   const [isScanning, setIsScanning] = useState(false);
+  const [filterText, setFilterText] = useState("");
+  const { t } = useAppTranslation();
   const { 
     config, 
-    translationTargets, 
-    setTranslationTargets, 
-    updateTranslationTarget,
+    modTranslationTargets, 
+    setModTranslationTargets, 
+    updateModTranslationTarget,
     isTranslating,
     progress,
     setTranslating,
@@ -80,11 +39,7 @@ export function ModsTab() {
       
       // Check if mods directory is set
       if (!config.paths.modsDir) {
-        const selected = await mockOpen({
-          directory: true,
-          multiple: false,
-          title: "Select Minecraft Mods Directory"
-        });
+        const selected = await FileService.openDirectoryDialog("Select Minecraft Mods Directory");
         
         if (!selected) {
           setIsScanning(false);
@@ -103,7 +58,7 @@ export function ModsTab() {
       
       for (const modFile of modFiles) {
         try {
-          const modInfo = await mockInvoke<ModInfo>("analyze_mod_jar", { jarPath: modFile });
+          const modInfo = await FileService.invoke<ModInfo>("analyze_mod_jar", { jarPath: modFile });
           
           if (modInfo.lang_files && modInfo.lang_files.length > 0) {
             targets.push({
@@ -111,7 +66,7 @@ export function ModsTab() {
               id: modInfo.id,
               name: modInfo.name,
               path: modFile,
-              selected: false
+              selected: true
             });
           }
         } catch (error) {
@@ -119,7 +74,7 @@ export function ModsTab() {
         }
       }
       
-      setTranslationTargets(targets);
+      setModTranslationTargets(targets);
     } catch (error) {
       console.error("Failed to scan mods:", error);
       setError(`Failed to scan mods: ${error}`);
@@ -130,12 +85,12 @@ export function ModsTab() {
 
   // Select all mods
   const handleSelectAll = (checked: boolean) => {
-    const updatedTargets = translationTargets.map(target => ({
+    const updatedTargets = modTranslationTargets.map(target => ({
       ...target,
       selected: checked
     }));
     
-    setTranslationTargets(updatedTargets);
+    setModTranslationTargets(updatedTargets);
   };
 
   // Translate selected mods
@@ -145,21 +100,17 @@ export function ModsTab() {
       setProgress(0);
       setError(null);
       
-      const selectedTargets = translationTargets.filter(target => target.selected);
+      const selectedTargets = modTranslationTargets.filter(target => target.selected);
       
       if (selectedTargets.length === 0) {
-        setError("No mods selected for translation");
+        setError(t('errors.noModsSelected'));
         setTranslating(false);
         return;
       }
       
       // Check if resource packs directory is set
       if (!config.paths.resourcePacksDir) {
-        const selected = await mockOpen({
-          directory: true,
-          multiple: false,
-          title: "Select Minecraft Resource Packs Directory"
-        });
+        const selected = await FileService.openDirectoryDialog("Select Minecraft Resource Packs Directory");
         
         if (!selected) {
           setTranslating(false);
@@ -184,7 +135,7 @@ export function ModsTab() {
         
         try {
           // Extract language files
-          const langFiles = await mockInvoke<LangFile[]>("extract_lang_files", { 
+          const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", { 
             jarPath: target.path,
             tempDir: ""
           });
@@ -243,15 +194,44 @@ export function ModsTab() {
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<Record<string, string>> => {
-    // In a real implementation, this would use the LLM adapter to translate the content
-    // For now, we'll just return a mock translation
-    const translated: Record<string, string> = {};
-    
-    for (const [key, value] of Object.entries(content)) {
-      translated[key] = `[${targetLanguage}] ${value}`;
+    try {
+      // Create a translation service
+      const translationService = new TranslationService({
+        llmConfig: {
+          provider: config.llm.provider,
+          apiKey: config.llm.apiKey,
+          baseUrl: config.llm.baseUrl,
+          model: config.llm.model,
+        },
+        chunkSize: config.translation.mod_chunk_size,
+          prompt_template: config.llm.prompt_template,
+        maxRetries: config.llm.max_retries,
+      });
+      
+      // Create a translation job
+      const job = translationService.createJob(
+        content,
+        sourceLanguage,
+        targetLanguage
+      );
+      
+      // Start the translation job
+      await translationService.startJob(job.id);
+      
+      // Get the translated content
+      return translationService.getCombinedTranslatedContent(job.id);
+    } catch (error) {
+      console.error("Failed to translate mod content:", error);
+      
+      // Fallback to mock translation
+      const translated: Record<string, string> = {};
+      
+      for (const [key, value] of Object.entries(content)) {
+        translated[key] = `[${targetLanguage}] ${value}`;
+      }
+      
+      return translated;
     }
-    
-    return translated;
   };
 
   return (
@@ -259,20 +239,22 @@ export function ModsTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button onClick={handleScanMods} disabled={isScanning || isTranslating}>
-            {isScanning ? "Scanning..." : "Scan Mods"}
+            {isScanning ? t('buttons.scanning') : t('buttons.scanMods')}
           </Button>
           <Button 
             onClick={handleTranslate} 
-            disabled={isScanning || isTranslating || translationTargets.length === 0}
+            disabled={isScanning || isTranslating || modTranslationTargets.length === 0}
           >
-            {isTranslating ? "Translating..." : "Translate Selected"}
+            {isTranslating ? t('buttons.translating') : t('buttons.translate')}
           </Button>
         </div>
         <div className="flex items-center gap-2">
           <Input 
-            placeholder="Filter mods..." 
+            placeholder={t('filters.filterMods')}
             className="w-[250px]" 
             disabled={isScanning || isTranslating}
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
           />
         </div>
       </div>
@@ -287,7 +269,7 @@ export function ModsTab() {
         <div className="space-y-2">
           <Progress value={progress} className="h-2" />
           <p className="text-sm text-muted-foreground">
-            Translating mods... {progress}%
+            {t('progress.translatingMods')} {progress}%
           </p>
         </div>
       )}
@@ -299,28 +281,34 @@ export function ModsTab() {
               <TableHead className="w-[50px]">
                 <Checkbox 
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  disabled={isScanning || isTranslating || translationTargets.length === 0}
+                  disabled={isScanning || isTranslating || modTranslationTargets.length === 0}
                 />
               </TableHead>
-              <TableHead>Mod Name</TableHead>
-              <TableHead>Mod ID</TableHead>
-              <TableHead>Path</TableHead>
+              <TableHead>{t('tables.modName')}</TableHead>
+              <TableHead>{t('tables.modId')}</TableHead>
+              <TableHead>{t('tables.path')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {translationTargets.length === 0 ? (
+            {modTranslationTargets.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
-                  {isScanning ? "Scanning for mods..." : "No mods found. Click 'Scan Mods' to scan for mods."}
+                  {isScanning ? t('tables.scanningForMods') : t('tables.noModsFound')}
                 </TableCell>
               </TableRow>
             ) : (
-              translationTargets.map((target) => (
+              modTranslationTargets
+                .filter(target => 
+                  filterText === "" || 
+                  target.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                  target.id.toLowerCase().includes(filterText.toLowerCase())
+                )
+                .map((target) => (
                 <TableRow key={target.id}>
                   <TableCell>
                     <Checkbox 
                       checked={target.selected}
-                      onCheckedChange={(checked) => updateTranslationTarget(target.id, !!checked)}
+                      onCheckedChange={(checked) => updateModTranslationTarget(target.id, !!checked)}
                       disabled={isScanning || isTranslating}
                     />
                   </TableCell>

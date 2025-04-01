@@ -95,7 +95,7 @@ export interface BetterQuest {
  */
 export interface TranslationTarget {
   /** Target type */
-  type: "mod" | "ftb" | "better" | "patchouli";
+  type: "mod" | "ftb" | "better" | "patchouli" | "custom";
   /** Target ID */
   id: string;
   /** Target name */
@@ -111,7 +111,7 @@ export interface TranslationTarget {
  */
 export interface TranslationResult {
   /** Target type */
-  type: "mod" | "ftb" | "better" | "patchouli";
+  type: "mod" | "ftb" | "better" | "patchouli" | "custom";
   /** Target ID */
   id: string;
   /** Source language */

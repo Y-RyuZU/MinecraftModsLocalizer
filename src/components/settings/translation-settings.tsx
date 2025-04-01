@@ -124,9 +124,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Mod Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.modChunkSize}
+              value={config.translation.mod_chunk_size}
               onChange={(e) => {
-                config.translation.modChunkSize = parseInt(e.target.value);
+                config.translation.mod_chunk_size = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"
@@ -137,9 +137,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Quest Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.questChunkSize}
+              value={config.translation.quest_chunk_size}
               onChange={(e) => {
-                config.translation.questChunkSize = parseInt(e.target.value);
+                config.translation.quest_chunk_size = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"
@@ -150,9 +150,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Guidebook Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.guidebookChunkSize}
+              value={config.translation.guidebook_chunk_size}
               onChange={(e) => {
-                config.translation.guidebookChunkSize = parseInt(e.target.value);
+                config.translation.guidebook_chunk_size = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"

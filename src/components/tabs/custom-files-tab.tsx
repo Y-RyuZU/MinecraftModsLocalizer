@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -9,17 +10,20 @@ import { useAppStore } from "@/lib/store";
 import { TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { useAppTranslation } from "@/lib/i18n";
-
 import { TranslationService } from "@/lib/services/translation-service";
 
-export function QuestsTab() {
+
+export function CustomFilesTab() {
   const [isScanning, setIsScanning] = useState(false);
+  const [filterText, setFilterText] = useState("");
+  const [customDirectory, setCustomDirectory] = useState<string | null>(null);
   const { t } = useAppTranslation();
+  
   const { 
     config, 
-    questTranslationTargets, 
-    setQuestTranslationTargets, 
-    updateQuestTranslationTarget,
+    customFilesTranslationTargets, 
+    setCustomFilesTranslationTargets, 
+    updateCustomFilesTranslationTarget,
     isTranslating,
     progress,
     setTranslating,
@@ -29,147 +33,142 @@ export function QuestsTab() {
     setError
   } = useAppStore();
 
-  // Scan for quests
-  const handleScanQuests = async () => {
+  // Select directory
+  const handleSelectDirectory = async () => {
+    try {
+      const selected = await FileService.openDirectoryDialog("Select Directory with JSON/SNBT Files");
+      
+      if (selected) {
+        setCustomDirectory(selected);
+      }
+    } catch (error) {
+      console.error("Failed to select directory:", error);
+      setError(`Failed to select directory: ${error}`);
+    }
+  };
+
+  // Scan for files
+  const handleScanFiles = async () => {
+    if (!customDirectory) {
+      setError(t('errors.selectDirectoryFirst'));
+      return;
+    }
+
     try {
       setIsScanning(true);
       setError(null);
       
-      // Check if config directory is set
-      if (!config.paths.configDir) {
-        const selected = await FileService.openDirectoryDialog("Select Minecraft Config Directory");
-        
-        if (!selected) {
-          setIsScanning(false);
-          return;
-        }
-        
-        // Update config with selected directory
-        config.paths.configDir = selected;
-      }
+      // Get JSON and SNBT files
+      const jsonFiles = await FileService.getFilesWithExtension(customDirectory, ".json");
+      const snbtFiles = await FileService.getFilesWithExtension(customDirectory, ".snbt");
       
-      // Get FTB quest files
-      const ftbQuestFiles = await FileService.getFTBQuestFiles(config.paths.configDir);
-      
-      // Get Better Quests files
-      const betterQuestFiles = await FileService.getBetterQuestFiles(config.paths.configDir);
+      // Combine files
+      const allFiles = [...jsonFiles, ...snbtFiles];
       
       // Create translation targets
       const targets: TranslationTarget[] = [];
       
-      // Add FTB quests
-      for (let i = 0; i < ftbQuestFiles.length; i++) {
-        const questFile = ftbQuestFiles[i];
+      for (let i = 0; i < allFiles.length; i++) {
+        const filePath = allFiles[i];
         try {
-          // In a real implementation, we would parse the quest file to get more information
-          // For now, we'll just use the file path
-          const fileName = questFile.split('/').pop() || "unknown";
-          const questNumber = i + 1;
+          // Get file name
+          const fileName = filePath.split('/').pop() || "unknown";
           
           targets.push({
-            type: "ftb",
-            id: `ftb-quest-${questNumber}`,
-            name: `FTB Quest ${questNumber}: ${fileName}`,
-            path: questFile,
+            type: "custom",
+            id: `custom-file-${i + 1}`,
+            name: fileName,
+            path: filePath,
             selected: true
           });
         } catch (error) {
-          console.error(`Failed to analyze FTB quest: ${questFile}`, error);
+          console.error(`Failed to process file: ${filePath}`, error);
         }
       }
       
-      // Add Better Quests
-      for (let i = 0; i < betterQuestFiles.length; i++) {
-        const questFile = betterQuestFiles[i];
-        try {
-          // In a real implementation, we would parse the quest file to get more information
-          // For now, we'll just use the file path
-          const fileName = questFile.split('/').pop() || "unknown";
-          const questNumber = i + 1;
-          
-          targets.push({
-            type: "better",
-            id: `better-quest-${questNumber}`,
-            name: `Better Quest ${questNumber}: ${fileName}`,
-            path: questFile,
-            selected: true
-          });
-        } catch (error) {
-          console.error(`Failed to analyze Better quest: ${questFile}`, error);
-        }
-      }
-      
-      setQuestTranslationTargets(targets);
+      setCustomFilesTranslationTargets(targets);
     } catch (error) {
-      console.error("Failed to scan quests:", error);
-      setError(`Failed to scan quests: ${error}`);
+      console.error("Failed to scan files:", error);
+      setError(`Failed to scan files: ${error}`);
     } finally {
       setIsScanning(false);
     }
   };
 
-  // Select all quests
+  // Select all files
   const handleSelectAll = (checked: boolean) => {
-    const updatedTargets = questTranslationTargets.map(target => ({
+    const updatedTargets = customFilesTranslationTargets.map(target => ({
       ...target,
       selected: checked
     }));
     
-    setQuestTranslationTargets(updatedTargets);
+    setCustomFilesTranslationTargets(updatedTargets);
   };
 
-  // Translate selected quests
+  // Translate selected files
   const handleTranslate = async () => {
     try {
       setTranslating(true);
       setProgress(0);
       setError(null);
       
-      const selectedTargets = questTranslationTargets.filter(target => target.selected);
+      const selectedTargets = customFilesTranslationTargets.filter(target => target.selected);
       
       if (selectedTargets.length === 0) {
-        setError(t('errors.noQuestsSelected'));
+        setError(t('errors.noFilesSelected'));
         setTranslating(false);
         return;
       }
       
-      // Translate each quest
+      // Create output directory
+      const outputDir = `${customDirectory}/translated`;
+      await FileService.createDirectory(outputDir);
+      
+      // Translate each file
       for (let i = 0; i < selectedTargets.length; i++) {
         const target = selectedTargets[i];
         setProgress(Math.round((i / selectedTargets.length) * 100));
         
         try {
-          // Read quest file
+          // Read file content
           const content = await FileService.readTextFile(target.path);
+          
+          // Determine file type
+          const isJson = target.path.toLowerCase().endsWith('.json');
+          const isSnbt = target.path.toLowerCase().endsWith('.snbt');
           
           // Translate content
           let translatedContent = "";
           
-          if (target.type === "ftb") {
-            translatedContent = await translateFTBQuest(
+          if (isJson) {
+            translatedContent = await translateJsonContent(
               content,
               config.translation.sourceLanguage,
               config.translation.targetLanguage
             );
-          } else if (target.type === "better") {
-            translatedContent = await translateBetterQuest(
+          } else if (isSnbt) {
+            translatedContent = await translateSnbtContent(
               content,
               config.translation.sourceLanguage,
               config.translation.targetLanguage
             );
+          } else {
+            console.warn(`Unsupported file type: ${target.path}`);
+            continue;
           }
           
-          // Write translated file
-          const outputPath = target.path.replace(
-            `.${target.type}`,
-            `.${config.translation.targetLanguage}.${target.type}`
-          );
+          // Get file name
+          const fileName = target.path.split('/').pop() || "unknown";
           
+          // Create output path
+          const outputPath = `${outputDir}/${config.translation.targetLanguage}_${fileName}`;
+          
+          // Write translated file
           await FileService.writeTextFile(outputPath, translatedContent);
           
           // Add translation result
           addTranslationResult({
-            type: target.type,
+            type: "custom",
             id: target.id,
             sourceLanguage: config.translation.sourceLanguage,
             targetLanguage: config.translation.targetLanguage,
@@ -177,26 +176,29 @@ export function QuestsTab() {
             outputPath
           });
         } catch (error) {
-          console.error(`Failed to translate quest: ${target.name}`, error);
+          console.error(`Failed to translate file: ${target.name}`, error);
         }
       }
       
       setProgress(100);
     } catch (error) {
-      console.error("Failed to translate quests:", error);
-      setError(`Failed to translate quests: ${error}`);
+      console.error("Failed to translate files:", error);
+      setError(`Failed to translate files: ${error}`);
     } finally {
       setTranslating(false);
     }
   };
 
-  // Translate FTB quest
-  const translateFTBQuest = async (
+  // Translate JSON content
+  const translateJsonContent = async (
     content: string,
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<string> => {
     try {
+      // Parse JSON
+      const jsonData = JSON.parse(content);
+      
       // Create a translation service
       const translationService = new TranslationService({
         llmConfig: {
@@ -205,32 +207,62 @@ export function QuestsTab() {
           baseUrl: config.llm.baseUrl,
           model: config.llm.model,
         },
-        chunkSize: config.translation.quest_chunk_size,
+        chunkSize: config.translation.mod_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
       });
       
-      // Create a translation job with a simple key-value structure
-      const job = translationService.createJob(
-        { content },
-        sourceLanguage,
-        targetLanguage
-      );
+      // Translate the JSON content recursively
+      const translatedJson = await translateJsonRecursively(jsonData, translationService, sourceLanguage, targetLanguage);
       
-      // Start the translation job
-      await translationService.startJob(job.id);
-      
-      // Get the translated content
-      const translatedContent = translationService.getCombinedTranslatedContent(job.id);
-      return translatedContent.content || `[${targetLanguage}] ${content}`;
+      // Stringify JSON
+      return JSON.stringify(translatedJson, null, 2);
     } catch (error) {
-      console.error("Failed to translate FTB quest content:", error);
+      console.error("Failed to translate JSON content:", error);
       return `[${targetLanguage}] ${content}`;
     }
   };
 
-  // Translate Better quest
-  const translateBetterQuest = async (
+  // Translate JSON recursively
+  const translateJsonRecursively = async (
+    json: unknown,
+    translationService: TranslationService,
+    sourceLanguage: string,
+    targetLanguage: string
+  ): Promise<unknown> => {
+    if (typeof json === 'string') {
+      // Create a translation job with a simple key-value structure
+      const job = translationService.createJob(
+        { text: json },
+        sourceLanguage,
+        targetLanguage
+      );
+      
+      // Start the translation job
+      await translationService.startJob(job.id);
+      
+      // Get the translated content
+      const translatedContent = translationService.getCombinedTranslatedContent(job.id);
+      return translatedContent.text || `[${targetLanguage}] ${json}`;
+    } else if (Array.isArray(json)) {
+      const translatedArray = [];
+      for (const item of json) {
+        translatedArray.push(await translateJsonRecursively(item, translationService, sourceLanguage, targetLanguage));
+      }
+      return translatedArray;
+    } else if (typeof json === 'object' && json !== null) {
+      const result: Record<string, unknown> = {};
+      for (const key in json) {
+        result[key] = await translateJsonRecursively(json[key], translationService, sourceLanguage, targetLanguage);
+      }
+      return result;
+    } else {
+      return json;
+    }
+  };
+
+  // Translate SNBT content
+  const translateSnbtContent = async (
     content: string,
     sourceLanguage: string,
     targetLanguage: string
@@ -263,7 +295,7 @@ export function QuestsTab() {
       const translatedContent = translationService.getCombinedTranslatedContent(job.id);
       return translatedContent.content || `[${targetLanguage}] ${content}`;
     } catch (error) {
-      console.error("Failed to translate Better quest content:", error);
+      console.error("Failed to translate SNBT content:", error);
       return `[${targetLanguage}] ${content}`;
     }
   };
@@ -272,17 +304,35 @@ export function QuestsTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button onClick={handleScanQuests} disabled={isScanning || isTranslating}>
-            {isScanning ? t('buttons.scanning') : t('buttons.scanQuests')}
+          <Button onClick={handleSelectDirectory} disabled={isScanning || isTranslating}>
+            {t('buttons.selectDirectory')}
+          </Button>
+          <Button onClick={handleScanFiles} disabled={!customDirectory || isScanning || isTranslating}>
+            {isScanning ? t('buttons.scanning') : t('buttons.scanFiles')}
           </Button>
           <Button 
             onClick={handleTranslate} 
-            disabled={isScanning || isTranslating || questTranslationTargets.length === 0}
+            disabled={isScanning || isTranslating || customFilesTranslationTargets.length === 0}
           >
             {isTranslating ? t('buttons.translating') : t('buttons.translate')}
           </Button>
         </div>
+        <div className="flex items-center gap-2">
+          <Input 
+            placeholder={t('filters.filterFiles')}
+            className="w-[250px]" 
+            disabled={isScanning || isTranslating}
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+          />
+        </div>
       </div>
+      
+      {customDirectory && (
+        <div className="text-sm text-muted-foreground">
+          {t('misc.selectedDirectory')} {customDirectory}
+        </div>
+      )}
       
       {error && (
         <div className="bg-destructive/20 text-destructive p-2 rounded">
@@ -294,7 +344,7 @@ export function QuestsTab() {
         <div className="space-y-2">
           <Progress value={progress} className="h-2" />
           <p className="text-sm text-muted-foreground">
-            {t('progress.translatingQuests')} {progress}%
+            {t('progress.translatingFiles')} {progress}%
           </p>
         </div>
       )}
@@ -306,33 +356,38 @@ export function QuestsTab() {
               <TableHead className="w-[50px]">
                 <Checkbox 
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  disabled={isScanning || isTranslating || questTranslationTargets.length === 0}
+                  disabled={isScanning || isTranslating || customFilesTranslationTargets.length === 0}
                 />
               </TableHead>
-              <TableHead>{t('tables.questName')}</TableHead>
+              <TableHead>{t('tables.fileName')}</TableHead>
               <TableHead>{t('tables.type')}</TableHead>
               <TableHead>{t('tables.path')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {questTranslationTargets.length === 0 ? (
+            {customFilesTranslationTargets.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
-                  {isScanning ? t('tables.scanningForQuests') : t('tables.noQuestsFound')}
+                  {isScanning ? t('tables.scanningForFiles') : t('tables.noFilesFound')}
                 </TableCell>
               </TableRow>
             ) : (
-              questTranslationTargets.map((target) => (
+              customFilesTranslationTargets
+                .filter(target => 
+                  filterText === "" || 
+                  target.name.toLowerCase().includes(filterText.toLowerCase())
+                )
+                .map((target) => (
                 <TableRow key={target.id}>
                   <TableCell>
                     <Checkbox 
                       checked={target.selected}
-                      onCheckedChange={(checked) => updateQuestTranslationTarget(target.id, !!checked)}
+                      onCheckedChange={(checked) => updateCustomFilesTranslationTarget(target.id, !!checked)}
                       disabled={isScanning || isTranslating}
                     />
                   </TableCell>
                   <TableCell>{target.name}</TableCell>
-                  <TableCell>{target.type === "ftb" ? "FTB Quest" : "Better Quest"}</TableCell>
+                  <TableCell>{target.path.toLowerCase().endsWith('.json') ? "JSON" : "SNBT"}</TableCell>
                   <TableCell className="truncate max-w-[300px]">{target.path}</TableCell>
                 </TableRow>
               ))

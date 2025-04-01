@@ -65,15 +65,15 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * Format the prompt for translation
    * @param content Content to translate
    * @param targetLanguage Target language
-   * @param customPrompt Custom prompt template (optional)
+   * @param prompt_template Custom prompt template (optional)
    * @returns Formatted prompt
    */
   protected formatPrompt(
     content: Record<string, string>,
     targetLanguage: string,
-    customPrompt?: string
+    prompt_template?: string
   ): string {
-    const promptTemplate = customPrompt || this.config.promptTemplate;
+    const promptTemplate = prompt_template || this.config.prompt_template;
     
     if (!promptTemplate) {
       throw new Error("No prompt template provided");

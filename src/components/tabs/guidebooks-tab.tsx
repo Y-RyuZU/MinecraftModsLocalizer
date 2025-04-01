@@ -8,63 +8,18 @@ import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
 import { TranslationTarget, PatchouliBook } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
+import { useAppTranslation } from "@/lib/i18n";
 
-// Mock functions for development
-const mockInvoke = async <T,>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  console.log(`Invoking command: ${command}`, args);
-  
-  if (command === "extract_patchouli_books") {
-    // Extract the mod number from the path to create unique IDs
-    const modPath = args?.jarPath as string;
-    const modNumber = modPath.match(/example-mod-(\d+)\.jar$/)?.[1] || "1";
-    
-    return [
-      {
-        id: `example-book-${modNumber}`,
-        mod_id: `example-mod-${modNumber}`,
-        name: `Example Book ${modNumber}`,
-        path: `assets/example/patchouli_books/example-book-${modNumber}`,
-        lang_files: [
-          {
-            language: "en_us",
-            path: `assets/example/patchouli_books/example-book-${modNumber}/en_us.json`,
-            content: {
-              "book.example.name": `Example Book ${modNumber}`,
-              "book.example.landing": `Welcome to the Example Book ${modNumber}!`,
-              "category.example.basics": "Basics",
-              "entry.example.intro": "Introduction"
-            }
-          }
-        ]
-      }
-    ] as unknown as T;
-  }
-  
-  if (command === "write_patchouli_book") {
-    return true as unknown as T;
-  }
-  
-  return {} as T;
-};
-
-interface DialogOptions {
-  directory: boolean;
-  multiple: boolean;
-  title: string;
-}
-
-const mockOpen = async (options: DialogOptions): Promise<string | null> => {
-  console.log('Opening dialog with options:', options);
-  return '/mock/path';
-};
+import { TranslationService } from "@/lib/services/translation-service";
 
 export function GuidebooksTab() {
   const [isScanning, setIsScanning] = useState(false);
+  const { t } = useAppTranslation();
   const { 
     config, 
-    translationTargets, 
-    setTranslationTargets, 
-    updateTranslationTarget,
+    guidebookTranslationTargets, 
+    setGuidebookTranslationTargets, 
+    updateGuidebookTranslationTarget,
     isTranslating,
     progress,
     setTranslating,
@@ -82,11 +37,7 @@ export function GuidebooksTab() {
       
       // Check if mods directory is set
       if (!config.paths.modsDir) {
-        const selected = await mockOpen({
-          directory: true,
-          multiple: false,
-          title: "Select Minecraft Mods Directory"
-        });
+        const selected = await FileService.openDirectoryDialog("Select Minecraft Mods Directory");
         
         if (!selected) {
           setIsScanning(false);
@@ -106,7 +57,7 @@ export function GuidebooksTab() {
       for (const modFile of modFiles) {
         try {
           // Extract Patchouli books
-          const books = await mockInvoke<PatchouliBook[]>("extract_patchouli_books", { 
+          const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
             jarPath: modFile,
             tempDir: ""
           });
@@ -118,7 +69,7 @@ export function GuidebooksTab() {
                 id: book.id,
                 name: `${book.mod_id}: ${book.name}`,
                 path: modFile,
-                selected: false
+                selected: true
               });
             }
           }
@@ -127,7 +78,7 @@ export function GuidebooksTab() {
         }
       }
       
-      setTranslationTargets(targets);
+      setGuidebookTranslationTargets(targets);
     } catch (error) {
       console.error("Failed to scan guidebooks:", error);
       setError(`Failed to scan guidebooks: ${error}`);
@@ -138,12 +89,12 @@ export function GuidebooksTab() {
 
   // Select all guidebooks
   const handleSelectAll = (checked: boolean) => {
-    const updatedTargets = translationTargets.map(target => ({
+    const updatedTargets = guidebookTranslationTargets.map(target => ({
       ...target,
       selected: checked
     }));
     
-    setTranslationTargets(updatedTargets);
+    setGuidebookTranslationTargets(updatedTargets);
   };
 
   // Translate selected guidebooks
@@ -153,10 +104,10 @@ export function GuidebooksTab() {
       setProgress(0);
       setError(null);
       
-      const selectedTargets = translationTargets.filter(target => target.selected);
+      const selectedTargets = guidebookTranslationTargets.filter(target => target.selected);
       
       if (selectedTargets.length === 0) {
-        setError("No guidebooks selected for translation");
+        setError(t('errors.noGuidebooksSelected'));
         setTranslating(false);
         return;
       }
@@ -168,7 +119,7 @@ export function GuidebooksTab() {
         
         try {
           // Extract Patchouli books
-          const books = await mockInvoke<PatchouliBook[]>("extract_patchouli_books", { 
+          const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
             jarPath: target.path,
             tempDir: ""
           });
@@ -199,7 +150,7 @@ export function GuidebooksTab() {
           );
           
           // Write translated file to JAR
-          const success = await mockInvoke<boolean>("write_patchouli_book", {
+          const success = await FileService.invoke<boolean>("write_patchouli_book", {
             jarPath: target.path,
             bookId: book.id,
             modId: book.mod_id,
@@ -240,15 +191,44 @@ export function GuidebooksTab() {
     sourceLanguage: string,
     targetLanguage: string
   ): Promise<Record<string, string>> => {
-    // In a real implementation, this would use the LLM adapter to translate the content
-    // For now, we'll just return a mock translation
-    const translated: Record<string, string> = {};
-    
-    for (const [key, value] of Object.entries(content)) {
-      translated[key] = `[${targetLanguage}] ${value}`;
+    try {
+      // Create a translation service
+      const translationService = new TranslationService({
+        llmConfig: {
+          provider: config.llm.provider,
+          apiKey: config.llm.apiKey,
+          baseUrl: config.llm.baseUrl,
+          model: config.llm.model,
+        },
+        chunkSize: config.translation.guidebook_chunk_size,
+        prompt_template: config.llm.prompt_template,
+        maxRetries: config.llm.max_retries,
+      });
+      
+      // Create a translation job
+      const job = translationService.createJob(
+        content,
+        sourceLanguage,
+        targetLanguage
+      );
+      
+      // Start the translation job
+      await translationService.startJob(job.id);
+      
+      // Get the translated content
+      return translationService.getCombinedTranslatedContent(job.id);
+    } catch (error) {
+      console.error("Failed to translate guidebook content:", error);
+      
+      // Fallback to mock translation
+      const translated: Record<string, string> = {};
+      
+      for (const [key, value] of Object.entries(content)) {
+        translated[key] = `[${targetLanguage}] ${value}`;
+      }
+      
+      return translated;
     }
-    
-    return translated;
   };
 
   return (
@@ -256,13 +236,13 @@ export function GuidebooksTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button onClick={handleScanGuidebooks} disabled={isScanning || isTranslating}>
-            {isScanning ? "Scanning..." : "Scan Guidebooks"}
+            {isScanning ? t('buttons.scanning') : t('buttons.scanGuidebooks')}
           </Button>
           <Button 
             onClick={handleTranslate} 
-            disabled={isScanning || isTranslating || translationTargets.length === 0}
+            disabled={isScanning || isTranslating || guidebookTranslationTargets.length === 0}
           >
-            {isTranslating ? "Translating..." : "Translate Selected"}
+            {isTranslating ? t('buttons.translating') : t('buttons.translate')}
           </Button>
         </div>
       </div>
@@ -277,7 +257,7 @@ export function GuidebooksTab() {
         <div className="space-y-2">
           <Progress value={progress} className="h-2" />
           <p className="text-sm text-muted-foreground">
-            Translating guidebooks... {progress}%
+            {t('progress.translatingGuidebooks')} {progress}%
           </p>
         </div>
       )}
@@ -289,28 +269,28 @@ export function GuidebooksTab() {
               <TableHead className="w-[50px]">
                 <Checkbox 
                   onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  disabled={isScanning || isTranslating || translationTargets.length === 0}
+                  disabled={isScanning || isTranslating || guidebookTranslationTargets.length === 0}
                 />
               </TableHead>
-              <TableHead>Guidebook Name</TableHead>
-              <TableHead>Mod ID</TableHead>
-              <TableHead>Path</TableHead>
+              <TableHead>{t('tables.guidebookName')}</TableHead>
+              <TableHead>{t('tables.modId')}</TableHead>
+              <TableHead>{t('tables.path')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {translationTargets.length === 0 ? (
+            {guidebookTranslationTargets.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
-                  {isScanning ? "Scanning for guidebooks..." : "No guidebooks found. Click 'Scan Guidebooks' to scan for guidebooks."}
+                  {isScanning ? t('tables.scanningForGuidebooks') : t('tables.noGuidebooksFound')}
                 </TableCell>
               </TableRow>
             ) : (
-              translationTargets.map((target) => (
+              guidebookTranslationTargets.map((target) => (
                 <TableRow key={target.id}>
                   <TableCell>
                     <Checkbox 
                       checked={target.selected}
-                      onCheckedChange={(checked) => updateTranslationTarget(target.id, !!checked)}
+                      onCheckedChange={(checked) => updateGuidebookTranslationTarget(target.id, !!checked)}
                       disabled={isScanning || isTranslating}
                     />
                   </TableCell>

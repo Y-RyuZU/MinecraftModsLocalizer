@@ -1,0 +1,67 @@
+{
+  "app": {
+    "title": "Minecraft Mods Localizer"
+  },
+  "tabs": {
+    "mods": "Mods",
+    "quests": "Quests",
+    "guidebooks": "Guidebooks",
+    "customFiles": "Custom Files",
+    "settings": "Settings"
+  },
+  "cards": {
+    "modTranslation": "Mod Translation",
+    "questTranslation": "Quest Translation",
+    "guidebookTranslation": "Guidebook Translation",
+    "customFilesTranslation": "Custom Files Translation",
+    "settings": "Settings"
+  },
+  "buttons": {
+    "scanMods": "Scan Mods",
+    "scanQuests": "Scan Quests",
+    "scanGuidebooks": "Scan Guidebooks",
+    "scanFiles": "Scan Files",
+    "selectDirectory": "Select Directory",
+    "translate": "Translate Selected",
+    "translating": "Translating...",
+    "scanning": "Scanning..."
+  },
+  "filters": {
+    "filterMods": "Filter mods...",
+    "filterFiles": "Filter files..."
+  },
+  "tables": {
+    "modName": "Mod Name",
+    "modId": "Mod ID",
+    "questName": "Quest Name",
+    "guidebookName": "Guidebook Name",
+    "fileName": "File Name",
+    "type": "Type",
+    "path": "Path",
+    "noModsFound": "No mods found. Click 'Scan Mods' to scan for mods.",
+    "noQuestsFound": "No quests found. Click 'Scan Quests' to scan for quests.",
+    "noGuidebooksFound": "No guidebooks found. Click 'Scan Guidebooks' to scan for guidebooks.",
+    "noFilesFound": "No files found. Click 'Scan Files' to scan for JSON and SNBT files.",
+    "scanningForMods": "Scanning for mods...",
+    "scanningForQuests": "Scanning for quests...",
+    "scanningForGuidebooks": "Scanning for guidebooks...",
+    "scanningForFiles": "Scanning for files..."
+  },
+  "progress": {
+    "translatingMods": "Translating mods...",
+    "translatingQuests": "Translating quests...",
+    "translatingGuidebooks": "Translating guidebooks...",
+    "translatingFiles": "Translating files..."
+  },
+  "errors": {
+    "noModsSelected": "No mods selected for translation",
+    "noQuestsSelected": "No quests selected for translation",
+    "noGuidebooksSelected": "No guidebooks selected for translation",
+    "noFilesSelected": "No files selected for translation",
+    "selectDirectoryFirst": "Please select a directory first"
+  },
+  "misc": {
+    "loading": "Loading...",
+    "selectedDirectory": "Selected directory:"
+  }
+}

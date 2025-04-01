@@ -12,7 +12,7 @@ export interface TranslationRequest {
   /** Target language for translation */
   targetLanguage: string;
   /** Optional custom prompt to use for translation */
-  customPrompt?: string;
+  prompt_template?: string;
 }
 
 /**
@@ -78,7 +78,7 @@ export interface LLMConfig {
   /** Maximum number of retries on failure */
   maxRetries?: number;
   /** Custom prompt template */
-  promptTemplate?: string;
+  prompt_template?: string;
 }
 
 /**
