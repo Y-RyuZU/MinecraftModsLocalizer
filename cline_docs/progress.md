@@ -1,7 +1,7 @@
 # Progress
 
 ## What Works
-- Project initialization with Tauri (Rust + Next.js)
+- Project initialization with Tauri v2 (Rust + Next.js)
 - Core architecture design
 - Data model design for Minecraft mods, quests, and guidebooks
 - LLM adapter interfaces for translation services
@@ -29,6 +29,11 @@
   - Anthropic: claude-3-haiku-20240307
   - Google: gemini-1.5-pro
 - Enhanced UI with Card components for better visual grouping of settings
+- Fixed Tauri v2 API import in config-service.ts
+- Made translation targets independent for each tab
+- Updated property names to use snake_case consistently
+- Added custom prompt template field in LLM settings
+- Implemented internationalization with i18next
 
 ## What's Left to Build
 - Integration testing of all components

@@ -52,12 +52,13 @@ Example of frontend-backend communication:
 
 ```typescript
 // Frontend (Next.js)
-import { invoke } from '@tauri-apps/api/tauri';
+// Using the FileService for Tauri commands
+import { FileService } from '@/lib/services/file-service';
 
 // Invoke a command
 async function translateMod(modId: string, targetLanguage: string) {
   try {
-    const result = await invoke('translate_mod', { modId, targetLanguage });
+    const result = await FileService.invoke('translate_mod', { modId, targetLanguage });
     return result;
   } catch (error) {
     console.error('Translation failed:', error);

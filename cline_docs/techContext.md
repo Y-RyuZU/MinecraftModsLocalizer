@@ -8,9 +8,10 @@
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
 - **State Management**: React Context + zustand
+- **Internationalization**: i18next + next-i18next
 
 ### Backend
-- **Framework**: Tauri
+- **Framework**: Tauri v2
 - **Language**: Rust
 - **File Operations**: Rust standard library and crates for file handling
 
