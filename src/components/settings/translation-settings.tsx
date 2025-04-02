@@ -21,13 +21,13 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   const handleAddCustomLanguage = () => {
     if (!customLanguageName || !customLanguageId) return;
     
-    // Initialize customLanguages array if it doesn't exist
-    if (!config.translation.customLanguages) {
-      config.translation.customLanguages = [];
+    // Initialize custom_languages array if it doesn't exist
+    if (!config.translation.custom_languages) {
+      config.translation.custom_languages = [];
     }
     
     // Add new custom language
-    config.translation.customLanguages.push({
+    config.translation.custom_languages.push({
       name: customLanguageName,
       id: customLanguageId
     });
@@ -50,9 +50,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           <div className="space-y-2">
             <label className="text-sm font-medium">Source Language</label>
             <Input 
-              value={config.translation.sourceLanguage}
+              value={config.translation.source_language}
               onChange={(e) => {
-                config.translation.sourceLanguage = e.target.value;
+                config.translation.source_language = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="e.g., en_us"
@@ -62,9 +62,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           <div className="space-y-2">
             <label className="text-sm font-medium">Target Language</label>
             <Select 
-              value={config.translation.targetLanguage}
+              value={config.translation.target_language}
               onValueChange={(value) => {
-                config.translation.targetLanguage = value;
+                config.translation.target_language = value;
                 setConfig({ ...config });
               }}
             >
@@ -77,7 +77,7 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
                     {lang.name} ({lang.id})
                   </SelectItem>
                 ))}
-                {config.translation.customLanguages?.map((lang) => (
+                {config.translation.custom_languages?.map((lang) => (
                   <SelectItem key={lang.id} value={lang.id}>
                     {lang.name} ({lang.id})
                   </SelectItem>
@@ -111,9 +111,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           <div className="space-y-2">
             <label className="text-sm font-medium">Resource Pack Name</label>
             <Input 
-              value={config.translation.resourcePackName}
+              value={config.translation.resource_pack_name}
               onChange={(e) => {
-                config.translation.resourcePackName = e.target.value;
+                config.translation.resource_pack_name = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter resource pack name"

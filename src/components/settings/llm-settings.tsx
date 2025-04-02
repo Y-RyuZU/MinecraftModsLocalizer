@@ -72,9 +72,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">API Key</label>
             <Input 
               type="password"
-              value={config.llm.apiKey}
+              value={config.llm.api_key}
               onChange={(e) => {
-                config.llm.apiKey = e.target.value;
+                config.llm.api_key = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter API key"
@@ -84,9 +84,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           <div className="space-y-2">
             <label className="text-sm font-medium">Base URL (Optional)</label>
             <Input 
-              value={config.llm.baseUrl || ""}
+              value={config.llm.base_url || ""}
               onChange={(e) => {
-                config.llm.baseUrl = e.target.value;
+                config.llm.base_url = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter base URL"
@@ -109,9 +109,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">Max Retries</label>
             <Input 
               type="number"
-              value={config.llm.maxRetries}
+              value={config.llm.max_retries}
               onChange={(e) => {
-                config.llm.maxRetries = parseInt(e.target.value);
+                config.llm.max_retries = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter max retries"

@@ -147,6 +147,24 @@ export class ConfigService {
   }
 
   /**
+   * Get provider-specific default model
+   * @param provider Provider ID
+   * @returns Default model for the provider
+   */
+  public static getDefaultModel(provider: string): string {
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return 'gpt-4o-mini-2024-07-18';
+      case 'anthropic':
+        return 'claude-3-haiku-20240307';
+      case 'google':
+        return 'gemini-1.5-pro';
+      default:
+        return '';
+    }
+  }
+
+  /**
    * Deep merge two objects
    * @param target Target object
    * @param source Source object

@@ -58,7 +58,7 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * @returns Maximum number of retries
    */
   protected getMaxRetries(): number {
-    return this.config.maxRetries ?? this.DEFAULT_MAX_RETRIES;
+    return this.config.max_retries ?? this.DEFAULT_MAX_RETRIES;
   }
 
   /**

@@ -14,6 +14,7 @@
 - Rust functions for analyzing Minecraft mods, quests, and guidebooks
 - Fixed duplicate key issues in component rendering
 - Fixed theme hydration mismatch issues
+- Fixed language switcher hydration mismatch issues
 - Fixed CORS issues with fonts
 - Improved UI layout with centered content and proper margins
 - Enhanced Settings tab with language selection dropdown
@@ -34,6 +35,19 @@
 - Updated property names to use snake_case consistently
 - Added custom prompt template field in LLM settings
 - Implemented internationalization with i18next
+- Fixed inconsistency in property naming between Rust backend and TypeScript frontend:
+  - Updated all TypeScript interfaces to use snake_case consistently
+  - Updated all components to use the snake_case property names
+  - Updated LLM adapters to use the snake_case property names
+- Fixed native dialog integration in Tauri v2 development mode:
+  - Properly handled server-side rendering (SSR) in file-service.ts
+  - Improved Tauri environment detection for Tauri v2
+  - Fixed dynamic import of Tauri API invoke function
+  - Ensured consistent behavior between development and production environments
+- Fixed Tauri API import in file-service.ts:
+  - Replaced dynamic import of '@tauri-apps/api/tauri' with direct access to window.__TAURI__?.invoke
+  - Simplified Tauri environment detection
+  - Improved error handling for Tauri API calls
 
 ## What's Left to Build
 - Integration testing of all components

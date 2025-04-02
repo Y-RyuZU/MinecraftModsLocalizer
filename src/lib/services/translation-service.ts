@@ -24,9 +24,9 @@ export interface TranslationJob {
   /** Unique identifier for the job */
   id: string;
   /** Source language */
-  sourceLanguage: string;
+  source_language: string;
   /** Target language */
-  targetLanguage: string;
+  target_language: string;
   /** Chunks to translate */
   chunks: TranslationChunk[];
   /** Status of the job */
@@ -128,8 +128,8 @@ export class TranslationService {
     // Create the job
     const job: TranslationJob = {
       id: jobId,
-      sourceLanguage,
-      targetLanguage,
+      source_language: sourceLanguage,
+      target_language: targetLanguage,
       chunks,
       status: "pending",
       progress: 0,
@@ -181,7 +181,7 @@ export class TranslationService {
           // Translate the chunk
           const translatedContent = await this.translateChunk(
             chunk.content,
-            job.targetLanguage
+            job.target_language
           );
           
           // Update chunk with translated content
@@ -349,7 +349,7 @@ export class TranslationService {
         // Create translation request
         const request: TranslationRequest = {
           content,
-          targetLanguage,
+          target_language: targetLanguage,
           prompt_template: this.prompt_template
         };
         

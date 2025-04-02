@@ -16,24 +16,24 @@ export class LLMAdapterFactory {
    */
   public static getAdapter(config: LLMConfig): LLMAdapter {
     // Check if we already have an instance for this provider
-    if (this.adapters.has(config.id)) {
-      return this.adapters.get(config.id)!;
+    if (this.adapters.has(config.provider)) {
+      return this.adapters.get(config.provider)!;
     }
 
     // Create a new adapter instance
     let adapter: LLMAdapter;
 
-    switch (config.id) {
+    switch (config.provider) {
       case "openai":
         adapter = new OpenAIAdapter(config);
         break;
       // Add more adapter implementations here
       default:
-        throw new Error(`Unsupported LLM provider: ${config.id}`);
+        throw new Error(`Unsupported LLM provider: ${config.provider}`);
     }
 
     // Store the instance
-    this.adapters.set(config.id, adapter);
+    this.adapters.set(config.provider, adapter);
 
     return adapter;
   }

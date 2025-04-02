@@ -231,22 +231,33 @@ pub fn create_directory(path: &str) -> std::result::Result<bool, String> {
     Ok(true)
 }
 
-/// Open a directory dialog
-/// 
-/// Note: In a real implementation, this would use the Tauri dialog API.
-/// However, for simplicity, we'll just return a mock path.
+/// Open a directory dialog using the rfd crate
 #[tauri::command]
-pub async fn open_directory_dialog(title: &str) -> std::result::Result<Option<String>, String> {
-    info!("Opening directory dialog with title: {}", title);
+pub fn open_directory_dialog(title: &str) -> std::result::Result<Option<String>, String> {
+    info!("RUST: Opening directory dialog with title: {}", title);
     
-    // In a real implementation, this would use the Tauri dialog API.
-    // For now, we'll just return a mock path based on the title.
-    match title {
-        "Select Minecraft Mods Directory" => Ok(Some("/mock/minecraft/mods".to_string())),
-        "Select Minecraft Resource Packs Directory" => Ok(Some("/mock/minecraft/resourcepacks".to_string())),
-        "Select Minecraft Config Directory" => Ok(Some("/mock/minecraft/config".to_string())),
-        "Select Directory with JSON/SNBT Files" => Ok(Some("/mock/minecraft/custom".to_string())),
-        _ => Ok(Some("/mock/path".to_string())),
+    // Use the rfd crate to open a directory selection dialog
+    let folder = rfd::FileDialog::new()
+        .set_title(title)
+        .pick_folder();
+    
+    match folder {
+        Some(path) => {
+            if let Some(path_str) = path.to_str() {
+                info!("RUST: Selected directory: {}", path_str);
+                // Add a prefix to indicate that this is from the native dialog
+                let result = format!("NATIVE_DIALOG:{}", path_str);
+                info!("RUST: Returning result: {}", result);
+                Ok(Some(result))
+            } else {
+                error!("RUST: Invalid directory path");
+                Err("Invalid directory path".to_string())
+            }
+        },
+        None => {
+            info!("RUST: No directory selected");
+            Ok(None)
+        }
     }
 }
 

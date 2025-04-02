@@ -41,7 +41,7 @@ export function SettingsTab() {
   // Select directory
   const handleSelectDirectory = async (path: keyof typeof config.paths) => {
     try {
-      const selected = await FileService.openDirectoryDialog(`Select ${path} Directory`);
+      const selected = await FileService.openDirectoryDialog(`Select ${path.replace('_', ' ')} Directory`);
       
       if (selected) {
         config.paths[path] = selected;

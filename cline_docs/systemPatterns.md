@@ -48,6 +48,10 @@ The communication between the Next.js frontend and the Rust backend is handled t
 
 4. **Error Propagation**: Errors from the backend are properly propagated to the frontend for display and handling.
 
+5. **Server-Side Rendering (SSR) Handling**: Since Next.js uses SSR, we implement special handling to ensure Tauri commands work properly in both SSR and client-side contexts.
+
+6. **Tauri v2 API Integration**: We use dynamic imports and environment detection to properly integrate with Tauri v2 API.
+
 Example of frontend-backend communication:
 
 ```typescript
@@ -73,6 +77,78 @@ async function translateMod(modId: string, targetLanguage: string) {
 async fn translate_mod(mod_id: String, target_language: String) -> Result<TranslationResult, String> {
     // Implementation
     Ok(translation_result)
+}
+```
+
+### Tauri v2 Integration Strategy
+
+To properly integrate with Tauri v2 in a Next.js application, we implement the following strategy:
+
+1. **SSR Detection**: We detect if the code is running in a server-side rendering context and provide appropriate fallbacks.
+
+```typescript
+// Flag to indicate if we're in a server-side rendering environment
+const isSSR = typeof window === 'undefined';
+```
+
+2. **Dynamic API Import**: We dynamically import the Tauri API to avoid issues during SSR.
+
+```typescript
+// Only try to import Tauri API in client-side code
+if (!isSSR) {
+  try {
+    // Use a dynamic import with a specific path
+    import('@tauri-apps/api/tauri').then(({ invoke }) => {
+      if (typeof invoke === 'function') {
+        tauriInvokeFunction = invoke;
+        console.log('Successfully loaded Tauri invoke function');
+      }
+    });
+  } catch (error) {
+    console.error('Error setting up Tauri API:', error);
+  }
+}
+```
+
+3. **Tauri Environment Detection**: We detect if the application is running in a Tauri environment.
+
+```typescript
+const isTauriEnvironment = (): boolean => {
+  // Always return false in SSR
+  if (isSSR) {
+    return false;
+  }
+  
+  try {
+    // In Tauri v2, we can check for these properties
+    const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
+    const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
+    const hasTauriClass = document.documentElement.classList.contains('tauri');
+    
+    return hasTauriInternals || hasIsTauri || hasTauriClass;
+  } catch (error) {
+    console.error('Error checking Tauri environment:', error);
+    return false;
+  }
+};
+```
+
+4. **Mock Implementation**: We provide mock implementations for development and SSR contexts.
+
+```typescript
+// In SSR, always use mock
+if (isSSR) {
+  console.log(`[SSR] Using mock for command: ${command}`);
+  return mockInvoke<T>(command, args);
+}
+
+const isTauri = isTauriEnvironment();
+if (isTauri && tauriInvokeFunction) {
+  // Use the Tauri API
+  return await tauriInvokeFunction<T>(command, args);
+} else {
+  // Use mock implementation
+  return mockInvoke<T>(command, args);
 }
 ```
 

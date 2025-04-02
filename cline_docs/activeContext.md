@@ -63,6 +63,21 @@ We have completed the implementation of the Minecraft Mods Localizer application
 - Enhanced translation service integration with proper error handling
 - Added custom prompt template field in LLM settings
 - Implemented internationalization with i18next for multi-language UI support
+- Fixed hydration mismatch in LanguageSwitcher component by implementing client-side only rendering approach
+- Fixed inconsistency in property naming between Rust backend and TypeScript frontend:
+  - Updated all TypeScript interfaces (config.ts, llm.ts) to use snake_case consistently
+  - Updated all components (LLMSettings, TranslationSettings, PathSettings) to use the snake_case property names
+  - Updated LLM adapters (OpenAIAdapter, BaseLLMAdapter, LLMAdapterFactory) to use the snake_case property names
+  - Updated translation service to use the snake_case property names
+- Fixed native dialog integration in Tauri v2:
+  - Updated file-service.ts to properly handle server-side rendering (SSR)
+  - Improved Tauri environment detection for Tauri v2
+  - Fixed dynamic import of Tauri API invoke function
+  - Updated mock implementation to match Rust backend behavior
+- Fixed Tauri API import in file-service.ts:
+  - Replaced dynamic import of '@tauri-apps/api/tauri' with direct access to window.__TAURI__?.invoke
+  - Simplified Tauri environment detection
+  - Improved error handling for Tauri API calls
 
 ## Next Steps
 1. **Testing and Debugging**:

@@ -1,15 +1,75 @@
 /**
  * File service for handling Minecraft files
  */
+// Flag to indicate if we're in a server-side rendering environment
+const isSSR = typeof window === 'undefined';
 
 // Check if we're running in a Tauri context
-const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+const isTauri = !isSSR && window.__TAURI__ !== undefined;
 
-// Mock invoke function for development
+// Define a function to safely invoke Tauri commands
+const tauriInvokeFunction = !isSSR && isTauri ? window.__TAURI__?.invoke : null;
+
+// Log Tauri availability
+if (!isSSR) {
+  console.log(`Tauri API available: ${isTauri ? 'yes' : 'no'}`);
+  if (isTauri && tauriInvokeFunction) {
+    console.log('Successfully loaded Tauri invoke function');
+  }
+}
+
+/**
+ * Check if we're running in a Tauri environment
+ * This is a more reliable way to check in Tauri v2
+ */
+const isTauriEnvironment = (): boolean => {
+  // Always return false in SSR
+  if (isSSR) {
+    return false;
+  }
+  
+  try {
+    // In Tauri v2, we can check for these properties
+    // Use type assertions with unknown first to avoid direct any usage
+    const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
+    const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
+    const hasTauriClass = document.documentElement.classList.contains('tauri');
+    
+    console.log('Tauri detection:', {
+      hasTauriInternals,
+      hasIsTauri,
+      hasTauriClass
+    });
+    
+    return hasTauriInternals || hasIsTauri || hasTauriClass;
+  } catch (error) {
+    console.error('Error checking Tauri environment:', error);
+    return false;
+  }
+};
+
+// Log whether Tauri is available, but only on client side
+if (!isSSR) {
+  console.log(`Tauri environment: ${isTauriEnvironment() ? 'yes' : 'no'}`);
+  
+  // Log more details about the window object
+  console.log('window.__TAURI_INTERNALS__:', (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__);
+  console.log('window.isTauri:', (window as unknown as Record<string, unknown>).isTauri);
+}
+
+/**
+ * Mock invoke function for development
+ * Only used when Tauri is not available
+ */
 const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
   console.log(`[MOCK] Invoking command: ${command}`, args);
   
   switch (command) {
+    case "open_directory_dialog":
+      // Return a mock path with the NATIVE_DIALOG prefix to match what the Rust backend would return
+      console.log("[MOCK] Simulating native dialog selection");
+      return `NATIVE_DIALOG:/mock/path` as unknown as T;
+      
     case "get_mod_files":
       return [
         `${args?.dir}/example-mod-1.jar`,
@@ -54,9 +114,6 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
     case "create_directory":
       return true as unknown as T;
       
-    case "open_directory_dialog":
-      return `/mock/path` as unknown as T;
-      
     case "create_resource_pack":
       return `${args?.dir}/${args?.name}` as unknown as T;
       
@@ -68,10 +125,32 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
   }
 };
 
-// Use the real invoke function if available, otherwise use the mock
-const tauriInvoke = isTauri 
-  ? window.__TAURI__?.invoke 
-  : mockInvoke;
+/**
+ * Invoke a Tauri command or use mock if not in Tauri environment
+ * In SSR, always use mock
+ */
+const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  // In SSR, always use mock
+  if (isSSR) {
+    console.log(`[SSR] Using mock for command: ${command}`);
+    return mockInvoke<T>(command, args);
+  }
+  
+  const tauriAvailable = isTauri && tauriInvokeFunction;
+  console.log(`Invoking ${command} in ${tauriAvailable ? 'Tauri' : 'mock'} environment`);
+  
+  if (tauriAvailable) {
+    try {
+      // Use the window.__TAURI__ invoke function
+      return await tauriInvokeFunction<T>(command, args);
+    } catch (error) {
+      console.error(`Error invoking Tauri command ${command}:`, error);
+      throw error;
+    }
+  } else {
+    return mockInvoke<T>(command, args);
+  }
+};
 
 /**
  * File service
@@ -248,12 +327,14 @@ export class FileService {
    * @returns Selected directory path or null if canceled
    */
   static async openDirectoryDialog(title: string): Promise<string | null> {
+    console.log("FileService.openDirectoryDialog: Using tauriInvoke");
+    
     try {
-      const result = await tauriInvoke<string | null>("open_directory_dialog", { title });
-      return result;
+      // Use the tauriInvoke function which will handle the Tauri/mock logic
+      return await FileService.invoke<string | null>("open_directory_dialog", { title });
     } catch (error) {
       console.error("Failed to open directory dialog:", error);
-      throw error;
+      return null;
     }
   }
 }

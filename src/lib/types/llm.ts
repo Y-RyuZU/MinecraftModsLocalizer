@@ -10,7 +10,7 @@ export interface TranslationRequest {
   /** Text content to translate in key-value format */
   content: Record<string, string>;
   /** Target language for translation */
-  targetLanguage: string;
+  target_language: string;
   /** Optional custom prompt to use for translation */
   prompt_template?: string;
 }
@@ -68,15 +68,15 @@ export interface LLMAdapter {
  */
 export interface LLMConfig {
   /** Provider ID */
-  id: string;
+  provider: string;
   /** API key */
-  apiKey: string;
+  api_key: string;
   /** Base URL (optional for some providers) */
-  baseUrl?: string;
+  base_url?: string;
   /** Model to use */
   model?: string;
   /** Maximum number of retries on failure */
-  maxRetries?: number;
+  max_retries?: number;
   /** Custom prompt template */
   prompt_template?: string;
 }

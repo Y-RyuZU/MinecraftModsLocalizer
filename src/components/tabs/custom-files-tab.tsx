@@ -39,7 +39,20 @@ export function CustomFilesTab() {
       const selected = await FileService.openDirectoryDialog("Select Directory with JSON/SNBT Files");
       
       if (selected) {
-        setCustomDirectory(selected);
+        // Check if the path has the NATIVE_DIALOG prefix
+        if (selected.startsWith("NATIVE_DIALOG:")) {
+          // Remove the prefix
+          const actualPath = selected.substring("NATIVE_DIALOG:".length);
+          console.log("Native dialog was used!");
+          setCustomDirectory(actualPath);
+          // Show a success message
+          setError(null);
+        } else {
+          console.log("Mock dialog was used!");
+          setCustomDirectory(selected);
+          // Show a warning message
+          setError("Warning: Mock dialog was used instead of native dialog");
+        }
       }
     } catch (error) {
       console.error("Failed to select directory:", error);

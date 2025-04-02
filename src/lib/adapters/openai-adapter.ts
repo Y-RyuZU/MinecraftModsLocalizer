@@ -46,12 +46,12 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     // Format the prompt
     const prompt = this.formatPrompt(
       request.content,
-      request.targetLanguage,
+      request.target_language,
       request.prompt_template
     );
     
     // Prepare the API request
-    const apiUrl = this.config.baseUrl || this.DEFAULT_API_URL;
+    const apiUrl = this.config.base_url || this.DEFAULT_API_URL;
     const model = this.config.model || this.DEFAULT_MODEL;
     
     const requestBody = {
@@ -81,7 +81,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${this.config.apiKey}`
+            "Authorization": `Bearer ${this.config.api_key}`
           },
           body: JSON.stringify(requestBody)
         });
