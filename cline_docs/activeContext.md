@@ -79,6 +79,20 @@ We have completed the implementation of the Minecraft Mods Localizer application
   - Simplified Tauri environment detection
   - Improved error handling for Tauri API calls
 
+- Updated Tauri v2 API usage:
+  - Replaced `window.__TAURI__` with `window.__TAURI_INTERNALS__` or `window.isTauri` for Tauri v2 compatibility
+  - Created utility functions to safely detect and access Tauri v2 APIs with proper TypeScript typing
+  - Updated both config-service.ts and file-service.ts to use the new Tauri v2 APIs
+  - Improved error handling for Tauri API calls in both services
+
+- Updated dialog implementation to use Tauri v2 plugin-dialog:
+  - Updated file-service.ts to use the @tauri-apps/plugin-dialog package
+  - Added dynamic import of the dialog plugin with proper error handling
+  - Implemented fallback to the existing invoke method if the plugin import fails
+  - Added the tauri-plugin-dialog dependency to Cargo.toml
+  - Added the "dialog:allow-open" permission to the capabilities file
+  - Registered the dialog plugin in lib.rs
+
 ## Next Steps
 1. **Testing and Debugging**:
    - Test all translation workflows with real Minecraft mods

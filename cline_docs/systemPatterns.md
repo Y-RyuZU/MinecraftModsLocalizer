@@ -91,23 +91,14 @@ To properly integrate with Tauri v2 in a Next.js application, we implement the f
 const isSSR = typeof window === 'undefined';
 ```
 
-2. **Dynamic API Import**: We dynamically import the Tauri API to avoid issues during SSR.
+2. **Tauri v2 API Detection**: We check for the presence of Tauri v2 specific APIs.
 
 ```typescript
-// Only try to import Tauri API in client-side code
-if (!isSSR) {
-  try {
-    // Use a dynamic import with a specific path
-    import('@tauri-apps/api/tauri').then(({ invoke }) => {
-      if (typeof invoke === 'function') {
-        tauriInvokeFunction = invoke;
-        console.log('Successfully loaded Tauri invoke function');
-      }
-    });
-  } catch (error) {
-    console.error('Error setting up Tauri API:', error);
-  }
-}
+// Check if we're running in a Tauri context
+const isTauri = !isSSR && (
+  typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined' || 
+  typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined'
+);
 ```
 
 3. **Tauri Environment Detection**: We detect if the application is running in a Tauri environment.
@@ -133,7 +124,35 @@ const isTauriEnvironment = (): boolean => {
 };
 ```
 
-4. **Mock Implementation**: We provide mock implementations for development and SSR contexts.
+4. **Tauri v2 Invoke Function Access**: We safely access the invoke function from Tauri v2 APIs.
+
+```typescript
+// Get the Tauri invoke function
+const getTauriInvokeFunction = () => {
+  if (!isTauri || isSSR) return null;
+  
+  // Try to get the invoke function from Tauri v2 APIs
+  if (typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+    const tauriInternals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>;
+    if (typeof tauriInternals?.invoke === 'function') {
+      return tauriInternals.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+    }
+  }
+  
+  // Fallback to window.isTauri if available
+  if (typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined') {
+    const isTauriObj = (window as unknown as Record<string, unknown>).isTauri as Record<string, unknown>;
+    if (typeof isTauriObj?.invoke === 'function') {
+      return isTauriObj.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+    }
+  }
+  
+  console.warn('Tauri detected but invoke function not found');
+  return null;
+};
+```
+
+5. **Mock Implementation**: We provide mock implementations for development and SSR contexts.
 
 ```typescript
 // In SSR, always use mock
@@ -142,14 +161,54 @@ if (isSSR) {
   return mockInvoke<T>(command, args);
 }
 
-const isTauri = isTauriEnvironment();
-if (isTauri && tauriInvokeFunction) {
+const tauriAvailable = isTauri && tauriInvokeFunction;
+if (tauriAvailable) {
   // Use the Tauri API
   return await tauriInvokeFunction<T>(command, args);
 } else {
   // Use mock implementation
   return mockInvoke<T>(command, args);
 }
+```
+
+6. **Tauri v2 Plugin Integration**: We use Tauri v2 plugins for specific functionality.
+
+```typescript
+// For dialog functionality, we use the dialog plugin
+if (!dialogPlugin) {
+  try {
+    dialogPlugin = await import('@tauri-apps/plugin-dialog');
+    console.log("FileService.openDirectoryDialog: Dialog plugin loaded successfully");
+  } catch (error) {
+    console.error("Failed to load dialog plugin:", error);
+    // Fallback to invoke if plugin import fails
+    return await tauriInvoke<string | null>("open_directory_dialog", { title });
+  }
+}
+
+// Open the directory dialog using the plugin
+const selected = await dialogPlugin.open({
+  directory: true,
+  multiple: false,
+  title: title
+});
+```
+
+7. **Plugin Registration**: We register plugins in the Rust backend.
+
+```rust
+// In lib.rs
+.plugin(tauri_plugin_dialog::init())
+```
+
+8. **Plugin Permissions**: We add plugin permissions to the capabilities file.
+
+```json
+// In capabilities/default.json
+"permissions": [
+  "core:default",
+  "dialog:allow-open"
+]
 ```
 
 ## File Processing Workflows

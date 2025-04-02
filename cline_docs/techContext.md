@@ -58,6 +58,14 @@ MinecraftModsLocalizer/
 - API keys for LLM services need to be stored securely
 - Solution: Implement encrypted storage for sensitive information
 
+### Tauri v2 API Changes
+- Tauri v2 no longer exposes functionality through `window.__TAURI__`
+- Solution: Use `window.__TAURI_INTERNALS__` or `window.isTauri` for accessing Tauri functionality
+- Implementation: Created utility functions to safely detect and access Tauri v2 APIs with proper TypeScript typing
+- Tauri v2 uses plugins for specific functionality like dialogs
+- Solution: Use `@tauri-apps/plugin-dialog` for dialog functionality
+- Implementation: Added dynamic import of the dialog plugin with proper error handling and fallback to the existing invoke method
+
 ## File Format Handling
 
 ### Lang Files (JSON)

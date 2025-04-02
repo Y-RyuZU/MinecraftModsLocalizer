@@ -4,23 +4,12 @@
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
 
-// Check if we're running in a Tauri context
-const isTauri = !isSSR && window.__TAURI__ !== undefined;
-
-// Define a function to safely invoke Tauri commands
-const tauriInvokeFunction = !isSSR && isTauri ? window.__TAURI__?.invoke : null;
-
-// Log Tauri availability
-if (!isSSR) {
-  console.log(`Tauri API available: ${isTauri ? 'yes' : 'no'}`);
-  if (isTauri && tauriInvokeFunction) {
-    console.log('Successfully loaded Tauri invoke function');
-  }
-}
+// Import Tauri dialog plugin (will be dynamically imported later to handle SSR)
+let dialogPlugin: typeof import('@tauri-apps/plugin-dialog') | null = null;
 
 /**
  * Check if we're running in a Tauri environment
- * This is a more reliable way to check in Tauri v2
+ * This is a reliable way to check in Tauri v2
  */
 const isTauriEnvironment = (): boolean => {
   // Always return false in SSR
@@ -48,9 +37,42 @@ const isTauriEnvironment = (): boolean => {
   }
 };
 
-// Log whether Tauri is available, but only on client side
+// Check if we're running in a Tauri context
+const isTauri = !isSSR && isTauriEnvironment();
+
+// Get the Tauri invoke function
+const getTauriInvokeFunction = () => {
+  if (!isTauri || isSSR) return null;
+  
+  // Try to get the invoke function from Tauri v2 APIs
+  if (typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+    const tauriInternals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>;
+    if (typeof tauriInternals?.invoke === 'function') {
+      return tauriInternals.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+    }
+  }
+  
+  // Fallback to window.isTauri if available
+  if (typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined') {
+    const isTauriObj = (window as unknown as Record<string, unknown>).isTauri as Record<string, unknown>;
+    if (typeof isTauriObj?.invoke === 'function') {
+      return isTauriObj.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+    }
+  }
+  
+  console.warn('Tauri detected but invoke function not found');
+  return null;
+};
+
+// Define a function to safely invoke Tauri commands
+const tauriInvokeFunction = !isSSR ? getTauriInvokeFunction() : null;
+
+// Log Tauri availability
 if (!isSSR) {
-  console.log(`Tauri environment: ${isTauriEnvironment() ? 'yes' : 'no'}`);
+  console.log(`Tauri API available: ${isTauri ? 'yes' : 'no'}`);
+  if (isTauri && tauriInvokeFunction) {
+    console.log('Successfully loaded Tauri invoke function');
+  }
   
   // Log more details about the window object
   console.log('window.__TAURI_INTERNALS__:', (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__);
@@ -141,7 +163,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   
   if (tauriAvailable) {
     try {
-      // Use the window.__TAURI__ invoke function
+      // Use the Tauri invoke function
       return await tauriInvokeFunction<T>(command, args);
     } catch (error) {
       console.error(`Error invoking Tauri command ${command}:`, error);
@@ -327,11 +349,47 @@ export class FileService {
    * @returns Selected directory path or null if canceled
    */
   static async openDirectoryDialog(title: string): Promise<string | null> {
-    console.log("FileService.openDirectoryDialog: Using tauriInvoke");
+    console.log("FileService.openDirectoryDialog: Opening directory dialog");
     
     try {
-      // Use the tauriInvoke function which will handle the Tauri/mock logic
-      return await FileService.invoke<string | null>("open_directory_dialog", { title });
+      // In SSR or non-Tauri environment, use mock or invoke
+      if (isSSR || !isTauri) {
+        console.log("FileService.openDirectoryDialog: Using mock or invoke in non-Tauri environment");
+        return await tauriInvoke<string | null>("open_directory_dialog", { title });
+      }
+      
+      // In Tauri environment, use the dialog plugin
+      console.log("FileService.openDirectoryDialog: Using Tauri dialog plugin");
+      
+      // Dynamically import the dialog plugin if not already loaded
+      if (!dialogPlugin) {
+        try {
+          dialogPlugin = await import('@tauri-apps/plugin-dialog');
+          console.log("FileService.openDirectoryDialog: Dialog plugin loaded successfully");
+        } catch (error) {
+          console.error("Failed to load dialog plugin:", error);
+          // Fallback to invoke if plugin import fails
+          return await tauriInvoke<string | null>("open_directory_dialog", { title });
+        }
+      }
+      
+      // Open the directory dialog using the plugin
+      const selected = await dialogPlugin.open({
+        directory: true,
+        multiple: false,
+        title: title
+      });
+      
+      // Handle the result
+      if (selected === null) {
+        console.log("FileService.openDirectoryDialog: No directory selected");
+        return null;
+      }
+      
+      console.log("FileService.openDirectoryDialog: Selected directory:", selected);
+      
+      // Add the NATIVE_DIALOG prefix to match the Rust backend behavior
+      return `NATIVE_DIALOG:${selected}`;
     } catch (error) {
       console.error("Failed to open directory dialog:", error);
       return null;

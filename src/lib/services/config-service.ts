@@ -1,7 +1,13 @@
 import { AppConfig, DEFAULT_CONFIG } from "../types/config";
 
+// Flag to indicate if we're in a server-side rendering environment
+const isSSR = typeof window === 'undefined';
+
 // Check if we're running in a Tauri context
-const isTauri = typeof window !== 'undefined' && window.__TAURI__ !== undefined;
+const isTauri = !isSSR && (
+  typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined' || 
+  typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined'
+);
 
 // Mock invoke function for development
 const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
@@ -18,10 +24,32 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
   return {} as T;
 };
 
+// Get the Tauri invoke function
+const getTauriInvoke = () => {
+  if (!isTauri || isSSR) return mockInvoke;
+  
+  // Try to get the invoke function from Tauri v2 APIs
+  if (typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+    const tauriInternals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>;
+    if (typeof tauriInternals?.invoke === 'function') {
+      return tauriInternals.invoke as typeof mockInvoke;
+    }
+  }
+  
+  // Fallback to window.isTauri if available
+  if (typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined') {
+    const isTauriObj = (window as unknown as Record<string, unknown>).isTauri as Record<string, unknown>;
+    if (typeof isTauriObj?.invoke === 'function') {
+      return isTauriObj.invoke as typeof mockInvoke;
+    }
+  }
+  
+  console.warn('Tauri detected but invoke function not found, using mock implementation');
+  return mockInvoke;
+};
+
 // Use the real invoke function if available, otherwise use the mock
-const tauriInvoke = isTauri 
-  ? window.__TAURI__?.invoke 
-  : mockInvoke;
+const tauriInvoke = getTauriInvoke();
 
 /**
  * Configuration service
