@@ -65,6 +65,9 @@ MinecraftModsLocalizer/
 - Tauri v2 uses plugins for specific functionality like dialogs
 - Solution: Use `@tauri-apps/plugin-dialog` for dialog functionality
 - Implementation: Added dynamic import of the dialog plugin with proper error handling and fallback to the existing invoke method
+- File system operations in Tauri v2 are handled differently
+- Solution: Use standard Rust file operations instead of Tauri v2 file-system plugin
+- Implementation: Updated backend to use std::fs functions for file operations
 
 ## File Format Handling
 

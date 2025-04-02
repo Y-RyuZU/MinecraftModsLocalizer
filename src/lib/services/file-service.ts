@@ -4,7 +4,7 @@
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
 
-// Import Tauri dialog plugin (will be dynamically imported later to handle SSR)
+// Import Tauri plugins (will be dynamically imported later to handle SSR)
 let dialogPlugin: typeof import('@tauri-apps/plugin-dialog') | null = null;
 
 /**

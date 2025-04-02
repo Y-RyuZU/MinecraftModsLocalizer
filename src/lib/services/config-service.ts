@@ -3,13 +3,38 @@ import { AppConfig, DEFAULT_CONFIG } from "../types/config";
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
 
-// Check if we're running in a Tauri context
-const isTauri = !isSSR && (
-  typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined' || 
-  typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined'
-);
+/**
+ * Check if we're running in a Tauri environment
+ * This is a reliable way to check in Tauri v2
+ */
+const isTauriEnvironment = (): boolean => {
+  // Always return false in SSR
+  if (isSSR) {
+    return false;
+  }
+  
+  try {
+    // In Tauri v2, we can check for these properties
+    // Use type assertions with unknown first to avoid direct any usage
+    const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
+    const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
+    const hasTauriClass = document.documentElement.classList.contains('tauri');
+    
+    return hasTauriInternals || hasIsTauri || hasTauriClass;
+  } catch (error) {
+    console.error('Error checking Tauri environment:', error);
+    return false;
+  }
+};
 
-// Mock invoke function for development
+// Check if we're running in a Tauri context
+const isTauri = !isSSR && isTauriEnvironment();
+
+
+/**
+ * Mock invoke function for development
+ * Only used when Tauri is not available
+ */
 const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
   console.log(`[MOCK] Invoking command: ${command}`, args);
   
@@ -25,14 +50,14 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
 };
 
 // Get the Tauri invoke function
-const getTauriInvoke = () => {
-  if (!isTauri || isSSR) return mockInvoke;
+const getTauriInvokeFunction = () => {
+  if (!isTauri || isSSR) return null;
   
   // Try to get the invoke function from Tauri v2 APIs
   if (typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
     const tauriInternals = (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ as Record<string, unknown>;
     if (typeof tauriInternals?.invoke === 'function') {
-      return tauriInternals.invoke as typeof mockInvoke;
+      return tauriInternals.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
     }
   }
   
@@ -40,16 +65,51 @@ const getTauriInvoke = () => {
   if (typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined') {
     const isTauriObj = (window as unknown as Record<string, unknown>).isTauri as Record<string, unknown>;
     if (typeof isTauriObj?.invoke === 'function') {
-      return isTauriObj.invoke as typeof mockInvoke;
+      return isTauriObj.invoke as <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
     }
   }
   
-  console.warn('Tauri detected but invoke function not found, using mock implementation');
-  return mockInvoke;
+  console.warn('Tauri detected but invoke function not found');
+  return null;
 };
 
-// Use the real invoke function if available, otherwise use the mock
-const tauriInvoke = getTauriInvoke();
+// Define a function to safely invoke Tauri commands
+const tauriInvokeFunction = !isSSR ? getTauriInvokeFunction() : null;
+
+// Log Tauri availability
+if (!isSSR) {
+  console.log(`Tauri API available: ${isTauri ? 'yes' : 'no'}`);
+  if (isTauri && tauriInvokeFunction) {
+    console.log('Successfully loaded Tauri invoke function');
+  }
+}
+
+/**
+ * Invoke a Tauri command or use mock if not in Tauri environment
+ * In SSR, always use mock
+ */
+const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  // In SSR, always use mock
+  if (isSSR) {
+    console.log(`[SSR] Using mock for command: ${command}`);
+    return mockInvoke<T>(command, args);
+  }
+  
+  const tauriAvailable = isTauri && tauriInvokeFunction;
+  console.log(`Invoking ${command} in ${tauriAvailable ? 'Tauri' : 'mock'} environment`);
+  
+  if (tauriAvailable) {
+    try {
+      // Use the Tauri invoke function
+      return await tauriInvokeFunction<T>(command, args);
+    } catch (error) {
+      console.error(`Error invoking Tauri command ${command}:`, error);
+      throw error;
+    }
+  } else {
+    return mockInvoke<T>(command, args);
+  }
+};
 
 /**
  * Configuration service

@@ -211,6 +211,18 @@ const selected = await dialogPlugin.open({
 ]
 ```
 
+9. **File System Operations**: We use standard Rust file operations instead of Tauri v2 file-system plugin.
+
+```rust
+// Instead of using Tauri's file-system plugin:
+// app_handle.fs().create_dir_all(path)
+
+// We use standard Rust file operations:
+std::fs::create_dir_all(path)
+```
+
+This approach provides better reliability and reduces dependencies.
+
 ## File Processing Workflows
 
 ### 1. Mod Lang File Translation Workflow

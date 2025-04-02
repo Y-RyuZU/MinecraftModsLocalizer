@@ -1,16 +1,15 @@
-use std::fs::{File, create_dir_all};
-use std::io::{self, Read, Write};
-use std::path::Path;
 use serde::{Deserialize, Serialize};
-use walkdir::WalkDir;
 use log::{debug, error, info};
 use thiserror::Error;
+use std::path::Path;
+use walkdir::WalkDir;
+use std::collections::HashMap;
 
 /// File system errors
 #[derive(Error, Debug)]
 pub enum FileSystemError {
     #[error("IO error: {0}")]
-    Io(#[from] io::Error),
+    Io(String),
     
     #[error("Path error: {0}")]
     Path(String),
@@ -23,6 +22,9 @@ pub enum FileSystemError {
     
     #[error("Dialog error: {0}")]
     Dialog(String),
+    
+    #[error("Tauri FS error: {0}")]
+    TauriFs(String),
 }
 
 // Type alias for internal Result with FileSystemError
@@ -43,7 +45,7 @@ struct ResourcePackInfo {
 
 /// Get mod files from a directory
 #[tauri::command]
-pub fn get_mod_files(dir: &str) -> std::result::Result<Vec<String>, String> {
+pub async fn get_mod_files(_app_handle: tauri::AppHandle, dir: &str) -> std::result::Result<Vec<String>, String> {
     info!("Getting mod files from {}", dir);
     
     let path = Path::new(dir);
@@ -71,7 +73,7 @@ pub fn get_mod_files(dir: &str) -> std::result::Result<Vec<String>, String> {
 
 /// Get FTB quest files from a directory
 #[tauri::command]
-pub fn get_ftb_quest_files(dir: &str) -> std::result::Result<Vec<String>, String> {
+pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> std::result::Result<Vec<String>, String> {
     info!("Getting FTB quest files from {}", dir);
     
     let path = Path::new(dir);
@@ -103,7 +105,7 @@ pub fn get_ftb_quest_files(dir: &str) -> std::result::Result<Vec<String>, String
 
 /// Get Better Quests files from a directory
 #[tauri::command]
-pub fn get_better_quest_files(dir: &str) -> std::result::Result<Vec<String>, String> {
+pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> std::result::Result<Vec<String>, String> {
     info!("Getting Better Quests files from {}", dir);
     
     let path = Path::new(dir);
@@ -135,7 +137,7 @@ pub fn get_better_quest_files(dir: &str) -> std::result::Result<Vec<String>, Str
 
 /// Get files with a specific extension from a directory
 #[tauri::command]
-pub fn get_files_with_extension(dir: &str, extension: &str) -> std::result::Result<Vec<String>, String> {
+pub async fn get_files_with_extension(_app_handle: tauri::AppHandle, dir: &str, extension: &str) -> std::result::Result<Vec<String>, String> {
     info!("Getting files with extension {} from {}", extension, dir);
     
     let path = Path::new(dir);
@@ -163,7 +165,7 @@ pub fn get_files_with_extension(dir: &str, extension: &str) -> std::result::Resu
 
 /// Read a text file
 #[tauri::command]
-pub fn read_text_file(path: &str) -> std::result::Result<String, String> {
+pub async fn read_text_file(_app_handle: tauri::AppHandle, path: &str) -> std::result::Result<String, String> {
     info!("Reading text file {}", path);
     
     let file_path = Path::new(path);
@@ -171,24 +173,16 @@ pub fn read_text_file(path: &str) -> std::result::Result<String, String> {
         return Err(format!("File not found: {}", path));
     }
     
-    // Open the file
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to open file: {}", e)),
-    };
-    
-    // Read the file content
-    let mut content = String::new();
-    if let Err(e) = file.read_to_string(&mut content) {
-        return Err(format!("Failed to read file: {}", e));
+    // Read the file content using standard Rust file operations
+    match std::fs::read_to_string(path) {
+        Ok(content) => Ok(content),
+        Err(e) => Err(format!("Failed to read file: {}", e))
     }
-    
-    Ok(content)
 }
 
 /// Write a text file
 #[tauri::command]
-pub fn write_text_file(path: &str, content: &str) -> std::result::Result<bool, String> {
+pub async fn write_text_file(_app_handle: tauri::AppHandle, path: &str, content: &str) -> std::result::Result<bool, String> {
     info!("Writing text file {}", path);
     
     let file_path = Path::new(path);
@@ -196,44 +190,35 @@ pub fn write_text_file(path: &str, content: &str) -> std::result::Result<bool, S
     // Create parent directories if they don't exist
     if let Some(parent) = file_path.parent() {
         if !parent.exists() {
-            if let Err(e) = create_dir_all(parent) {
+            // Create directories using standard Rust file operations
+            if let Err(e) = std::fs::create_dir_all(parent) {
                 return Err(format!("Failed to create parent directories: {}", e));
             }
         }
     }
     
-    // Open the file for writing
-    let mut file = match File::create(file_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create file: {}", e)),
-    };
-    
-    // Write the content
-    if let Err(e) = file.write_all(content.as_bytes()) {
-        return Err(format!("Failed to write file: {}", e));
+    // Write the content using standard Rust file operations
+    match std::fs::write(path, content) {
+        Ok(_) => Ok(true),
+        Err(e) => Err(format!("Failed to write file: {}", e))
     }
-    
-    Ok(true)
 }
 
 /// Create a directory
 #[tauri::command]
-pub fn create_directory(path: &str) -> std::result::Result<bool, String> {
+pub async fn create_directory(_app_handle: tauri::AppHandle, path: &str) -> std::result::Result<bool, String> {
     info!("Creating directory {}", path);
     
-    let dir_path = Path::new(path);
-    
-    // Create the directory and all parent directories
-    if let Err(e) = create_dir_all(dir_path) {
-        return Err(format!("Failed to create directory: {}", e));
+    // Create the directory and all parent directories using standard Rust file operations
+    match std::fs::create_dir_all(path) {
+        Ok(_) => Ok(true),
+        Err(e) => Err(format!("Failed to create directory: {}", e))
     }
-    
-    Ok(true)
 }
 
 /// Open a directory dialog using the rfd crate
 #[tauri::command]
-pub fn open_directory_dialog(title: &str) -> std::result::Result<Option<String>, String> {
+pub async fn open_directory_dialog(_app_handle: tauri::AppHandle, title: &str) -> std::result::Result<Option<String>, String> {
     info!("RUST: Opening directory dialog with title: {}", title);
     
     // Use the rfd crate to open a directory selection dialog
@@ -241,29 +226,29 @@ pub fn open_directory_dialog(title: &str) -> std::result::Result<Option<String>,
         .set_title(title)
         .pick_folder();
     
-    match folder {
-        Some(path) => {
-            if let Some(path_str) = path.to_str() {
-                info!("RUST: Selected directory: {}", path_str);
-                // Add a prefix to indicate that this is from the native dialog
-                let result = format!("NATIVE_DIALOG:{}", path_str);
-                info!("RUST: Returning result: {}", result);
-                Ok(Some(result))
-            } else {
-                error!("RUST: Invalid directory path");
-                Err("Invalid directory path".to_string())
-            }
-        },
+    let folder = match folder {
+        Some(path) => path,
         None => {
             info!("RUST: No directory selected");
-            Ok(None)
+            return Ok(None);
         }
+    };
+    
+    if let Some(path_str) = folder.to_str() {
+        info!("RUST: Selected directory: {}", path_str);
+        // Add a prefix to indicate that this is from the native dialog
+        let result = format!("NATIVE_DIALOG:{}", path_str);
+        info!("RUST: Returning result: {}", result);
+        Ok(Some(result))
+    } else {
+        error!("RUST: Invalid directory path");
+        Err("Invalid directory path".to_string())
     }
 }
 
 /// Create a resource pack
 #[tauri::command]
-pub fn create_resource_pack(name: &str, language: &str, dir: &str) -> std::result::Result<String, String> {
+pub async fn create_resource_pack(_app_handle: tauri::AppHandle, name: &str, language: &str, dir: &str) -> std::result::Result<String, String> {
     info!("Creating resource pack {} for {} in {}", name, language, dir);
     
     let dir_path = Path::new(dir);
@@ -273,7 +258,9 @@ pub fn create_resource_pack(name: &str, language: &str, dir: &str) -> std::resul
     
     // Create resource pack directory
     let resource_pack_dir = dir_path.join(name);
-    if let Err(e) = create_dir_all(&resource_pack_dir) {
+    let _resource_pack_dir_str = resource_pack_dir.to_string_lossy().to_string();
+    
+    if let Err(e) = std::fs::create_dir_all(&resource_pack_dir) {
         return Err(format!("Failed to create resource pack directory: {}", e));
     }
     
@@ -291,18 +278,17 @@ pub fn create_resource_pack(name: &str, language: &str, dir: &str) -> std::resul
     };
     
     let pack_mcmeta_path = resource_pack_dir.join("pack.mcmeta");
-    let mut pack_mcmeta_file = match File::create(pack_mcmeta_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create pack.mcmeta: {}", e)),
-    };
+    let _pack_mcmeta_path_str = pack_mcmeta_path.to_string_lossy().to_string();
     
-    if let Err(e) = pack_mcmeta_file.write_all(pack_mcmeta_json.as_bytes()) {
+    if let Err(e) = std::fs::write(&pack_mcmeta_path, pack_mcmeta_json) {
         return Err(format!("Failed to write pack.mcmeta: {}", e));
     }
     
     // Create assets directory
     let assets_dir = resource_pack_dir.join("assets");
-    if let Err(e) = create_dir_all(&assets_dir) {
+    let _assets_dir_str = assets_dir.to_string_lossy().to_string();
+    
+    if let Err(e) = std::fs::create_dir_all(&assets_dir) {
         return Err(format!("Failed to create assets directory: {}", e));
     }
     
@@ -315,7 +301,7 @@ pub fn create_resource_pack(name: &str, language: &str, dir: &str) -> std::resul
 
 /// Write a language file to a resource pack
 #[tauri::command]
-pub fn write_lang_file(mod_id: &str, language: &str, content: &str, dir: &str) -> std::result::Result<bool, String> {
+pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, language: &str, content: &str, dir: &str) -> std::result::Result<bool, String> {
     info!("Writing lang file for {} in {} to {}", mod_id, language, dir);
     
     let dir_path = Path::new(dir);
@@ -325,12 +311,14 @@ pub fn write_lang_file(mod_id: &str, language: &str, content: &str, dir: &str) -
     
     // Create mod assets directory
     let mod_assets_dir = dir_path.join("assets").join(mod_id).join("lang");
-    if let Err(e) = create_dir_all(&mod_assets_dir) {
+    let _mod_assets_dir_str = mod_assets_dir.to_string_lossy().to_string();
+    
+    if let Err(e) = std::fs::create_dir_all(&mod_assets_dir) {
         return Err(format!("Failed to create mod assets directory: {}", e));
     }
     
     // Parse content
-    let content_map: std::collections::HashMap<String, String> = match serde_json::from_str(content) {
+    let content_map: HashMap<String, String> = match serde_json::from_str(content) {
         Ok(map) => map,
         Err(e) => return Err(format!("Failed to parse content JSON: {}", e)),
     };
@@ -343,12 +331,9 @@ pub fn write_lang_file(mod_id: &str, language: &str, content: &str, dir: &str) -
     
     // Write language file
     let lang_file_path = mod_assets_dir.join(format!("{}.json", language));
-    let mut lang_file = match File::create(lang_file_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create language file: {}", e)),
-    };
+    let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
     
-    if let Err(e) = lang_file.write_all(content_json.as_bytes()) {
+    if let Err(e) = std::fs::write(&lang_file_path, content_json) {
         return Err(format!("Failed to write language file: {}", e));
     }
     

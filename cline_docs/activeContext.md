@@ -93,6 +93,13 @@ We have completed the implementation of the Minecraft Mods Localizer application
   - Added the "dialog:allow-open" permission to the capabilities file
   - Registered the dialog plugin in lib.rs
 
+- Updated file system operations to use Tauri v2 approach:
+  - Removed dependency on tauri-plugin-fs
+  - Updated filesystem.rs to use standard Rust file operations (std::fs) instead of Tauri v1's FsExt
+  - Simplified file operations by using direct Rust standard library functions
+  - Improved error handling for file operations
+  - Fixed dialog implementation to use rfd crate for file dialogs
+
 ## Next Steps
 1. **Testing and Debugging**:
    - Test all translation workflows with real Minecraft mods
