@@ -14,7 +14,7 @@ import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from "@/lib/services/file-service";
 
-export function SettingsDropdown() {
+export function SettingsDialog() {
   const { t } = useAppTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { config, setConfig } = useAppStore();
@@ -70,7 +70,7 @@ export function SettingsDropdown() {
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('cards.settings')}</DialogTitle>
           </DialogHeader>

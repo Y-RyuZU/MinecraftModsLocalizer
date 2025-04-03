@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "minecraft-mods-localizer",
-        "width": 800,
-        "height": 600,
+        "width": 1100,
+        "height": 700,
         "resizable": true,
         "fullscreen": false
       }
