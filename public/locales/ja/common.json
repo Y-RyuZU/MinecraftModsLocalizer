@@ -3,7 +3,17 @@
     "title": "マインクラフトMod翻訳ツール"
   },
   "settings": {
-    "openSettings": "設定"
+    "openSettings": "設定",
+    "additionalLanguages": "追加言語",
+    "manageTargetLanguage": "対象言語を管理",
+    "targetLanguage": "対象言語",
+    "selectTargetLanguage": "対象言語を選択",
+    "availableLanguages": "利用可能な言語",
+    "addLanguage": "言語を追加",
+    "languageName": "言語名（例：イタリア語）",
+    "languageId": "言語ID（例：it_it）",
+    "addLanguage": "言語を追加",
+    "defaultLanguage": "デフォルト"
   },
   "tabs": {
     "mods": "Mod",

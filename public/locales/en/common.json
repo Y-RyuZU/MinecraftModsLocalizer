@@ -3,7 +3,17 @@
     "title": "Minecraft Mods Localizer"
   },
   "settings": {
-    "openSettings": "Settings"
+    "openSettings": "Settings",
+    "additionalLanguages": "Additional Languages",
+    "manageTargetLanguage": "Manage Target Language",
+    "targetLanguage": "Target Language",
+    "selectTargetLanguage": "Select target language",
+    "availableLanguages": "Available Languages",
+    "addLanguage": "Add Language",
+    "languageName": "Language name (e.g., Italian)",
+    "languageId": "Language ID (e.g., it_it)",
+    "addLanguage": "Add Language",
+    "defaultLanguage": "Default"
   },
   "tabs": {
     "mods": "Mods",

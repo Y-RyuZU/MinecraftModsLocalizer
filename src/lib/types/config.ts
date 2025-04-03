@@ -46,8 +46,8 @@ export interface TranslationConfig {
   quest_chunk_size: number;
   /** Chunk size for guidebook translations */
   guidebook_chunk_size: number;
-  /** Custom languages */
-  custom_languages: SupportedLanguage[];
+  /** Additional languages */
+  additional_languages: SupportedLanguage[];
   /** Resource pack name */
   resource_pack_name: string;
 }
@@ -92,7 +92,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     mod_chunk_size: 50,
     quest_chunk_size: 1,
     guidebook_chunk_size: 1,
-    custom_languages: [],
+    additional_languages: [],
     resource_pack_name: "MinecraftModsLocalizer"
   },
   ui: {

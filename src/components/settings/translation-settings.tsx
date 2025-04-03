@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig } from "@/lib/types/config";
-import { DEFAULT_LANGUAGES } from "@/lib/types/llm";
+import { SupportedLanguage } from "@/lib/types/llm";
+import { TargetLanguageDialog } from "./target-language-dialog";
+import { useAppTranslation } from "@/lib/i18n";
+import { Globe } from "lucide-react";
 
 interface TranslationSettingsProps {
   config: AppConfig;
@@ -14,30 +16,38 @@ interface TranslationSettingsProps {
 }
 
 export function TranslationSettings({ config, setConfig }: TranslationSettingsProps) {
-  const [customLanguageName, setCustomLanguageName] = useState("");
-  const [customLanguageId, setCustomLanguageId] = useState("");
+  const { t } = useAppTranslation();
+  const [isTargetLanguageDialogOpen, setIsTargetLanguageDialogOpen] = useState(false);
   
-  // Add custom language
-  const handleAddCustomLanguage = () => {
-    if (!customLanguageName || !customLanguageId) return;
-    
-    // Initialize custom_languages array if it doesn't exist
-    if (!config.translation.custom_languages) {
-      config.translation.custom_languages = [];
+  // Add new language
+  const handleAddLanguage = (language: SupportedLanguage) => {
+    // Initialize additional_languages array if it doesn't exist
+    if (!config.translation.additional_languages) {
+      config.translation.additional_languages = [];
     }
     
-    // Add new custom language
-    config.translation.custom_languages.push({
-      name: customLanguageName,
-      id: customLanguageId
-    });
+    // Add new language
+    config.translation.additional_languages.push(language);
     
     // Update config
     setConfig({ ...config });
+  };
+  
+  // Remove language
+  const handleRemoveLanguage = (languageId: string) => {
+    // Filter out the language to remove
+    config.translation.additional_languages = config.translation.additional_languages.filter(
+      lang => lang.id !== languageId
+    );
     
-    // Clear input fields
-    setCustomLanguageName("");
-    setCustomLanguageId("");
+    // Update config
+    setConfig({ ...config });
+  };
+  
+  // Change target language
+  const handleTargetLanguageChange = (languageId: string) => {
+    config.translation.target_language = languageId;
+    setConfig({ ...config });
   };
   
   return (
@@ -60,52 +70,28 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Target Language</label>
-            <Select 
-              value={config.translation.target_language}
-              onValueChange={(value) => {
-                config.translation.target_language = value;
-                setConfig({ ...config });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select target language" />
-              </SelectTrigger>
-              <SelectContent>
-                {DEFAULT_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.id} value={lang.id}>
-                    {lang.name} ({lang.id})
-                  </SelectItem>
-                ))}
-                {config.translation.custom_languages?.map((lang) => (
-                  <SelectItem key={lang.id} value={lang.id}>
-                    {lang.name} ({lang.id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Add Custom Language</label>
+            <label className="text-sm font-medium">{t('settings.targetLanguage')}</label>
             <div className="flex space-x-2">
-              <Input 
-                placeholder="Language name (e.g., Italian)"
-                value={customLanguageName}
-                onChange={(e) => setCustomLanguageName(e.target.value)}
-              />
-              <Input 
-                placeholder="Language ID (e.g., it_it)"
-                value={customLanguageId}
-                onChange={(e) => setCustomLanguageId(e.target.value)}
-              />
               <Button 
-                onClick={handleAddCustomLanguage}
-                disabled={!customLanguageName || !customLanguageId}
+                onClick={() => setIsTargetLanguageDialogOpen(true)}
+                className="w-full flex justify-between items-center"
+                variant="outline"
               >
-                Add
+                <span>{t('settings.manageTargetLanguage')}</span>
+                <Globe className="h-4 w-4 ml-2" />
               </Button>
             </div>
+            
+            {/* Target Language Dialog */}
+            <TargetLanguageDialog
+              open={isTargetLanguageDialogOpen}
+              onOpenChange={setIsTargetLanguageDialogOpen}
+              additionalLanguages={config.translation.additional_languages || []}
+              onAddLanguage={handleAddLanguage}
+              onRemoveLanguage={handleRemoveLanguage}
+              targetLanguage={config.translation.target_language}
+              onTargetLanguageChange={handleTargetLanguageChange}
+            />
           </div>
           
           <div className="space-y-2">
