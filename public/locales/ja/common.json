@@ -2,6 +2,9 @@
   "app": {
     "title": "マインクラフトMod翻訳ツール"
   },
+  "settings": {
+    "openSettings": "設定"
+  },
   "tabs": {
     "mods": "Mod",
     "quests": "クエスト",

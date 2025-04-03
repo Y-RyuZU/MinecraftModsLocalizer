@@ -13,7 +13,6 @@ import { ModsTab } from "@/components/tabs/mods-tab";
 import { QuestsTab } from "@/components/tabs/quests-tab";
 import { GuidebooksTab } from "@/components/tabs/guidebooks-tab";
 import { CustomFilesTab } from "@/components/tabs/custom-files-tab";
-import { SettingsTab } from "@/components/tabs/settings-tab";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -49,12 +48,11 @@ export default function Home() {
   return (
     <MainLayout>
       <Tabs defaultValue="mods" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="mods">{t('tabs.mods')}</TabsTrigger>
           <TabsTrigger value="quests">{t('tabs.quests')}</TabsTrigger>
           <TabsTrigger value="guidebooks">{t('tabs.guidebooks')}</TabsTrigger>
           <TabsTrigger value="custom-files">{t('tabs.customFiles')}</TabsTrigger>
-          <TabsTrigger value="settings">{t('tabs.settings')}</TabsTrigger>
         </TabsList>
         <TabsContent value="mods" className="space-y-4">
           <Card>
@@ -93,16 +91,6 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CustomFilesTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('cards.settings')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SettingsTab />
             </CardContent>
           </Card>
         </TabsContent>

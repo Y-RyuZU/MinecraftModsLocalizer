@@ -2,6 +2,9 @@
   "app": {
     "title": "Minecraft Mods Localizer"
   },
+  "settings": {
+    "openSettings": "Settings"
+  },
   "tabs": {
     "mods": "Mods",
     "quests": "Quests",

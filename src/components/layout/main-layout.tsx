@@ -2,6 +2,7 @@ import React from 'react';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageSwitcher } from '@/components/theme/language-switcher';
+import { SettingsDropdown } from '@/components/settings/settings-dropdown';
 import { useAppTranslation } from '@/lib/i18n';
 
 interface MainLayoutProps {
@@ -26,6 +27,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
               <ThemeToggle />
+              <SettingsDropdown />
             </div>
           </div>
         </header>
