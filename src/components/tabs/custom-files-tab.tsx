@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,8 +30,13 @@ export function CustomFilesTab() {
     setProgress,
     addTranslationResult,
     error,
-    setError
+    setError,
+    currentJobId,
+    setCurrentJobId
   } = useAppStore();
+  
+  // Reference to the translation service
+  const translationServiceRef = useRef<TranslationService | null>(null);
 
   // Select directory
   const handleSelectDirectory = async () => {
@@ -117,6 +122,17 @@ export function CustomFilesTab() {
     
     setCustomFilesTranslationTargets(updatedTargets);
   };
+  
+  // Cancel translation
+  const handleCancelTranslation = () => {
+    if (currentJobId && translationServiceRef.current) {
+      translationServiceRef.current.interruptJob(currentJobId);
+      setError(t('info.translationCancelled'));
+      setCurrentJobId(null);
+      setTranslating(false);
+      setProgress(0);
+    }
+  };
 
   // Translate selected files
   const handleTranslate = async () => {
@@ -124,6 +140,7 @@ export function CustomFilesTab() {
       setTranslating(true);
       setProgress(0);
       setError(null);
+      setCurrentJobId(null);
       
       const selectedTargets = customFilesTranslationTargets.filter(target => target.selected);
       
@@ -223,7 +240,13 @@ export function CustomFilesTab() {
         chunkSize: config.translation.mod_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
+        onProgress: (job) => {
+          setProgress(job.progress);
+        }
       });
+      
+      // Store the translation service in the ref
+      translationServiceRef.current = translationService;
       
       // Translate the JSON content recursively
       const translatedJson = await translateJsonRecursively(jsonData, translationService, sourceLanguage, targetLanguage);
@@ -251,8 +274,14 @@ export function CustomFilesTab() {
         targetLanguage
       );
       
+      // Store the job ID
+      setCurrentJobId(job.id);
+      
       // Start the translation job
       await translationService.startJob(job.id);
+      
+      // Clear the job ID
+      setCurrentJobId(null);
       
       // Get the translated content
       const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -292,7 +321,13 @@ export function CustomFilesTab() {
         chunkSize: config.translation.quest_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
+        onProgress: (job) => {
+          setProgress(job.progress);
+        }
       });
+      
+      // Store the translation service in the ref
+      translationServiceRef.current = translationService;
       
       // Create a translation job with a simple key-value structure
       const job = translationService.createJob(
@@ -301,8 +336,14 @@ export function CustomFilesTab() {
         targetLanguage
       );
       
+      // Store the job ID
+      setCurrentJobId(job.id);
+      
       // Start the translation job
       await translationService.startJob(job.id);
+      
+      // Clear the job ID
+      setCurrentJobId(null);
       
       // Get the translated content
       const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -355,10 +396,22 @@ export function CustomFilesTab() {
       
       {isTranslating && (
         <div className="space-y-2">
-          <Progress value={progress} className="h-2" />
-          <p className="text-sm text-muted-foreground">
-            {t('progress.translatingFiles')} {progress}%
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <Progress value={progress} className="h-2" />
+              <p className="text-sm text-muted-foreground">
+                {t('progress.translatingFiles')} {progress}%
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleCancelTranslation}
+              disabled={!currentJobId}
+            >
+              {t('buttons.cancel')}
+            </Button>
+          </div>
         </div>
       )}
       

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,8 +26,13 @@ export function QuestsTab() {
     setProgress,
     addTranslationResult,
     error,
-    setError
+    setError,
+    currentJobId,
+    setCurrentJobId
   } = useAppStore();
+  
+  // Reference to the translation service
+  const translationServiceRef = useRef<TranslationService | null>(null);
 
   // Scan for quests
   const handleScanQuests = async () => {
@@ -117,6 +122,17 @@ export function QuestsTab() {
     
     setQuestTranslationTargets(updatedTargets);
   };
+  
+  // Cancel translation
+  const handleCancelTranslation = () => {
+    if (currentJobId && translationServiceRef.current) {
+      translationServiceRef.current.interruptJob(currentJobId);
+      setError(t('info.translationCancelled'));
+      setCurrentJobId(null);
+      setTranslating(false);
+      setProgress(0);
+    }
+  };
 
   // Translate selected quests
   const handleTranslate = async () => {
@@ -124,6 +140,7 @@ export function QuestsTab() {
       setTranslating(true);
       setProgress(0);
       setError(null);
+      setCurrentJobId(null);
       
       const selectedTargets = questTranslationTargets.filter(target => target.selected);
       
@@ -208,7 +225,13 @@ export function QuestsTab() {
         chunkSize: config.translation.quest_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
+        onProgress: (job) => {
+          setProgress(job.progress);
+        }
       });
+      
+      // Store the translation service in the ref
+      translationServiceRef.current = translationService;
       
       // Create a translation job with a simple key-value structure
       const job = translationService.createJob(
@@ -217,8 +240,14 @@ export function QuestsTab() {
         targetLanguage
       );
       
+      // Store the job ID
+      setCurrentJobId(job.id);
+      
       // Start the translation job
       await translationService.startJob(job.id);
+      
+      // Clear the job ID
+      setCurrentJobId(null);
       
       // Get the translated content
       const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -247,7 +276,13 @@ export function QuestsTab() {
         chunkSize: config.translation.quest_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
+        onProgress: (job) => {
+          setProgress(job.progress);
+        }
       });
+      
+      // Store the translation service in the ref
+      translationServiceRef.current = translationService;
       
       // Create a translation job with a simple key-value structure
       const job = translationService.createJob(
@@ -256,8 +291,14 @@ export function QuestsTab() {
         targetLanguage
       );
       
+      // Store the job ID
+      setCurrentJobId(job.id);
+      
       // Start the translation job
       await translationService.startJob(job.id);
+      
+      // Clear the job ID
+      setCurrentJobId(null);
       
       // Get the translated content
       const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -292,10 +333,22 @@ export function QuestsTab() {
       
       {isTranslating && (
         <div className="space-y-2">
-          <Progress value={progress} className="h-2" />
-          <p className="text-sm text-muted-foreground">
-            {t('progress.translatingQuests')} {progress}%
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <Progress value={progress} className="h-2" />
+              <p className="text-sm text-muted-foreground">
+                {t('progress.translatingQuests')} {progress}%
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleCancelTranslation}
+              disabled={!currentJobId}
+            >
+              {t('buttons.cancel')}
+            </Button>
+          </div>
         </div>
       )}
       

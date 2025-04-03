@@ -24,7 +24,8 @@
     "selectDirectory": "Select Directory",
     "translate": "Translate Selected",
     "translating": "Translating...",
-    "scanning": "Scanning..."
+    "scanning": "Scanning...",
+    "cancel": "Cancel"
   },
   "filters": {
     "filterMods": "Filter mods...",
@@ -59,6 +60,9 @@
     "noGuidebooksSelected": "No guidebooks selected for translation",
     "noFilesSelected": "No files selected for translation",
     "selectDirectoryFirst": "Please select a directory first"
+  },
+  "info": {
+    "translationCancelled": "Translation cancelled by user"
   },
   "misc": {
     "loading": "Loading...",

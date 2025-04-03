@@ -24,7 +24,8 @@
     "selectDirectory": "ディレクトリを選択",
     "translate": "選択したものを翻訳",
     "translating": "翻訳中...",
-    "scanning": "スキャン中..."
+    "scanning": "スキャン中...",
+    "cancel": "キャンセル"
   },
   "filters": {
     "filterMods": "Modを検索...",
@@ -59,6 +60,9 @@
     "noGuidebooksSelected": "翻訳するガイドブックが選択されていません",
     "noFilesSelected": "翻訳するファイルが選択されていません",
     "selectDirectoryFirst": "最初にディレクトリを選択してください"
+  },
+  "info": {
+    "translationCancelled": "翻訳はユーザーによってキャンセルされました"
   },
   "misc": {
     "loading": "読み込み中...",

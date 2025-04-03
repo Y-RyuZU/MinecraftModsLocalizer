@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,8 +26,13 @@ export function GuidebooksTab() {
     setProgress,
     addTranslationResult,
     error,
-    setError
+    setError,
+    currentJobId,
+    setCurrentJobId
   } = useAppStore();
+  
+  // Reference to the translation service
+  const translationServiceRef = useRef<TranslationService | null>(null);
 
   // Scan for guidebooks
   const handleScanGuidebooks = async () => {
@@ -96,6 +101,17 @@ export function GuidebooksTab() {
     
     setGuidebookTranslationTargets(updatedTargets);
   };
+  
+  // Cancel translation
+  const handleCancelTranslation = () => {
+    if (currentJobId && translationServiceRef.current) {
+      translationServiceRef.current.interruptJob(currentJobId);
+      setError(t('info.translationCancelled'));
+      setCurrentJobId(null);
+      setTranslating(false);
+      setProgress(0);
+    }
+  };
 
   // Translate selected guidebooks
   const handleTranslate = async () => {
@@ -103,6 +119,7 @@ export function GuidebooksTab() {
       setTranslating(true);
       setProgress(0);
       setError(null);
+      setCurrentJobId(null);
       
       const selectedTargets = guidebookTranslationTargets.filter(target => target.selected);
       
@@ -203,7 +220,13 @@ export function GuidebooksTab() {
         chunkSize: config.translation.guidebook_chunk_size,
         prompt_template: config.llm.prompt_template,
         maxRetries: config.llm.max_retries,
+        onProgress: (job) => {
+          setProgress(job.progress);
+        }
       });
+      
+      // Store the translation service in the ref
+      translationServiceRef.current = translationService;
       
       // Create a translation job
       const job = translationService.createJob(
@@ -212,8 +235,14 @@ export function GuidebooksTab() {
         targetLanguage
       );
       
+      // Store the job ID
+      setCurrentJobId(job.id);
+      
       // Start the translation job
       await translationService.startJob(job.id);
+      
+      // Clear the job ID
+      setCurrentJobId(null);
       
       // Get the translated content
       return translationService.getCombinedTranslatedContent(job.id);
@@ -255,10 +284,22 @@ export function GuidebooksTab() {
       
       {isTranslating && (
         <div className="space-y-2">
-          <Progress value={progress} className="h-2" />
-          <p className="text-sm text-muted-foreground">
-            {t('progress.translatingGuidebooks')} {progress}%
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <Progress value={progress} className="h-2" />
+              <p className="text-sm text-muted-foreground">
+                {t('progress.translatingGuidebooks')} {progress}%
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleCancelTranslation}
+              disabled={!currentJobId}
+            >
+              {t('buttons.cancel')}
+            </Button>
+          </div>
         </div>
       )}
       
