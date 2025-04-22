@@ -21,13 +21,13 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   
   // Add new language
   const handleAddLanguage = (language: SupportedLanguage) => {
-    // Initialize additional_languages array if it doesn't exist
-    if (!config.translation.additional_languages) {
-      config.translation.additional_languages = [];
+    // Initialize additionalLanguages array if it doesn't exist
+    if (!config.translation.additionalLanguages) {
+      config.translation.additionalLanguages = [];
     }
     
     // Add new language
-    config.translation.additional_languages.push(language);
+    config.translation.additionalLanguages.push(language);
     
     // Update config
     setConfig({ ...config });
@@ -36,7 +36,7 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   // Remove language
   const handleRemoveLanguage = (languageId: string) => {
     // Filter out the language to remove
-    config.translation.additional_languages = config.translation.additional_languages.filter(
+    config.translation.additionalLanguages = config.translation.additionalLanguages.filter(
       lang => lang.id !== languageId
     );
     
@@ -46,7 +46,7 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   
   // Change target language
   const handleTargetLanguageChange = (languageId: string) => {
-    config.translation.target_language = languageId;
+    config.translation.targetLanguage = languageId;
     setConfig({ ...config });
   };
   
@@ -60,9 +60,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           <div className="space-y-2">
             <label className="text-sm font-medium">Source Language</label>
             <Input 
-              value={config.translation.source_language}
+              value={config.translation.sourceLanguage}
               onChange={(e) => {
-                config.translation.source_language = e.target.value;
+                config.translation.sourceLanguage = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="e.g., en_us"
@@ -86,10 +86,10 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <TargetLanguageDialog
               open={isTargetLanguageDialogOpen}
               onOpenChange={setIsTargetLanguageDialogOpen}
-              additionalLanguages={config.translation.additional_languages || []}
+              additionalLanguages={config.translation.additionalLanguages || []}
               onAddLanguage={handleAddLanguage}
               onRemoveLanguage={handleRemoveLanguage}
-              targetLanguage={config.translation.target_language}
+              targetLanguage={config.translation.targetLanguage}
               onTargetLanguageChange={handleTargetLanguageChange}
             />
           </div>
@@ -97,9 +97,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           <div className="space-y-2">
             <label className="text-sm font-medium">Resource Pack Name</label>
             <Input 
-              value={config.translation.resource_pack_name}
+              value={config.translation.resourcePackName}
               onChange={(e) => {
-                config.translation.resource_pack_name = e.target.value;
+                config.translation.resourcePackName = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter resource pack name"
@@ -110,9 +110,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Mod Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.mod_chunk_size}
+              value={config.translation.modChunkSize}
               onChange={(e) => {
-                config.translation.mod_chunk_size = parseInt(e.target.value);
+                config.translation.modChunkSize = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"
@@ -123,9 +123,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Quest Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.quest_chunk_size}
+              value={config.translation.questChunkSize}
               onChange={(e) => {
-                config.translation.quest_chunk_size = parseInt(e.target.value);
+                config.translation.questChunkSize = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"
@@ -136,9 +136,9 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <label className="text-sm font-medium">Guidebook Chunk Size</label>
             <Input 
               type="number"
-              value={config.translation.guidebook_chunk_size}
+              value={config.translation.guidebookChunkSize}
               onChange={(e) => {
-                config.translation.guidebook_chunk_size = parseInt(e.target.value);
+                config.translation.guidebookChunkSize = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter chunk size"

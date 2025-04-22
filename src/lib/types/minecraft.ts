@@ -100,8 +100,10 @@ export interface TranslationTarget {
   id: string;
   /** Target name */
   name: string;
-  /** Target path */
+  /** Target path (full path) */
   path: string;
+  /** Relative path (for display) */
+  relativePath?: string;
   /** Whether the target is selected for translation */
   selected: boolean;
 }

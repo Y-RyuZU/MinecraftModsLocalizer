@@ -52,6 +52,8 @@ The communication between the Next.js frontend and the Rust backend is handled t
 
 6. **Tauri v2 API Integration**: We use dynamic imports and environment detection to properly integrate with Tauri v2 API.
 
+7. **Real-time Logging System**: We use Tauri's event system to emit log events from the backend to the frontend, which are displayed in real-time in a log dialog.
+
 Example of frontend-backend communication:
 
 ```typescript
@@ -74,7 +76,7 @@ async function translateMod(modId: string, targetLanguage: string) {
 ```rust
 // Backend (Rust)
 #[tauri::command]
-async fn translate_mod(mod_id: String, target_language: String) -> Result<TranslationResult, String> {
+async fn translate_mod(mod_id: String, targetLanguage: String) -> Result<TranslationResult, String> {
     // Implementation
     Ok(translation_result)
 }
@@ -222,6 +224,100 @@ std::fs::create_dir_all(path)
 ```
 
 This approach provides better reliability and reduces dependencies.
+
+## Logging System Architecture
+
+The application implements a comprehensive logging system that provides real-time feedback during translation operations:
+
+1. **Backend Logging Implementation**:
+   - Custom `TauriLogger` implementation in Rust that implements the `log::Log` trait
+   - In-memory log buffer to store recent log entries
+   - Event emission to the frontend for real-time updates
+   - Log level filtering
+   - Structured log entries with timestamp, level, message, and source information
+
+2. **Frontend Log Components**:
+   - `LogViewer` component for displaying logs with filtering and auto-scroll capabilities
+   - `LogDialog` component for showing logs in a modal dialog
+   - `LogButton` component for manually opening the log dialog
+   - State management for log dialog visibility using Zustand
+
+3. **Log Event Flow**:
+   - Backend logs are created using the standard Rust `log` crate macros (info!, error!, etc.)
+   - The `TauriLogger` captures these logs and emits them as Tauri events
+   - The frontend listens for these events and updates the UI in real-time
+   - The log dialog automatically opens when translation starts
+
+4. **Translation Service Integration**:
+   - The translation service logs detailed information about the translation process
+   - Each step of the translation process is logged (job start, chunk processing, completion)
+   - Errors and retries are logged for debugging purposes
+   - Performance metrics (duration, success rate) are logged
+
+Example of backend logging implementation:
+
+```rust
+// Backend (Rust)
+// TauriLogger implementation
+pub struct TauriLogger {
+    app_handle: Arc<Mutex<Option<AppHandle>>>,
+    log_buffer: Arc<Mutex<VecDeque<LogEntry>>>,
+}
+
+impl Log for TauriLogger {
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            let entry = LogEntry {
+                timestamp: Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
+                level: record.level().to_string(),
+                message: format!("{}", record.args()),
+                source: record.module_path().map(|s| s.to_string()),
+                process_type: extract_process_type(&message),
+            };
+            
+            self.add_log_entry(entry);
+        }
+    }
+}
+
+// Emit log event to frontend
+fn add_log_entry(&self, entry: LogEntry) {
+    if let Some(app_handle) = self.app_handle.lock().unwrap().as_ref() {
+        let _ = app_handle.emit("log", &entry);
+    }
+}
+```
+
+Example of frontend log event handling:
+
+```typescript
+// Frontend (Next.js)
+// Listen for log events
+useEffect(() => {
+  const listenForLogs = async () => {
+    try {
+      if (typeof window !== 'undefined' && 
+          typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+        const unlistenFn = await listen<LogEntry>('log', (event) => {
+          setLogs(prevLogs => [...prevLogs, event.payload]);
+        });
+        
+        return unlistenFn;
+      }
+    } catch (error) {
+      console.error('Failed to listen for log events:', error);
+    }
+    
+    return () => {};
+  };
+  
+  const unlistenPromise = listenForLogs();
+  
+  return () => {
+    unlistenPromise.then(unlisten => unlisten && unlisten());
+  };
+}, []);
+```
 
 ## File Processing Workflows
 

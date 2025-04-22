@@ -1,7 +1,8 @@
 .*
 !.github/
 !.devcontainer/
-
+*.zip
+*.tar.gz
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -28,6 +29,9 @@
 # misc
 .DS_Store
 *.pem
+
+# logs
+/app-logs/
 
 # debug
 npm-debug.log*

@@ -1,7 +1,9 @@
+
 // Modules
 pub mod minecraft;
 pub mod filesystem;
 pub mod config;
+pub mod logging;
 
 use minecraft::{analyze_mod_jar, extract_lang_files, extract_patchouli_books, write_patchouli_book};
 use filesystem::{
@@ -10,20 +12,25 @@ use filesystem::{
     create_resource_pack, write_lang_file
 };
 use config::{load_config, save_config};
+use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  // Initialize the logger
+  let logger = init_logger();
+  let logger_clone = logger.clone();
+  
   tauri::Builder::default()
-    .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
+    .setup(move |app| {
+      // Set the app handle for the logger
+      logger_clone.set_app_handle(app.handle().clone());
+      
+      // Log application start
+      logger_clone.info("Application started", Some("SYSTEM"));
+      
       Ok(())
     })
+    .manage(logger)
     .plugin(tauri_plugin_dialog::init())
     .invoke_handler(tauri::generate_handler![
       // Minecraft mod operations
@@ -48,7 +55,16 @@ pub fn run() {
       
       // Configuration operations
       load_config,
-      save_config
+      save_config,
+      
+      // Logging operations
+      log_translation_process,
+      log_error,
+      log_file_operation,
+      log_api_request,
+      get_logs,
+      clear_logs,
+      create_logs_directory
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

@@ -10,9 +10,9 @@ export interface TranslationRequest {
   /** Text content to translate in key-value format */
   content: Record<string, string>;
   /** Target language for translation */
-  target_language: string;
+  targetLanguage: string;
   /** Optional custom prompt to use for translation */
-  prompt_template?: string;
+  promptTemplate?: string;
 }
 
 /**
@@ -70,15 +70,15 @@ export interface LLMConfig {
   /** Provider ID */
   provider: string;
   /** API key */
-  api_key: string;
+  apiKey: string;
   /** Base URL (optional for some providers) */
-  base_url?: string;
+  baseUrl?: string;
   /** Model to use */
   model?: string;
   /** Maximum number of retries on failure */
-  max_retries?: number;
+  maxRetries?: number;
   /** Custom prompt template */
-  prompt_template?: string;
+  promptTemplate?: string;
 }
 
 /**
@@ -111,7 +111,7 @@ export const DEFAULT_LANGUAGES: SupportedLanguage[] = [
 /**
  * Default translation prompt template
  */
-export const DEFAULT_PROMPT_TEMPLATE = `You are a professional translator. Please translate the following English text into {language}. 
+export const DEFAULT_promptTemplate = `You are a professional translator. Please translate the following English text into {language}. 
 
 ## Important Translation Rules
 - Translate line by line, strictly in order

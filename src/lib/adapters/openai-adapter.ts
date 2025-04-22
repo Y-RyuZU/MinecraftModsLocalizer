@@ -1,5 +1,6 @@
-import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { BaseLLMAdapter } from "./base-llm-adapter";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * OpenAI API Adapter
@@ -16,7 +17,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   public requiresApiKey = true;
   
   /** Default model to use */
-  private readonly DEFAULT_MODEL = "gpt-3.5-turbo";
+  private readonly DEFAULT_MODEL = "gpt-4o-mini-2024-07-18";
   
   /** Default API URL */
   private readonly DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";
@@ -31,8 +32,32 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   constructor(config: LLMConfig) {
     super({
       ...config,
-      prompt_template: config.prompt_template || DEFAULT_PROMPT_TEMPLATE,
+      promptTemplate: config.promptTemplate || DEFAULT_promptTemplate,
     });
+  }
+
+  /**
+   * Log an API request message to the backend
+   * @param message Message to log
+   */
+  private async logApiRequest(message: string): Promise<void> {
+    try {
+      await invoke('log_api_request', { message });
+    } catch (error) {
+      console.error('Failed to log API request message:', error);
+    }
+  }
+
+  /**
+   * Log an error message to the backend
+   * @param message Error message
+   */
+  private async logError(message: string): Promise<void> {
+    try {
+      await invoke('log_error', { message, process_type: "API_REQUEST" });
+    } catch (error) {
+      console.error('Failed to log error message:', error);
+    }
   }
 
   /**
@@ -43,15 +68,21 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   public async translate(request: TranslationRequest): Promise<TranslationResponse> {
     const startTime = Date.now();
     
+    // Check if API key is defined and not empty
+    if (!this.config.apiKey) {
+      await this.logError("OpenAI API key is not configured");
+      throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
+    }
+    
     // Format the prompt
     const prompt = this.formatPrompt(
       request.content,
-      request.target_language,
-      request.prompt_template
+      request.targetLanguage,
+      request.promptTemplate
     );
     
     // Prepare the API request
-    const apiUrl = this.config.base_url || this.DEFAULT_API_URL;
+    const apiUrl = this.config.baseUrl || this.DEFAULT_API_URL;
     const model = this.config.model || this.DEFAULT_MODEL;
     
     const requestBody = {
@@ -70,6 +101,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       max_tokens: 4096
     };
     
+    await this.logApiRequest(`Sending request to OpenAI API (model: ${model})`);
+    
     // Make the API request
     let response;
     let retries = 0;
@@ -77,16 +110,19 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     
     while (retries <= maxRetries) {
       try {
+        await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
+        
         response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${this.config.api_key}`
+            "Authorization": `Bearer ${this.config.apiKey}`
           },
           body: JSON.stringify(requestBody)
         });
         
         if (response.ok) {
+          await this.logApiRequest(`API request successful (status: ${response.status})`);
           break;
         }
         
@@ -94,6 +130,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         if (response.status === 429) {
           const retryAfter = response.headers.get("Retry-After");
           const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * (retries + 1);
+          await this.logApiRequest(`Rate limited, waiting ${waitTime}ms before retry`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           retries++;
           continue;
@@ -101,18 +138,27 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         
         // For other errors, throw
         const errorData = await response.json();
-        throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+        const errorMessage = `OpenAI API error: ${errorData.error?.message || response.statusText}`;
+        await this.logError(errorMessage);
+        throw new Error(errorMessage);
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        await this.logError(`API request failed: ${errorMessage}`);
+        
         if (retries >= maxRetries) {
           throw error;
         }
+        
         retries++;
+        await this.logApiRequest(`Retrying in ${1000 * retries}ms (attempt ${retries + 1}/${maxRetries + 1})`);
         await new Promise(resolve => setTimeout(resolve, 1000 * retries));
       }
     }
     
     if (!response || !response.ok) {
-      throw new Error("Failed to get response from OpenAI API after retries");
+      const errorMessage = "Failed to get response from OpenAI API after retries";
+      await this.logError(errorMessage);
+      throw new Error(errorMessage);
     }
     
     // Parse the response
@@ -120,7 +166,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const translationText = responseData.choices[0]?.message?.content?.trim();
     
     if (!translationText) {
-      throw new Error("Empty response from OpenAI API");
+      const errorMessage = "Empty response from OpenAI API";
+      await this.logError(errorMessage);
+      throw new Error(errorMessage);
     }
     
     // Parse the translation text into key-value pairs
@@ -128,6 +176,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     
     // Calculate time taken
     const timeTaken = Date.now() - startTime;
+    
+    await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${responseData.usage?.total_tokens})`);
     
     // Return the translation response
     return {
@@ -146,7 +196,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
    * @returns Whether the API key is valid
    */
   public async validateApiKey(apiKey: string): Promise<boolean> {
+    // Check if API key is defined and not empty
+    if (!apiKey) {
+      return false;
+    }
+    
     try {
+      await this.logApiRequest("Validating OpenAI API key");
+      
       const response = await fetch("https://api.openai.com/v1/models", {
         method: "GET",
         headers: {
@@ -154,8 +211,18 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         }
       });
       
-      return response.ok;
-    } catch {
+      const isValid = response.ok;
+      
+      if (isValid) {
+        await this.logApiRequest("API key validation successful");
+      } else {
+        await this.logError(`API key validation failed (status: ${response.status})`);
+      }
+      
+      return isValid;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.logError(`API key validation failed: ${errorMessage}`);
       return false;
     }
   }

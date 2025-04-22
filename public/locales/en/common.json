@@ -12,7 +12,6 @@
     "addLanguage": "Add Language",
     "languageName": "Language name (e.g., Italian)",
     "languageId": "Language ID (e.g., it_it)",
-    "addLanguage": "Add Language",
     "defaultLanguage": "Default"
   },
   "tabs": {
@@ -20,7 +19,11 @@
     "quests": "Quests",
     "guidebooks": "Guidebooks",
     "customFiles": "Custom Files",
-    "settings": "Settings"
+    "settings": "Settings",
+    "temporaryTargetLanguage": "Target Language",
+    "selectTemporaryLanguage": "Select language",
+    "default": "Default",
+    "temporary": "Temporary"
   },
   "cards": {
     "modTranslation": "Mod Translation",
@@ -35,6 +38,7 @@
     "scanGuidebooks": "Scan Guidebooks",
     "scanFiles": "Scan Files",
     "selectDirectory": "Select Directory",
+    "selectProfileDirectory": "Select Profile Directory",
     "translate": "Translate Selected",
     "translating": "Translating...",
     "scanning": "Scanning...",
@@ -42,7 +46,9 @@
   },
   "filters": {
     "filterMods": "Filter mods...",
-    "filterFiles": "Filter files..."
+    "filterFiles": "Filter files...",
+    "filterQuests": "Filter quests...",
+    "filterGuidebooks": "Filter guidebooks..."
   },
   "tables": {
     "modName": "Mod Name",
@@ -65,14 +71,17 @@
     "translatingMods": "Translating mods...",
     "translatingQuests": "Translating quests...",
     "translatingGuidebooks": "Translating guidebooks...",
-    "translatingFiles": "Translating files..."
+    "translatingFiles": "Translating files...",
+    "jobProgress": "Current File Progress",
+    "wholeProgress": "Overall Progress"
   },
   "errors": {
     "noModsSelected": "No mods selected for translation",
     "noQuestsSelected": "No quests selected for translation",
     "noGuidebooksSelected": "No guidebooks selected for translation",
     "noFilesSelected": "No files selected for translation",
-    "selectDirectoryFirst": "Please select a directory first"
+    "selectDirectoryFirst": "Please select a directory first",
+    "selectProfileDirectoryFirst": "Please select a profile directory first"
   },
   "info": {
     "translationCancelled": "Translation cancelled by user"
@@ -80,5 +89,16 @@
   "misc": {
     "loading": "Loading...",
     "selectedDirectory": "Selected directory:"
+  },
+  "logs": {
+    "title": "Logs",
+    "translationLogs": "Translation Logs",
+    "viewLogs": "View Logs",
+    "openLogs": "Open Logs",
+    "noLogs": "No logs available",
+    "autoScroll": "Auto-scroll"
+  },
+  "common": {
+    "close": "Close"
   }
 }

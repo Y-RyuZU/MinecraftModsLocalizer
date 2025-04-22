@@ -12,7 +12,6 @@
     "addLanguage": "言語を追加",
     "languageName": "言語名（例：イタリア語）",
     "languageId": "言語ID（例：it_it）",
-    "addLanguage": "言語を追加",
     "defaultLanguage": "デフォルト"
   },
   "tabs": {
@@ -20,7 +19,11 @@
     "quests": "クエスト",
     "guidebooks": "ガイドブック",
     "customFiles": "カスタムファイル",
-    "settings": "設定"
+    "settings": "設定",
+    "temporaryTargetLanguage": "対象言語",
+    "selectTemporaryLanguage": "対象言語を選択",
+    "default": "デフォルト",
+    "temporary": "一時的"
   },
   "cards": {
     "modTranslation": "Mod翻訳",
@@ -35,6 +38,7 @@
     "scanGuidebooks": "ガイドブックをスキャン",
     "scanFiles": "ファイルをスキャン",
     "selectDirectory": "ディレクトリを選択",
+    "selectProfileDirectory": "プロファイルディレクトリを選択",
     "translate": "選択したものを翻訳",
     "translating": "翻訳中...",
     "scanning": "スキャン中...",
@@ -42,7 +46,9 @@
   },
   "filters": {
     "filterMods": "Modを検索...",
-    "filterFiles": "ファイルを検索..."
+    "filterFiles": "ファイルを検索...",
+    "filterQuests": "クエストを検索...",
+    "filterGuidebooks": "ガイドブックを検索..."
   },
   "tables": {
     "modName": "Mod名",
@@ -65,14 +71,17 @@
     "translatingMods": "Modを翻訳中...",
     "translatingQuests": "クエストを翻訳中...",
     "translatingGuidebooks": "ガイドブックを翻訳中...",
-    "translatingFiles": "ファイルを翻訳中..."
+    "translatingFiles": "ファイルを翻訳中...",
+    "jobProgress": "現在のファイルの進捗",
+    "wholeProgress": "全体の進捗"
   },
   "errors": {
     "noModsSelected": "翻訳するModが選択されていません",
     "noQuestsSelected": "翻訳するクエストが選択されていません",
     "noGuidebooksSelected": "翻訳するガイドブックが選択されていません",
     "noFilesSelected": "翻訳するファイルが選択されていません",
-    "selectDirectoryFirst": "最初にディレクトリを選択してください"
+    "selectDirectoryFirst": "最初にディレクトリを選択してください",
+    "selectProfileDirectoryFirst": "最初にプロファイルディレクトリを選択してください"
   },
   "info": {
     "translationCancelled": "翻訳はユーザーによってキャンセルされました"
@@ -80,5 +89,16 @@
   "misc": {
     "loading": "読み込み中...",
     "selectedDirectory": "選択されたディレクトリ:"
+  },
+  "logs": {
+    "title": "ログ",
+    "translationLogs": "翻訳ログ",
+    "viewLogs": "ログを表示",
+    "openLogs": "ログを開く",
+    "noLogs": "ログはありません",
+    "autoScroll": "自動スクロール"
+  },
+  "common": {
+    "close": "閉じる"
   }
 }

@@ -21,15 +21,15 @@ export interface LLMProviderConfig {
   /** Provider ID */
   provider: string;
   /** API key */
-  api_key: string;
+  apiKey: string;
   /** Base URL (optional for some providers) */
-  base_url?: string;
+  baseUrl?: string;
   /** Model to use */
   model?: string;
   /** Maximum number of retries on failure */
-  max_retries: number;
+  maxRetries: number;
   /** Custom prompt template */
-  prompt_template?: string;
+  promptTemplate?: string;
 }
 
 /**
@@ -37,19 +37,19 @@ export interface LLMProviderConfig {
  */
 export interface TranslationConfig {
   /** Source language */
-  source_language: string;
+  sourceLanguage: string;
   /** Target language */
-  target_language: string;
+  targetLanguage: string;
   /** Chunk size for mod translations */
-  mod_chunk_size: number;
+  modChunkSize: number;
   /** Chunk size for quest translations */
-  quest_chunk_size: number;
+  questChunkSize: number;
   /** Chunk size for guidebook translations */
-  guidebook_chunk_size: number;
+  guidebookChunkSize: number;
   /** Additional languages */
-  additional_languages: SupportedLanguage[];
+  additionalLanguages: SupportedLanguage[];
   /** Resource pack name */
-  resource_pack_name: string;
+  resourcePackName: string;
 }
 
 /**
@@ -65,15 +65,15 @@ export interface UIConfig {
  */
 export interface PathsConfig {
   /** Minecraft directory */
-  minecraft_dir: string;
+  minecraftDir: string;
   /** Mods directory */
-  mods_dir: string;
+  modsDir: string;
   /** Resource packs directory */
-  resource_packs_dir: string;
+  resourcePacksDir: string;
   /** Config directory */
-  config_dir: string;
+  configDir: string;
   /** Logs directory */
-  logs_dir: string;
+  logsDir: string;
 }
 
 /**
@@ -82,27 +82,27 @@ export interface PathsConfig {
 export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: "openai",
-    api_key: "",
+    apiKey: "",
     model: "gpt-4o-mini-2024-07-18",
-    max_retries: 5
+    maxRetries: 5
   },
   translation: {
-    source_language: "en_us",
-    target_language: "ja_jp",
-    mod_chunk_size: 50,
-    quest_chunk_size: 1,
-    guidebook_chunk_size: 1,
-    additional_languages: [],
-    resource_pack_name: "MinecraftModsLocalizer"
+    sourceLanguage: "en_us",
+    targetLanguage: "ja_jp",
+    modChunkSize: 50,
+    questChunkSize: 1,
+    guidebookChunkSize: 1,
+    additionalLanguages: [],
+    resourcePackName: "MinecraftModsLocalizer"
   },
   ui: {
     theme: "system"
   },
   paths: {
-    minecraft_dir: "",
-    mods_dir: "",
-    resource_packs_dir: "",
-    config_dir: "",
-    logs_dir: ""
+    minecraftDir: "",
+    modsDir: "",
+    resourcePacksDir: "",
+    configDir: "",
+    logsDir: ""
   }
 };

@@ -20,9 +20,9 @@ export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium">Minecraft Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.minecraft_dir || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">{config.paths.minecraftDir || "Not set"}</p>
             </div>
-            <Button onClick={() => onSelectDirectory("minecraft_dir")}>
+            <Button onClick={() => onSelectDirectory("minecraftDir")}>
               Select
             </Button>
           </div>
@@ -30,9 +30,9 @@ export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium">Mods Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.mods_dir || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">{config.paths.modsDir || "Not set"}</p>
             </div>
-            <Button onClick={() => onSelectDirectory("mods_dir")}>
+            <Button onClick={() => onSelectDirectory("modsDir")}>
               Select
             </Button>
           </div>
@@ -40,9 +40,9 @@ export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium">Resource Packs Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.resource_packs_dir || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">{config.paths.resourcePacksDir || "Not set"}</p>
             </div>
-            <Button onClick={() => onSelectDirectory("resource_packs_dir")}>
+            <Button onClick={() => onSelectDirectory("resourcePacksDir")}>
               Select
             </Button>
           </div>
@@ -50,9 +50,9 @@ export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium">Config Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.config_dir || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">{config.paths.configDir || "Not set"}</p>
             </div>
-            <Button onClick={() => onSelectDirectory("config_dir")}>
+            <Button onClick={() => onSelectDirectory("configDir")}>
               Select
             </Button>
           </div>
@@ -60,9 +60,9 @@ export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
           <div className="flex items-center justify-between">
             <div>
               <label className="text-sm font-medium">Logs Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.logs_dir || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">{config.paths.logsDir || "Not set"}</p>
             </div>
-            <Button onClick={() => onSelectDirectory("logs_dir")}>
+            <Button onClick={() => onSelectDirectory("logsDir")}>
               Select
             </Button>
           </div>

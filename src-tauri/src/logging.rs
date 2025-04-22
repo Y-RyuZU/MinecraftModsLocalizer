@@ -1,44 +1,67 @@
 use serde::{Serialize, Deserialize};
 use tauri::AppHandle;
-use tauri::Manager;
-use tauri::Emitter;
-use log::{debug, error, info, warn, LevelFilter, Log, Metadata, Record};
+use tauri::{Manager, Emitter};
+use chrono::Local;
 use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
-use chrono::Local;
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
 
 /// Maximum number of log entries to keep in memory
 const MAX_LOG_ENTRIES: usize = 1000;
 
+/// Log levels
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LogLevel {
+    Debug,
+    Info,
+    Warning,
+    Error,
+}
+
+impl LogLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LogLevel::Debug => "DEBUG",
+            LogLevel::Info => "INFO",
+            LogLevel::Warning => "WARNING",
+            LogLevel::Error => "ERROR",
+        }
+    }
+}
+
 /// Log entry structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LogEntry {
     /// Timestamp of the log entry
     pub timestamp: String,
     /// Log level
-    pub level: String,
+    pub level: LogLevel,
     /// Log message
     pub message: String,
-    /// Source of the log (module path)
-    pub source: Option<String>,
     /// Process type (translation, file operation, etc.)
     pub process_type: Option<String>,
 }
 
-/// Logger implementation
-pub struct TauriLogger {
+/// Custom logger implementation
+pub struct AppLogger {
     /// App handle for emitting events
     app_handle: Arc<Mutex<Option<AppHandle>>>,
     /// In-memory log buffer
     log_buffer: Arc<Mutex<VecDeque<LogEntry>>>,
+    /// Current log file path
+    log_file_path: Arc<Mutex<Option<PathBuf>>>,
 }
 
-impl TauriLogger {
+impl AppLogger {
     /// Create a new logger
     pub fn new() -> Self {
         Self {
             app_handle: Arc::new(Mutex::new(None)),
             log_buffer: Arc::new(Mutex::new(VecDeque::with_capacity(MAX_LOG_ENTRIES))),
+            log_file_path: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -60,8 +83,23 @@ impl TauriLogger {
         buffer.clear();
     }
 
-    /// Add a log entry
-    fn add_log_entry(&self, entry: LogEntry) {
+    /// Set the log file path
+    pub fn set_log_file(&self, path: PathBuf) {
+        let mut log_file = self.log_file_path.lock().unwrap();
+        *log_file = Some(path);
+    }
+
+    /// Log a message
+    pub fn log(&self, level: LogLevel, message: &str, process_type: Option<&str>) {
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
+        
+        let entry = LogEntry {
+            timestamp: timestamp.clone(),
+            level: level.clone(),
+            message: message.to_string(),
+            process_type: process_type.map(|s| s.to_string()),
+        };
+        
         // Add to buffer
         {
             let mut buffer = self.log_buffer.lock().unwrap();
@@ -75,74 +113,149 @@ impl TauriLogger {
         
         // Emit event
         if let Some(app_handle) = self.app_handle.lock().unwrap().as_ref() {
-            // In Tauri v2, we use the event API differently
             let _ = app_handle.emit("log", &entry);
         }
-    }
-}
-
-impl Log for TauriLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= log::max_level()
+        
+        // Write to log file
+        self.write_log_to_file(&entry);
     }
 
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
-            let level = record.level().to_string();
-            let message = format!("{}", record.args());
-            let source = record.module_path().map(|s| s.to_string());
+    /// Debug level log
+    pub fn debug(&self, message: &str, process_type: Option<&str>) {
+        self.log(LogLevel::Debug, message, process_type);
+    }
+
+    /// Info level log
+    pub fn info(&self, message: &str, process_type: Option<&str>) {
+        self.log(LogLevel::Info, message, process_type);
+    }
+
+    /// Warning level log
+    pub fn warning(&self, message: &str, process_type: Option<&str>) {
+        self.log(LogLevel::Warning, message, process_type);
+    }
+
+    /// Error level log
+    pub fn error(&self, message: &str, process_type: Option<&str>) {
+        self.log(LogLevel::Error, message, process_type);
+    }
+
+    /// Write log entry to file
+    fn write_log_to_file(&self, entry: &LogEntry) {
+        // Only write to file if a log file path has been explicitly set
+        let log_file_path = self.log_file_path.lock().unwrap();
+        
+        if let Some(log_file) = log_file_path.as_ref() {
+            // Format log entry
+            let log_line = format!(
+                "[{}] [{}] {}{}\n",
+                entry.timestamp,
+                entry.level.as_str(),
+                if let Some(process_type) = &entry.process_type {
+                    format!("[{}] ", process_type)
+                } else {
+                    String::new()
+                },
+                entry.message
+            );
             
-            // Extract process type from message if it contains a specific format
-            let process_type = if message.contains("[PROCESS:") {
-                let start = message.find("[PROCESS:").unwrap() + 9;
-                let end = message[start..].find("]").map(|pos| start + pos).unwrap_or(message.len());
-                Some(message[start..end].trim().to_string())
-            } else {
-                None
-            };
-            
-            let entry = LogEntry {
-                timestamp,
-                level,
-                message,
-                source,
-                process_type,
-            };
-            
-            self.add_log_entry(entry);
+            // Append to log file
+            match fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(log_file)
+            {
+                Ok(mut file) => {
+                    if let Err(e) = file.write_all(log_line.as_bytes()) {
+                        eprintln!("Failed to write to log file: {}", e);
+                    }
+                },
+                Err(e) => {
+                    eprintln!("Failed to open log file: {}", e);
+                }
+            }
         }
     }
-
-    fn flush(&self) {}
 }
 
 /// Initialize the logger
-pub fn init_logger(level: LevelFilter) -> Arc<TauriLogger> {
-    let logger = Arc::new(TauriLogger::new());
-    let logger_clone = logger.clone();
-    
-    log::set_boxed_logger(Box::new(logger_clone)).unwrap();
-    log::set_max_level(level);
-    
-    logger
+pub fn init_logger() -> Arc<AppLogger> {
+    Arc::new(AppLogger::new())
 }
 
 /// Log a translation process message
 #[tauri::command]
-pub fn log_translation_process(message: &str) {
-    info!("[PROCESS:TRANSLATION] {}", message);
+pub fn log_translation_process(message: &str, logger: tauri::State<Arc<AppLogger>>) {
+    logger.info(message, Some("TRANSLATION"));
+}
+
+/// Log a file operation message
+#[tauri::command]
+pub fn log_file_operation(message: &str, logger: tauri::State<Arc<AppLogger>>) {
+    logger.info(message, Some("FILE_OPERATION"));
+}
+
+/// Log an API request message
+#[tauri::command]
+pub fn log_api_request(message: &str, logger: tauri::State<Arc<AppLogger>>) {
+    logger.info(message, Some("API_REQUEST"));
+}
+
+/// Log an error message
+#[tauri::command]
+pub fn log_error(message: &str, process_type: Option<String>, logger: tauri::State<Arc<AppLogger>>) {
+    logger.error(message, process_type.as_deref());
 }
 
 /// Get all log entries
 #[tauri::command]
-pub fn get_logs(logger: tauri::State<Arc<TauriLogger>>) -> Vec<LogEntry> {
+pub fn get_logs(logger: tauri::State<Arc<AppLogger>>) -> Vec<LogEntry> {
     logger.get_log_buffer()
 }
 
 /// Clear all log entries
 #[tauri::command]
-pub fn clear_logs(logger: tauri::State<Arc<TauriLogger>>) -> bool {
+pub fn clear_logs(logger: tauri::State<Arc<AppLogger>>) -> bool {
     logger.clear_log_buffer();
     true
+}
+
+/// Create logs directory structure
+#[tauri::command]
+pub fn create_logs_directory(app_handle: tauri::AppHandle, logger: tauri::State<Arc<AppLogger>>) -> std::result::Result<String, String> {
+    // Get current date in YYYY-MM-DD_HH-MM-SS format
+    let date = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+    
+    // Get the app data directory which is outside the watched src-tauri directory
+    let app_data_dir = app_handle.path().app_data_dir().unwrap_or_else(|_| {
+        // Fallback to a directory in the user's home directory
+        let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        home_dir.join(".localizer").join("logs")
+    });
+    
+    // Create logs directory in the app data directory
+    let logs_dir = app_data_dir.join("logs").join("localizer").join(&date);
+    
+    // Create the directory and all parent directories
+    match fs::create_dir_all(&logs_dir) {
+        Ok(_) => {
+            // Set the log file path
+            let log_file = logs_dir.join("localizer.log");
+            logger.set_log_file(log_file.clone());
+            
+            // Log the creation of the logs directory
+            logger.info(&format!("Logs directory created: {}", logs_dir.display()), Some("SYSTEM"));
+            
+            // Return the path as a string
+            if let Some(path_str) = logs_dir.to_str() {
+                Ok(path_str.to_string())
+            } else {
+                Err("Invalid logs directory path".to_string())
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to create logs directory: {}", e);
+            Err(format!("Failed to create logs directory: {}", e))
+        }
+    }
 }

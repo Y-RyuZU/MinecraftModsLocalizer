@@ -18,7 +18,7 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   protected config: LLMConfig;
   
   /** Default maximum retries */
-  protected readonly DEFAULT_MAX_RETRIES = 5;
+  protected readonly DEFAULT_maxRetries = 5;
   
   /** Default chunk size */
   protected readonly DEFAULT_CHUNK_SIZE = 50;
@@ -58,31 +58,31 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * @returns Maximum number of retries
    */
   protected getMaxRetries(): number {
-    return this.config.max_retries ?? this.DEFAULT_MAX_RETRIES;
+    return this.config.maxRetries ?? this.DEFAULT_maxRetries;
   }
 
   /**
    * Format the prompt for translation
    * @param content Content to translate
    * @param targetLanguage Target language
-   * @param prompt_template Custom prompt template (optional)
+   * @param promptTemplate Custom prompt template (optional)
    * @returns Formatted prompt
    */
   protected formatPrompt(
     content: Record<string, string>,
     targetLanguage: string,
-    prompt_template?: string
+    promptTemplate?: string
   ): string {
-    const promptTemplate = prompt_template || this.config.prompt_template;
+    const effectivePromptTemplate = promptTemplate || this.config.promptTemplate;
     
-    if (!promptTemplate) {
+    if (!effectivePromptTemplate) {
       throw new Error("No prompt template provided");
     }
 
     const contentLines = Object.entries(content).map(([key, value]) => `${key}: ${value}`);
     const lineCount = contentLines.length;
 
-    let prompt = promptTemplate
+    let prompt = effectivePromptTemplate
       .replace("{language}", targetLanguage)
       .replace("{line_count}", lineCount.toString());
 

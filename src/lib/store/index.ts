@@ -31,9 +31,16 @@ interface AppState {
   // Translation progress
   isTranslating: boolean;
   progress: number;
+  wholeProgress: number;
+  totalChunks: number;
+  completedChunks: number;
   currentJobId: string | null;
   setTranslating: (isTranslating: boolean) => void;
   setProgress: (progress: number) => void;
+  setWholeProgress: (progress: number) => void;
+  setTotalChunks: (totalChunks: number) => void;
+  setCompletedChunks: (completedChunks: number) => void;
+  incrementCompletedChunks: () => void;
   setCurrentJobId: (jobId: string | null) => void;
   
   // Translation results
@@ -44,6 +51,10 @@ interface AppState {
   // Errors
   error: string | null;
   setError: (error: string | null) => void;
+  
+  // UI state
+  isLogDialogOpen: boolean;
+  setLogDialogOpen: (isOpen: boolean) => void;
 }
 
 /**
@@ -101,9 +112,19 @@ export const useAppStore = create<AppState>((set) => ({
   // Translation progress
   isTranslating: false,
   progress: 0,
+  wholeProgress: 0,
+  totalChunks: 0,
+  completedChunks: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
   setProgress: (progress) => set({ progress }),
+  setWholeProgress: (progress) => set({ wholeProgress: progress }),
+  setTotalChunks: (totalChunks) => set({ totalChunks }),
+  setCompletedChunks: (completedChunks) => set({ completedChunks }),
+  incrementCompletedChunks: () => set((state) => ({ 
+    completedChunks: state.completedChunks + 1,
+    wholeProgress: state.totalChunks > 0 ? Math.round((state.completedChunks + 1) / state.totalChunks * 100) : 0
+  })),
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
   
   // Translation results
@@ -117,4 +138,8 @@ export const useAppStore = create<AppState>((set) => ({
   // Errors
   error: null,
   setError: (error) => set({ error }),
+  
+  // UI state
+  isLogDialogOpen: false,
+  setLogDialogOpen: (isOpen) => set({ isLogDialogOpen: isOpen }),
 }));

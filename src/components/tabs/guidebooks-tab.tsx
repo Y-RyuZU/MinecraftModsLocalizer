@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { useAppStore } from "@/lib/store";
-import { TranslationTarget, PatchouliBook } from "@/lib/types/minecraft";
+import { LangFile, PatchouliBook, TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
-import { useAppTranslation } from "@/lib/i18n";
-
 import { TranslationService } from "@/lib/services/translation-service";
+import { TranslationTab } from "@/components/tabs/common/translation-tab";
 
 export function GuidebooksTab() {
-  const [isScanning, setIsScanning] = useState(false);
-  const { t } = useAppTranslation();
   const { 
     config, 
     guidebookTranslationTargets, 
@@ -22,328 +14,241 @@ export function GuidebooksTab() {
     updateGuidebookTranslationTarget,
     isTranslating,
     progress,
+    wholeProgress,
     setTranslating,
     setProgress,
+    setWholeProgress,
+    setTotalChunks,
+    setCompletedChunks,
+    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
     currentJobId,
     setCurrentJobId
   } = useAppStore();
-  
-  // Reference to the translation service
-  const translationServiceRef = useRef<TranslationService | null>(null);
 
   // Scan for guidebooks
-  const handleScanGuidebooks = async () => {
-    try {
-      setIsScanning(true);
-      setError(null);
-      
-      // Check if mods directory is set
-      if (!config.paths.modsDir) {
-        const selected = await FileService.openDirectoryDialog("Select Minecraft Mods Directory");
-        
-        if (!selected) {
-          setIsScanning(false);
-          return;
-        }
-        
-        // Update config with selected directory
-        config.paths.modsDir = selected;
-      }
-      
-      // Get mod files
-      const modFiles = await FileService.getModFiles(config.paths.modsDir);
-      
-      // Create translation targets
-      const targets: TranslationTarget[] = [];
-      
-      for (const modFile of modFiles) {
-        try {
-          // Extract Patchouli books
-          const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
-            jarPath: modFile,
-            tempDir: ""
-          });
-          
-          if (books.length > 0) {
-            for (const book of books) {
-              targets.push({
-                type: "patchouli",
-                id: book.id,
-                name: `${book.mod_id}: ${book.name}`,
-                path: modFile,
-                selected: true
-              });
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to extract guidebooks from mod: ${modFile}`, error);
-        }
-      }
-      
-      setGuidebookTranslationTargets(targets);
-    } catch (error) {
-      console.error("Failed to scan guidebooks:", error);
-      setError(`Failed to scan guidebooks: ${error}`);
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  // Select all guidebooks
-  const handleSelectAll = (checked: boolean) => {
-    const updatedTargets = guidebookTranslationTargets.map(target => ({
-      ...target,
-      selected: checked
-    }));
+  const handleScan = async (directory: string) => {
+    // Get mod files
+    const modFiles = await FileService.getModFiles(directory);
     
-    setGuidebookTranslationTargets(updatedTargets);
-  };
-  
-  // Cancel translation
-  const handleCancelTranslation = () => {
-    if (currentJobId && translationServiceRef.current) {
-      translationServiceRef.current.interruptJob(currentJobId);
-      setError(t('info.translationCancelled'));
-      setCurrentJobId(null);
-      setTranslating(false);
-      setProgress(0);
-    }
-  };
-
-  // Translate selected guidebooks
-  const handleTranslate = async () => {
-    try {
-      setTranslating(true);
-      setProgress(0);
-      setError(null);
-      setCurrentJobId(null);
-      
-      const selectedTargets = guidebookTranslationTargets.filter(target => target.selected);
-      
-      if (selectedTargets.length === 0) {
-        setError(t('errors.noGuidebooksSelected'));
-        setTranslating(false);
-        return;
-      }
-      
-      // Translate each guidebook
-      for (let i = 0; i < selectedTargets.length; i++) {
-        const target = selectedTargets[i];
-        setProgress(Math.round((i / selectedTargets.length) * 100));
+    // Create translation targets
+    const targets: TranslationTarget[] = [];
+    
+    for (const modFile of modFiles) {
+      try {
+        // Extract Patchouli books
+        const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
+          jarPath: modFile,
+          tempDir: ""
+        });
         
-        try {
-          // Extract Patchouli books
-          const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
-            jarPath: target.path,
-            tempDir: ""
-          });
-          
-          // Find the book
-          const book = books.find(b => b.id === target.id);
-          
-          if (!book) {
-            console.warn(`Book not found: ${target.id}`);
-            continue;
-          }
-          
-          // Find source language file
-          const sourceFile = book.lang_files.find(file => 
-            file.language === config.translation.sourceLanguage
-          );
-          
-          if (!sourceFile) {
-            console.warn(`Source language file not found for book: ${target.name}`);
-            continue;
-          }
-          
-          // Translate content
-          const translatedContent = await translateGuidebookContent(
-            sourceFile.content,
-            config.translation.sourceLanguage,
-            config.translation.targetLanguage
-          );
-          
-          // Write translated file to JAR
-          const success = await FileService.invoke<boolean>("write_patchouli_book", {
-            jarPath: target.path,
-            bookId: book.id,
-            modId: book.mod_id,
-            language: config.translation.targetLanguage,
-            content: JSON.stringify(translatedContent)
-          });
-          
-          if (success) {
-            // Add translation result
-            addTranslationResult({
+        if (books.length > 0) {
+          // Calculate relative path by removing the selected directory part
+          const relativePath = modFile.startsWith(directory) 
+            ? modFile.substring(directory.length).replace(/^[/\\]+/, '') 
+            : modFile;
+            
+          for (const book of books) {
+            targets.push({
               type: "patchouli",
-              id: target.id,
-              sourceLanguage: config.translation.sourceLanguage,
-              targetLanguage: config.translation.targetLanguage,
-              content: translatedContent,
-              outputPath: target.path
+              id: book.id,
+              name: `${book.modId}: ${book.name}`,
+              path: modFile,
+              relativePath: relativePath,
+              selected: true
             });
-          } else {
-            console.error(`Failed to write translated guidebook: ${target.name}`);
           }
-        } catch (error) {
-          console.error(`Failed to translate guidebook: ${target.name}`, error);
         }
+      } catch (error) {
+        console.error(`Failed to extract guidebooks from mod: ${modFile}`, error);
       }
-      
-      setProgress(100);
-    } catch (error) {
-      console.error("Failed to translate guidebooks:", error);
-      setError(`Failed to translate guidebooks: ${error}`);
-    } finally {
-      setTranslating(false);
     }
+    
+    setGuidebookTranslationTargets(targets);
   };
 
-  // Translate guidebook content
-  const translateGuidebookContent = async (
-    content: Record<string, string>,
-    sourceLanguage: string,
-    targetLanguage: string
-  ): Promise<Record<string, string>> => {
-    try {
-      // Create a translation service
-      const translationService = new TranslationService({
-        llmConfig: {
-          provider: config.llm.provider,
-          apiKey: config.llm.apiKey,
-          baseUrl: config.llm.baseUrl,
-          model: config.llm.model,
-        },
-        chunkSize: config.translation.guidebook_chunk_size,
-        prompt_template: config.llm.prompt_template,
-        maxRetries: config.llm.max_retries,
-        onProgress: (job) => {
-          setProgress(job.progress);
+  // Translate guidebooks
+  const handleTranslate = async (
+    selectedTargets: TranslationTarget[], 
+    targetLanguage: string,
+    translationService: TranslationService,
+    setCurrentJobId: (jobId: string | null) => void,
+    addTranslationResult: (result: TranslationResult) => void
+  ) => {
+    // Reset whole progress tracking
+    setCompletedChunks(0);
+    setWholeProgress(0);
+    
+    // Count total chunks across all guidebooks to track whole progress
+    let totalChunksCount = 0;
+    
+    // First pass: count total chunks for all guidebooks
+    for (const target of selectedTargets) {
+      try {
+        // Extract Patchouli books
+        const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
+          jarPath: target.path,
+          tempDir: ""
+        });
+        
+        // Find the book
+        const book = books.find(b => b.id === target.id);
+        
+        if (!book) {
+          console.warn(`Book not found: ${target.id}`);
+          continue;
         }
-      });
-      
-      // Store the translation service in the ref
-      translationServiceRef.current = translationService;
-      
-      // Create a translation job
-      const job = translationService.createJob(
-        content,
-        sourceLanguage,
-        targetLanguage
-      );
-      
-      // Store the job ID
-      setCurrentJobId(job.id);
-      
-      // Start the translation job
-      await translationService.startJob(job.id);
-      
-      // Clear the job ID
-      setCurrentJobId(null);
-      
-      // Get the translated content
-      return translationService.getCombinedTranslatedContent(job.id);
-    } catch (error) {
-      console.error("Failed to translate guidebook content:", error);
-      
-      // Fallback to mock translation
-      const translated: Record<string, string> = {};
-      
-      for (const [key, value] of Object.entries(content)) {
-        translated[key] = `[${targetLanguage}] ${value}`;
+        
+        // Find source language file
+        const sourceFile = book.langFiles.find((file: LangFile) => 
+          file.language === config.translation.sourceLanguage
+        );
+        
+        if (!sourceFile) {
+          console.warn(`Source language file not found for book: ${target.name}`);
+          continue;
+        }
+        
+        // Count the number of entries in the source file
+        const entriesCount = Object.keys(sourceFile.content).length;
+        
+        // Calculate number of chunks based on chunk size
+        const chunksCount = Math.ceil(entriesCount / config.translation.guidebookChunkSize);
+        totalChunksCount += chunksCount;
+      } catch (error) {
+        console.error(`Failed to analyze guidebook for chunk counting: ${target.name}`, error);
       }
-      
-      return translated;
     }
+    
+    // Set total chunks for whole progress tracking
+    setTotalChunks(totalChunksCount);
+    
+    // Translate each guidebook
+    for (let i = 0; i < selectedTargets.length; i++) {
+      const target = selectedTargets[i];
+      setProgress(Math.round((i / selectedTargets.length) * 100));
+      
+      try {
+        // Extract Patchouli books
+        const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", { 
+          jarPath: target.path,
+          tempDir: ""
+        });
+        
+        // Find the book
+        const book = books.find(b => b.id === target.id);
+        
+        if (!book) {
+          console.warn(`Book not found: ${target.id}`);
+          continue;
+        }
+        
+        // Find source language file
+        const sourceFile = book.langFiles.find((file: LangFile) => 
+          file.language === config.translation.sourceLanguage
+        );
+        
+        if (!sourceFile) {
+          console.warn(`Source language file not found for book: ${target.name}`);
+          continue;
+        }
+        
+        // Create a translation job
+        const job = translationService.createJob(
+          sourceFile.content,
+          config.translation.sourceLanguage,
+          targetLanguage,
+          target.name
+        );
+        
+        // Store the job ID
+        setCurrentJobId(job.id);
+        
+        // Start the translation job
+        await translationService.startJob(job.id);
+        
+        // Update whole progress based on chunks in this job
+        const jobChunksCount = job.chunks.length;
+        for (let j = 0; j < jobChunksCount; j++) {
+          incrementCompletedChunks();
+        }
+        
+        // Get the translated content
+        const translatedContent = translationService.getCombinedTranslatedContent(job.id);
+        
+        // Write translated file to JAR
+        const success = await FileService.invoke<boolean>("write_patchouli_book", {
+          jarPath: target.path,
+          bookId: book.id,
+          modId: book.modId,
+          language: targetLanguage,
+          content: JSON.stringify(translatedContent)
+        });
+        
+        if (success) {
+          // Add translation result
+          addTranslationResult({
+            type: "patchouli",
+            id: target.id,
+            sourceLanguage: config.translation.sourceLanguage,
+            targetLanguage: targetLanguage,
+            content: translatedContent,
+            outputPath: target.path
+          });
+        } else {
+          console.error(`Failed to write translated guidebook: ${target.name}`);
+        }
+      } catch (error) {
+        console.error(`Failed to translate guidebook: ${target.name}`, error);
+      }
+    }
+    
+    // Clear the job ID
+    setCurrentJobId(null);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button onClick={handleScanGuidebooks} disabled={isScanning || isTranslating}>
-            {isScanning ? t('buttons.scanning') : t('buttons.scanGuidebooks')}
-          </Button>
-          <Button 
-            onClick={handleTranslate} 
-            disabled={isScanning || isTranslating || guidebookTranslationTargets.length === 0}
-          >
-            {isTranslating ? t('buttons.translating') : t('buttons.translate')}
-          </Button>
-        </div>
-      </div>
-      
-      {error && (
-        <div className="bg-destructive/20 text-destructive p-2 rounded">
-          {error}
-        </div>
-      )}
-      
-      {isTranslating && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 mr-4">
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground">
-                {t('progress.translatingGuidebooks')} {progress}%
-              </p>
-            </div>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={handleCancelTranslation}
-              disabled={!currentJobId}
-            >
-              {t('buttons.cancel')}
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox 
-                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                  disabled={isScanning || isTranslating || guidebookTranslationTargets.length === 0}
-                />
-              </TableHead>
-              <TableHead>{t('tables.guidebookName')}</TableHead>
-              <TableHead>{t('tables.modId')}</TableHead>
-              <TableHead>{t('tables.path')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {guidebookTranslationTargets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center">
-                  {isScanning ? t('tables.scanningForGuidebooks') : t('tables.noGuidebooksFound')}
-                </TableCell>
-              </TableRow>
-            ) : (
-              guidebookTranslationTargets.map((target) => (
-                <TableRow key={target.id}>
-                  <TableCell>
-                    <Checkbox 
-                      checked={target.selected}
-                      onCheckedChange={(checked) => updateGuidebookTranslationTarget(target.id, !!checked)}
-                      disabled={isScanning || isTranslating}
-                    />
-                  </TableCell>
-                  <TableCell>{target.name}</TableCell>
-                  <TableCell>{target.id}</TableCell>
-                  <TableCell className="truncate max-w-[300px]">{target.path}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <TranslationTab
+      tabType="guidebooks"
+      scanButtonLabel="buttons.scanGuidebooks"
+      scanningLabel="buttons.scanning"
+      progressLabel="progress.translatingGuidebooks"
+      noItemsSelectedError="errors.noGuidebooksSelected"
+      noItemsFoundLabel="tables.noGuidebooksFound"
+      scanningForItemsLabel="tables.scanningForGuidebooks"
+      filterPlaceholder="filters.filterGuidebooks"
+      tableColumns={[
+        { key: "name", label: "tables.guidebookName" },
+        { key: "id", label: "tables.modId" },
+        { 
+          key: "relativePath", 
+          label: "tables.path", 
+          className: "truncate max-w-[300px]",
+          render: (target) => target.relativePath || target.path
+        }
+      ]}
+      config={config}
+      translationTargets={guidebookTranslationTargets}
+      setTranslationTargets={setGuidebookTranslationTargets}
+      updateTranslationTarget={updateGuidebookTranslationTarget}
+      isTranslating={isTranslating}
+      progress={progress}
+      wholeProgress={wholeProgress}
+      setTranslating={setTranslating}
+      setProgress={setProgress}
+      setWholeProgress={setWholeProgress}
+      setTotalChunks={setTotalChunks}
+      setCompletedChunks={setCompletedChunks}
+      incrementCompletedChunks={incrementCompletedChunks}
+      addTranslationResult={addTranslationResult}
+      error={error}
+      setError={setError}
+      currentJobId={currentJobId}
+      setCurrentJobId={setCurrentJobId}
+      onScan={handleScan}
+      onTranslate={handleTranslate}
+    />
   );
 }

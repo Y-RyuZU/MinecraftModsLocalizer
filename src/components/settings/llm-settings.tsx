@@ -72,9 +72,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">API Key</label>
             <Input 
               type="password"
-              value={config.llm.api_key}
+              value={config.llm.apiKey}
               onChange={(e) => {
-                config.llm.api_key = e.target.value;
+                config.llm.apiKey = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter API key"
@@ -84,9 +84,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           <div className="space-y-2">
             <label className="text-sm font-medium">Base URL (Optional)</label>
             <Input 
-              value={config.llm.base_url || ""}
+              value={config.llm.baseUrl || ""}
               onChange={(e) => {
-                config.llm.base_url = e.target.value;
+                config.llm.baseUrl = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter base URL"
@@ -109,9 +109,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">Max Retries</label>
             <Input 
               type="number"
-              value={config.llm.max_retries}
+              value={config.llm.maxRetries}
               onChange={(e) => {
-                config.llm.max_retries = parseInt(e.target.value);
+                config.llm.maxRetries = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
               placeholder="Enter max retries"
@@ -121,9 +121,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           <div className="space-y-2 col-span-2">
             <label className="text-sm font-medium">Custom Prompt Template</label>
             <Input 
-              value={config.llm.prompt_template || ""}
+              value={config.llm.promptTemplate || ""}
               onChange={(e) => {
-                config.llm.prompt_template = e.target.value;
+                config.llm.promptTemplate = e.target.value;
                 setConfig({ ...config });
               }}
               placeholder="Enter custom prompt template"

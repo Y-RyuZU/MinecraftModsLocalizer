@@ -59,7 +59,7 @@ We have completed the implementation of the Minecraft Mods Localizer application
 - Enhanced UI with Card components for better visual grouping of settings
 - Fixed Tauri v2 API import in config-service.ts (replaced direct import with window.__TAURI__?.invoke)
 - Made translation targets independent for each tab (mods, quests, guidebooks, custom files)
-- Updated property names to use snake_case consistently (prompt_template, mod_chunk_size, etc.)
+- Updated property names to use snake_case consistently (promptTemplate, modChunkSize, etc.)
 - Enhanced translation service integration with proper error handling
 - Added custom prompt template field in LLM settings
 - Implemented internationalization with i18next for multi-language UI support
@@ -99,6 +99,17 @@ We have completed the implementation of the Minecraft Mods Localizer application
   - Simplified file operations by using direct Rust standard library functions
   - Improved error handling for file operations
   - Fixed dialog implementation to use rfd crate for file dialogs
+
+- Implemented real-time logging system:
+  - Created LogViewer component to display logs in real-time
+  - Created LogDialog component to show logs in a modal dialog
+  - Added LogButton component for manually opening the log dialog
+  - Updated the Rust backend to emit log events during translation
+  - Enhanced the translation service to log detailed information about the translation process
+  - Added automatic log dialog opening when translation starts
+  - Added state management for log dialog visibility
+  - Updated the UI to include log buttons in appropriate locations
+  - Added internationalization support for log-related strings
 
 ## Next Steps
 1. **Testing and Debugging**:

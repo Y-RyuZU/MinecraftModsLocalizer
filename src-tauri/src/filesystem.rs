@@ -27,17 +27,18 @@ pub enum FileSystemError {
     TauriFs(String),
 }
 
-// Type alias for internal Result with FileSystemError
-type FileResult<T> = std::result::Result<T, FileSystemError>;
+// We'll use std::result::Result directly instead of a type alias
 
 /// Resource pack manifest (pack.mcmeta)
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ResourcePackManifest {
     pack: ResourcePackInfo,
 }
 
 /// Resource pack information
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ResourcePackInfo {
     description: String,
     pack_format: i32,
@@ -55,8 +56,18 @@ pub async fn get_mod_files(_app_handle: tauri::AppHandle, dir: &str) -> std::res
     
     let mut mod_files = Vec::new();
     
+    // Check if mods directory exists in the profile directory
+    let mods_dir = path.join("mods");
+    let target_dir = if mods_dir.exists() && mods_dir.is_dir() {
+        info!("Found mods directory: {}", mods_dir.display());
+        mods_dir
+    } else {
+        info!("No mods directory found, using profile directory: {}", path.display());
+        path.to_path_buf()
+    };
+    
     // Walk through the directory and find all JAR files
-    for entry in WalkDir::new(path).max_depth(1).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(target_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
         let entry_path = entry.path();
         
         // Check if the file is a JAR file
@@ -83,9 +94,12 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
     
     let mut quest_files = Vec::new();
     
-    // Look for FTB quests in the ftbquests directory
-    let ftb_quests_dir = path.join("ftbquests");
+    // Look for FTB quests in the config/ftbquests directory
+    let config_dir = path.join("config");
+    let ftb_quests_dir = config_dir.join("ftbquests");
+    
     if ftb_quests_dir.exists() && ftb_quests_dir.is_dir() {
+        info!("Found FTB quests directory: {}", ftb_quests_dir.display());
         // Walk through the directory and find all SNBT files
         for entry in WalkDir::new(ftb_quests_dir).into_iter().filter_map(|e| e.ok()) {
             let entry_path = entry.path();
@@ -97,6 +111,29 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
                 }
             }
         }
+    } else {
+        info!("No FTB quests directory found at {}", ftb_quests_dir.display());
+    }
+    
+    // Also check for kubejs lang files
+    let kubejs_dir = path.join("kubejs");
+    let kubejs_assets_dir = kubejs_dir.join("assets").join("kubejs").join("lang");
+    
+    if kubejs_assets_dir.exists() && kubejs_assets_dir.is_dir() {
+        info!("Found kubejs lang directory: {}", kubejs_assets_dir.display());
+        // Walk through the directory and find all JSON files
+        for entry in WalkDir::new(kubejs_assets_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
+            let entry_path = entry.path();
+            
+            // Check if the file is a JSON file
+            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
+                if let Some(path_str) = entry_path.to_str() {
+                    quest_files.push(path_str.to_string());
+                }
+            }
+        }
+    } else {
+        info!("No kubejs lang directory found at {}", kubejs_assets_dir.display());
     }
     
     debug!("Found {} FTB quest files", quest_files.len());
@@ -115,11 +152,14 @@ pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) ->
     
     let mut quest_files = Vec::new();
     
-    // Look for Better Quests in the betterquesting directory
-    let better_quests_dir = path.join("betterquesting");
+    // Look for Better Quests in the resources/betterquesting directory
+    let resources_dir = path.join("resources");
+    let better_quests_dir = resources_dir.join("betterquesting").join("lang");
+    
     if better_quests_dir.exists() && better_quests_dir.is_dir() {
+        info!("Found Better Quests directory: {}", better_quests_dir.display());
         // Walk through the directory and find all JSON files
-        for entry in WalkDir::new(better_quests_dir).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(better_quests_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
             let entry_path = entry.path();
             
             // Check if the file is a JSON file
@@ -129,6 +169,8 @@ pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) ->
                 }
             }
         }
+    } else {
+        info!("No Better Quests directory found at {}", better_quests_dir.display());
     }
     
     debug!("Found {} Better Quests files", quest_files.len());
