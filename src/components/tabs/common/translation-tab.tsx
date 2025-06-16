@@ -69,7 +69,6 @@ export interface TranslationTabProps {
   setWholeProgress: (progress: number) => void;
   setTotalChunks: (totalChunks: number) => void;
   setCompletedChunks: (completedChunks: number) => void;
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   incrementCompletedChunks: () => void;
   addTranslationResult: (result: TranslationResult) => void;
   error: string | null;
@@ -272,24 +271,27 @@ export function TranslationTab({
         setTranslationServiceRef(translationService);
       }
       
+      // Extract the actual path from the NATIVE_DIALOG prefix if present
+      const actualPath = selectedDirectory && selectedDirectory.startsWith("NATIVE_DIALOG:")
+        ? selectedDirectory.substring("NATIVE_DIALOG:".length)
+        : selectedDirectory || "";
+      
       // Clear existing logs and create a new logs directory for the entire translation session
       try {
         // Clear existing logs
         await invoke('clear_logs');
         
-        // Create a new logs directory
-        const logsDir = await invoke<string>('create_logs_directory');
+        // Create a new logs directory using the Minecraft directory from config
+        const minecraftDir = config.paths.minecraftDir || actualPath;
+        const logsDir = await invoke<string>('create_logs_directory', { 
+          minecraftDir: minecraftDir 
+        });
         await invoke('log_translation_process', { message: `Created logs directory: ${logsDir}` });
         await invoke('log_translation_process', { message: `Starting translation session for ${selectedTargets.length} ${tabType} from ${config.translation.sourceLanguage} to ${targetLanguage}` });
       } catch (error) {
         console.error('Failed to create logs directory:', error);
         // Continue with translation even if log directory creation fails
       }
-      
-      // Extract the actual path from the NATIVE_DIALOG prefix if present
-      const actualPath = selectedDirectory && selectedDirectory.startsWith("NATIVE_DIALOG:")
-        ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-        : selectedDirectory || "";
 
       // Call the custom translate function (do not await, so UI can update and cancel is possible)
       void onTranslate(

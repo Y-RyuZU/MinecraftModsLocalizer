@@ -220,21 +220,15 @@ pub fn clear_logs(logger: tauri::State<Arc<AppLogger>>) -> bool {
     true
 }
 
-/// Create logs directory structure
+/// Create logs directory structure in Minecraft profile
 #[tauri::command]
-pub fn create_logs_directory(app_handle: tauri::AppHandle, logger: tauri::State<Arc<AppLogger>>) -> std::result::Result<String, String> {
-    // Get current date in YYYY-MM-DD_HH-MM-SS format
-    let date = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+pub fn create_logs_directory(minecraft_dir: String, logger: tauri::State<Arc<AppLogger>>) -> std::result::Result<String, String> {
+    // Get current date in YYYY-MM-DD format as specified in SPECIFICATION.md
+    let date = Local::now().format("%Y-%m-%d").to_string();
     
-    // Get the app data directory which is outside the watched src-tauri directory
-    let app_data_dir = app_handle.path().app_data_dir().unwrap_or_else(|_| {
-        // Fallback to a directory in the user's home directory
-        let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        home_dir.join(".localizer").join("logs")
-    });
-    
-    // Create logs directory in the app data directory
-    let logs_dir = app_data_dir.join("logs").join("localizer").join(&date);
+    // Create logs directory following the specification: logs/localizer/{date}
+    let minecraft_path = PathBuf::from(&minecraft_dir);
+    let logs_dir = minecraft_path.join("logs").join("localizer").join(&date);
     
     // Create the directory and all parent directories
     match fs::create_dir_all(&logs_dir) {
@@ -256,6 +250,36 @@ pub fn create_logs_directory(app_handle: tauri::AppHandle, logger: tauri::State<
         Err(e) => {
             eprintln!("Failed to create logs directory: {}", e);
             Err(format!("Failed to create logs directory: {}", e))
+        }
+    }
+}
+
+/// Create temporary directory for Patchouli translation (as specified in SPECIFICATION.md)
+#[tauri::command]
+pub fn create_temp_directory(minecraft_dir: String, logger: tauri::State<Arc<AppLogger>>) -> std::result::Result<String, String> {
+    // Get current date in YYYY-MM-DD format as specified in SPECIFICATION.md
+    let date = Local::now().format("%Y-%m-%d").to_string();
+    
+    // Create temporary directory following the specification: logs/localizer/{date}/tmp
+    let minecraft_path = PathBuf::from(&minecraft_dir);
+    let temp_dir = minecraft_path.join("logs").join("localizer").join(&date).join("tmp");
+    
+    // Create the directory and all parent directories
+    match fs::create_dir_all(&temp_dir) {
+        Ok(_) => {
+            // Log the creation of the temporary directory
+            logger.info(&format!("Temporary directory created: {}", temp_dir.display()), Some("SYSTEM"));
+            
+            // Return the path as a string
+            if let Some(path_str) = temp_dir.to_str() {
+                Ok(path_str.to_string())
+            } else {
+                Err("Invalid temporary directory path".to_string())
+            }
+        },
+        Err(e) => {
+            eprintln!("Failed to create temporary directory: {}", e);
+            Err(format!("Failed to create temporary directory: {}", e))
         }
     }
 }
