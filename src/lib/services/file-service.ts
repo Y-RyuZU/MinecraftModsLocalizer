@@ -4,8 +4,7 @@
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
 
-// Import Tauri plugins (will be dynamically imported later to handle SSR)
-let dialogPlugin: typeof import('@tauri-apps/plugin-dialog') | null = null;
+// Note: We use the Rust backend for dialog operations to avoid chunk loading issues
 
 /**
  * Check if we're running in a Tauri environment
@@ -352,44 +351,10 @@ export class FileService {
     console.log("FileService.openDirectoryDialog: Opening directory dialog");
     
     try {
-      // In SSR or non-Tauri environment, use mock or invoke
-      if (isSSR || !isTauri) {
-        console.log("FileService.openDirectoryDialog: Using mock or invoke in non-Tauri environment");
-        return await tauriInvoke<string | null>("open_directory_dialog", { title });
-      }
-      
-      // In Tauri environment, use the dialog plugin
-      console.log("FileService.openDirectoryDialog: Using Tauri dialog plugin");
-      
-      // Dynamically import the dialog plugin if not already loaded
-      if (!dialogPlugin) {
-        try {
-          dialogPlugin = await import('@tauri-apps/plugin-dialog');
-          console.log("FileService.openDirectoryDialog: Dialog plugin loaded successfully");
-        } catch (error) {
-          console.error("Failed to load dialog plugin:", error);
-          // Fallback to invoke if plugin import fails
-          return await tauriInvoke<string | null>("open_directory_dialog", { title });
-        }
-      }
-      
-      // Open the directory dialog using the plugin
-      const selected = await dialogPlugin.open({
-        directory: true,
-        multiple: false,
-        title: title
-      });
-      
-      // Handle the result
-      if (selected === null) {
-        console.log("FileService.openDirectoryDialog: No directory selected");
-        return null;
-      }
-      
-      console.log("FileService.openDirectoryDialog: Selected directory:", selected);
-      
-      // Add the NATIVE_DIALOG prefix to match the Rust backend behavior
-      return `NATIVE_DIALOG:${selected}`;
+      // Use the Rust backend command for dialog operations to avoid chunk loading issues
+      const result = await tauriInvoke<string | null>("open_directory_dialog", { title });
+      console.log("FileService.openDirectoryDialog: Result from Rust backend:", result);
+      return result;
     } catch (error) {
       console.error("Failed to open directory dialog:", error);
       return null;
