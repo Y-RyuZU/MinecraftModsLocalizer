@@ -102,7 +102,8 @@ export function QuestsTab() {
     targetLanguage: string,
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
-    addTranslationResult: (result: TranslationResult) => void
+    addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string // for API compatibility, not used
   ) => {
     // Reset whole progress tracking
     setCompletedChunks(0);

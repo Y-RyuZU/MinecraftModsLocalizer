@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown, ChevronUp, Search, Target } from "lucide-react";
+import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +38,7 @@ const getChunkSizeForTabType = (config: AppConfig, tabType: 'mods' | 'quests' | 
 export interface TranslationTabProps {
   // Tab specific configuration
   tabType: 'mods' | 'quests' | 'guidebooks' | 'custom-files';
+  setTranslationServiceRef?: (service: TranslationService) => void;
   scanButtonLabel: string;
   scanningLabel: string;
   progressLabel: string;
@@ -83,13 +84,15 @@ export interface TranslationTabProps {
     targetLanguage: string,
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
-    addTranslationResult: (result: TranslationResult) => void
+    addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string
   ) => Promise<void>;
 }
 
 export function TranslationTab({
   // Tab specific configuration
   tabType,
+  setTranslationServiceRef,
   scanButtonLabel,
   scanningLabel,
   progressLabel,
@@ -98,10 +101,10 @@ export function TranslationTab({
   scanningForItemsLabel,
   directorySelectLabel = 'buttons.selectProfileDirectory',
   filterPlaceholder,
-  
+
   // Table configuration
   tableColumns,
-  
+
   // State and handlers
   config,
   translationTargets,
@@ -121,7 +124,7 @@ export function TranslationTab({
   setError,
   currentJobId,
   setCurrentJobId,
-  
+
   // Custom handlers
   onScan,
   onTranslate
@@ -143,8 +146,6 @@ export function TranslationTab({
       const selected = await FileService.openDirectoryDialog(t(directorySelectLabel));
       
       if (selected) {
-        console.log("Selected directory:", selected);
-        
         // Store the full path including any prefix
         setSelectedDirectory(selected);
         
@@ -207,7 +208,7 @@ export function TranslationTab({
   const handleCancelTranslation = () => {
     if (currentJobId && translationServiceRef.current) {
       translationServiceRef.current.interruptJob(currentJobId);
-      setError(t('info.translationCancelled'));
+      setError(t('info.translationCancelled') || "Translation cancelled by user.");
       setCurrentJobId(null);
       setTranslating(false);
       setProgress(0);
@@ -225,18 +226,23 @@ export function TranslationTab({
       setCompletedChunks(0);
       setError(null);
       setCurrentJobId(null);
-      
+
       const selectedTargets = translationTargets.filter(target => target.selected);
-      
+
       if (selectedTargets.length === 0) {
         setError(t(noItemsSelectedError));
         setTranslating(false);
         return;
       }
-      
+
       // Use temporary target language if set, otherwise use global target language
       const targetLanguage = tempTargetLanguage ?? config.translation.targetLanguage;
-      
+      if (!targetLanguage || targetLanguage.trim() === "") {
+        setError(t('errors.noTargetLanguageSelected') || "No target language selected");
+        setTranslating(false);
+        return;
+      }
+
       // Create a translation service
       const translationService = new TranslationService({
         llmConfig: {
@@ -252,16 +258,19 @@ export function TranslationTab({
           // Track previous progress to detect when progress increases
           const prevProgress = progress;
           setProgress(job.progress);
-          
+
           // If progress has increased significantly, consider it a chunk completion
           if (job.progress > prevProgress + 10) {
             incrementCompletedChunks();
           }
         }
       });
-      
+
       // Store the translation service in the ref
       translationServiceRef.current = translationService;
+      if (typeof setTranslationServiceRef === "function") {
+        setTranslationServiceRef(translationService);
+      }
       
       // Clear existing logs and create a new logs directory for the entire translation session
       try {
@@ -277,16 +286,25 @@ export function TranslationTab({
         // Continue with translation even if log directory creation fails
       }
       
-      // Call the custom translate function
-      await onTranslate(selectedTargets, targetLanguage, translationService, setCurrentJobId, addTranslationResult);
+      // Extract the actual path from the NATIVE_DIALOG prefix if present
+      const actualPath = selectedDirectory && selectedDirectory.startsWith("NATIVE_DIALOG:")
+        ? selectedDirectory.substring("NATIVE_DIALOG:".length)
+        : selectedDirectory || "";
+
+      // Call the custom translate function (do not await, so UI can update and cancel is possible)
+      void onTranslate(
+        selectedTargets,
+        targetLanguage,
+        translationService,
+        setCurrentJobId,
+        addTranslationResult,
+        actualPath
+      );
       
-      setProgress(100);
-      setWholeProgress(100);
+      // Progress will be updated by the translation process itself
     } catch (error) {
       console.error(`Failed to translate ${tabType}:`, error);
       setError(`Failed to translate ${tabType}: ${error}`);
-    } finally {
-      setTranslating(false);
     }
   };
 
@@ -475,8 +493,8 @@ export function TranslationTab({
                     // Fallback for non-string values
                     return 0;
                   })
-                  .map((target) => (
-                      <TableRow key={target.id}>
+                  .map((target, index) => (
+                      <TableRow key={`${target.id}-${index}`}>
                         <TableCell>
                           <Checkbox 
                             checked={target.selected}

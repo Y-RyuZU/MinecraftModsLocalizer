@@ -5,8 +5,10 @@ import { ModInfo, LangFile, TranslationResult, TranslationTarget } from "@/lib/t
 import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
+import { invoke } from "@tauri-apps/api/core";
 
 export function ModsTab() {
+
   const { 
     config, 
     modTranslationTargets, 
@@ -68,140 +70,134 @@ export function ModsTab() {
 
   // Translate mods
   const handleTranslate = async (
-    selectedTargets: TranslationTarget[], 
+    selectedTargets: TranslationTarget[],
     targetLanguage: string,
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
-    addTranslationResult: (result: TranslationResult) => void
+    addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string
   ) => {
-    // Check if resource packs directory is set
-    if (!config.paths.resourcePacksDir) {
-      const selected = await FileService.openDirectoryDialog("Select Minecraft Resource Packs Directory");
-      
-      if (!selected) {
-        return;
-      }
-      
-      // Update config with selected directory
-      config.paths.resourcePacksDir = selected;
-    }
-    
+    // Always set resource packs directory to <selectedDirectory>/resourcepacks
+    const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
+
+    // Ensure resource pack name is always set
+    const resourcePackName = config.translation.resourcePackName || "MinecraftModsLocalizer";
     // Create resource pack
     const resourcePackDir = await FileService.createResourcePack(
-      config.translation.resourcePackName,
+      resourcePackName,
       targetLanguage,
-      config.paths.resourcePacksDir
+      resourcePacksDir
     );
-    
+
     // Reset whole progress tracking
     setCompletedChunks(0);
     setWholeProgress(0);
-    
-    // Count total chunks across all mods to track whole progress
+
+    // Prepare jobs and count total chunks
     let totalChunksCount = 0;
-    
-    // First pass: count total chunks for all mods
+    const jobs = [];
     for (const target of selectedTargets) {
       try {
         // Extract language files
-        const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", { 
+        const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", {
           jarPath: target.path,
           tempDir: ""
         });
-        
+
         // Find source language file
-        const sourceFile = langFiles.find((file) => 
-          file.language === config.translation.sourceLanguage
+        const sourceFile = langFiles.find((file) =>
+          file.language === config?.translation?.sourceLanguage || "en_us"
         );
-        
+
         if (!sourceFile) {
           console.warn(`Source language file not found for mod: ${target.name}`);
+          try {
+            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, process_type: "TRANSLATION" });
+          } catch {
+            // ignore logging errors
+          }
           continue;
         }
-        
+
         // Count the number of entries in the source file
         const entriesCount = Object.keys(sourceFile.content).length;
-        
+
         // Calculate number of chunks based on chunk size
         const chunksCount = Math.ceil(entriesCount / config.translation.modChunkSize);
         totalChunksCount += chunksCount;
+
+        // Create a translation job
+        const job: import("@/lib/types/minecraft").ModTranslationJob = {
+          ...translationService.createJob(
+            sourceFile.content,
+            config.translation.sourceLanguage,
+            targetLanguage,
+            target.name
+          ),
+          modId: target.id
+        };
+        jobs.push(job);
       } catch (error) {
         console.error(`Failed to analyze mod for chunk counting: ${target.name}`, error);
       }
     }
-    
-    // Set total chunks for whole progress tracking
+
     setTotalChunks(totalChunksCount);
-    
-    // Translate each mod
-    for (let i = 0; i < selectedTargets.length; i++) {
-      const target = selectedTargets[i];
-      setProgress(Math.round((i / selectedTargets.length) * 100));
-      
-      try {
-        // Extract language files
-        const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", { 
-          jarPath: target.path,
-          tempDir: ""
-        });
-        
-        // Find source language file
-        const sourceFile = langFiles.find((file) => 
-          file.language === config.translation.sourceLanguage
-        );
-        
-        if (!sourceFile) {
-          console.warn(`Source language file not found for mod: ${target.name}`);
-          continue;
-        }
-        
-        // Create a translation job
-        const job = translationService.createJob(
-          sourceFile.content,
-          config.translation.sourceLanguage,
-          targetLanguage,
-          target.name
-        );
-        
-        // Store the job ID
-        setCurrentJobId(job.id);
-        
-        // Start the translation job
-        await translationService.startJob(job.id);
-        
-        // Update whole progress based on chunks in this job
-        const jobChunksCount = job.chunks.length;
-        for (let j = 0; j < jobChunksCount; j++) {
-          incrementCompletedChunks();
-        }
-        
-        // Get the translated content
-        const translatedContent = translationService.getCombinedTranslatedContent(job.id);
-        
-        // Write translated file to resource pack
-        await FileService.writeLangFile(
-          target.id,
-          targetLanguage,
-          translatedContent,
-          resourcePackDir
-        );
-        
-        // Add translation result
-        addTranslationResult({
-          type: "mod",
-          id: target.id,
-          sourceLanguage: config.translation.sourceLanguage,
-          targetLanguage: targetLanguage,
-          content: translatedContent,
-          outputPath: resourcePackDir
-        });
-      } catch (error) {
-        console.error(`Failed to translate mod: ${target.name}`, error);
-      }
+
+    // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
+    if (jobs.length > 0) {
+      setCurrentJobId(jobs[0].id);
     }
-    
-    // Clear the job ID
-    setCurrentJobId(null);
+
+    // Use the shared translation runner
+    const { runTranslationJobs } = await import("@/lib/services/translation-runner");
+    try {
+      await runTranslationJobs<import("@/lib/types/minecraft").ModTranslationJob>({
+        jobs,
+        translationService,
+        setCurrentJobId,
+        incrementCompletedChunks,
+        // Use normalized source language for consistency, fallback to "en_us"
+        sourceLanguage: (
+          config?.translation?.sourceLanguage || "en_us"
+        )
+          .toLowerCase()
+          .replace("-", "_"),
+        targetLanguage,
+        type: "mod",
+        getOutputPath: (job) => resourcePackDir,
+        getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
+        writeOutput: async (job, outputPath, content) => {
+          await FileService.writeLangFile(
+            job.modId,
+            targetLanguage,
+            content,
+            outputPath
+          );
+        },
+        onResult: addTranslationResult,
+        onJobStart: async (job, i) => {
+          const target = selectedTargets[i];
+          try {
+            await invoke('log_translation_process', { message: `Starting translation for mod: ${target.name} (${target.id})` });
+          } catch {}
+        },
+        onJobComplete: async (job, i) => {
+          const target = selectedTargets[i];
+          try {
+            await invoke('log_translation_process', { message: `Finished translation for mod: ${target.name} (${target.id})` });
+          } catch {}
+        },
+        onJobInterrupted: async (job, i) => {
+          const target = selectedTargets[i];
+          try {
+            await invoke('log_translation_process', { message: `Translation cancelled by user during mod: ${target.name} (${target.id})` });
+          } catch {}
+        }
+      });
+    } finally {
+      setTranslating(false);
+    }
   };
 
   return (

@@ -295,7 +295,10 @@ pub async fn create_resource_pack(_app_handle: tauri::AppHandle, name: &str, lan
     
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
+        // Try to create the parent directory if it does not exist
+        if let Err(e) = std::fs::create_dir_all(&dir_path) {
+            return Err(format!("Failed to create parent directory: {} ({})", dir, e));
+        }
     }
     
     // Create resource pack directory

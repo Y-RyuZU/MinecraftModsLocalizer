@@ -109,6 +109,23 @@ export interface TranslationTarget {
 }
 
 /**
+ * Patchouli-specific translation job
+ */
+import type { TranslationJob } from "../services/translation-service";
+export interface PatchouliTranslationJob extends TranslationJob {
+  bookId: string;
+  modId: string;
+  targetPath: string;
+}
+
+/**
+ * Mod-specific translation job
+ */
+export interface ModTranslationJob extends TranslationJob {
+  modId: string;
+}
+
+/**
  * Translation result
  */
 export interface TranslationResult {

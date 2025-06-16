@@ -113,7 +113,6 @@ export function LogViewer({
         if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
           // Listen for log events using Tauri v2 API
           const unlistenFn = await listen<LogEntry>('log', (event) => {
-            console.log('Received log event:', event);
             setLogs(prevLogs => [...prevLogs, event.payload]);
           });
           

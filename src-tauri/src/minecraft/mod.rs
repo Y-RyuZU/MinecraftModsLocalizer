@@ -60,7 +60,7 @@ pub struct ModInfo {
 }
 
 /// Language file
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct LangFile {
     /// Language code (e.g., "en_us")
@@ -74,7 +74,7 @@ pub struct LangFile {
 }
 
 /// Patchouli book
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PatchouliBook {
     /// Book ID
@@ -115,8 +115,8 @@ pub fn analyze_mod_jar(jar_path: &str) -> std::result::Result<ModInfo, String> {
         Err(e) => return Err(e.to_string()),
     };
 
-    // Extract language files
-    let lang_files = match extract_lang_files_from_archive(&mut archive, &mod_id) {
+    // Extract language files (defaulting to en_us)
+    let lang_files = match extract_lang_files_from_archive(&mut archive, &mod_id, "en_us") {
         Ok(files) => files,
         Err(e) => return Err(e.to_string()),
     };
@@ -165,8 +165,8 @@ pub fn extract_lang_files(
         Err(e) => return Err(e.to_string()),
     };
 
-    // Extract language files
-    let lang_files = match extract_lang_files_from_archive(&mut archive, &mod_id) {
+    // Extract language files (defaulting to en_us)
+    let lang_files = match extract_lang_files_from_archive(&mut archive, &mod_id, "en_us") {
         Ok(files) => files,
         Err(e) => return Err(e.to_string()),
     };
@@ -216,7 +216,7 @@ pub fn extract_patchouli_books(
     // Extract Patchouli books
     let patchouli_books = match extract_patchouli_books_from_archive(&mut archive, &mod_id) {
         Ok(books) => {
-            debug!("Found {} Patchouli books", books.len());
+            info!("Found {} Patchouli books", books.len());
             books
         }
         Err(e) => {
@@ -335,12 +335,20 @@ pub fn write_patchouli_book(
 
 /// Extract mod information from a JAR archive
 fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, String)> {
+    
     // Try to extract from fabric.mod.json
     if let Ok(mut file) = archive.by_name("fabric.mod.json") {
         let mut content = String::new();
         file.read_to_string(&mut content)?;
+        debug!(
+            "Attempting to parse fabric.mod.json. Content snippet: {}",
+            content.chars().take(100).collect::<String>()
+        ); // Log content snippet
 
-        let json: serde_json::Value = serde_json::from_str(&content)?;
+        let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| {
+            error!("Failed to parse fabric.mod.json: {}", e); // Log specific error
+            MinecraftError::Json(e) // Keep original error type if possible, or wrap
+        })?;
 
         if let (Some(id), Some(name), Some(version)) = (
             json["id"].as_str(),
@@ -412,10 +420,11 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
     ))
 }
 
-/// Extract language files from a JAR archive
+/// Extract language files from a JAR archive for a specific language
 fn extract_lang_files_from_archive(
     archive: &mut ZipArchive<File>,
     _mod_id: &str,
+    target_language: &str,
 ) -> Result<Vec<LangFile>> {
     let mut lang_files = Vec::new();
 
@@ -424,21 +433,52 @@ fn extract_lang_files_from_archive(
         let mut file = archive.by_index(i)?;
         let name = file.name().to_string();
 
-        // Check if the file is a language file
-        if name.contains("/lang/") && name.ends_with(".json") {
+        // Check if the file is a language file (.json or .lang)
+        if name.contains("/lang/") && (name.ends_with(".json") || name.ends_with(".lang")) {
             // Extract language code from the file name
             let parts: Vec<&str> = name.split('/').collect();
             let filename = parts.last().unwrap_or(&"unknown.json");
-            let language = filename.trim_end_matches(".json").to_string();
+            let language = if filename.ends_with(".json") {
+                filename.trim_end_matches(".json").to_lowercase()
+            } else if filename.ends_with(".lang") {
+                filename.trim_end_matches(".lang").to_lowercase()
+            } else {
+                filename.to_lowercase()
+            };
 
-            // Only process English language files for now
-            if language == "en_us" {
+            // Only process the target language file (case-insensitive)
+            if language == target_language.to_lowercase() {
                 // Read the file content
                 let mut content_str = String::new();
                 file.read_to_string(&mut content_str)?;
+                debug!(
+                    "Attempting to parse lang file: {}. Content snippet: {}",
+                    name,
+                    content_str.chars().take(100).collect::<String>()
+                ); // Log file path and content snippet
 
-                // Parse JSON
-                let content: HashMap<String, String> = serde_json::from_str(&content_str)?;
+                // Parse content based on extension
+                let content: HashMap<String, String> = if name.ends_with(".json") {
+                    // Strip _comment lines before parsing
+                    let clean_content_str = strip_json_comments(&content_str);
+                    serde_json::from_str(&clean_content_str).map_err(|e| {
+                        error!("Failed to parse lang file '{}': {}", name, e); // Log specific error
+                        MinecraftError::LangFile(format!("Failed to parse {}: {}", name, e)) // Add file context to error
+                    })?
+                } else {
+                    // .lang legacy format: key=value per line
+                    let mut map = HashMap::new();
+                    for line in content_str.lines() {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() || trimmed.starts_with('#') {
+                            continue;
+                        }
+                        if let Some((key, value)) = trimmed.split_once('=') {
+                            map.insert(key.trim().to_string(), value.trim().to_string());
+                        }
+                    }
+                    map
+                };
 
                 // Create LangFile
                 lang_files.push(LangFile {
@@ -453,6 +493,36 @@ fn extract_lang_files_from_archive(
     Ok(lang_files)
 }
 
+/// Remove lines with "_comment" keys from a JSON string.
+/// This is a workaround for Minecraft lang files that use "_comment" keys.
+fn strip_json_comments(json: &str) -> String {
+    // Remove BOM if present
+    let json = json.trim_start_matches('\u{feff}');
+    // Remove lines with "_comment" keys and blank lines
+    let mut lines: Vec<&str> = json
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim_start();
+            !trimmed.starts_with("\"_comment\"")
+                && !trimmed.starts_with("//")
+                && !trimmed.is_empty()
+        })
+        .collect();
+
+    // Remove trailing comma before the closing }
+    if let Some(last_line) = lines.iter().rposition(|line| line.contains('}')) {
+        if last_line > 0 {
+            let prev_line = lines[last_line - 1].trim_end();
+            if prev_line.ends_with(',') {
+                // Remove the trailing comma
+                lines[last_line - 1] = prev_line.trim_end_matches(',').trim_end();
+            }
+        }
+    }
+
+    lines.join("\n")
+}
+
 /// Extract Patchouli books from a JAR archive
 fn extract_patchouli_books_from_archive(
     archive: &mut ZipArchive<File>,
@@ -460,76 +530,91 @@ fn extract_patchouli_books_from_archive(
 ) -> Result<Vec<PatchouliBook>> {
     let mut patchouli_books = Vec::new();
 
-    // Find all Patchouli books
-    let patchouli_path_re = Regex::new(r"assets/([^/]+)/patchouli_books/([^/]+)/").unwrap();
+    // Regex to find Patchouli book root directories
+    let patchouli_book_root_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/").unwrap();
+    // Regex to match en_us/**/*.json files (サブディレクトリも含む)
+    let en_us_json_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/en_us/(.+\.json)$").unwrap();
+    // Regex to extract translation strings (Rust regex does not support look-behind)
+    // We'll post-process to skip escaped quotes
+    let extract_re = Regex::new(r#""(name|description|title|text)"\s*:\s*"(.*?)""#).unwrap();
 
-    // First, scan for all potential Patchouli book paths
-    let mut potential_books: HashMap<String, Vec<String>> = HashMap::new();
+    // Map: book_key ("modid:bookid") -> (modid, bookid, Vec<LangFile>)
+    let mut books_map: HashMap<String, (String, String, Vec<LangFile>)> = HashMap::new();
 
     for i in 0..archive.len() {
-        let file = archive.by_index(i)?;
+        let mut file = archive.by_index(i)?;
         let name = file.name().to_string();
 
-        // Check if the file is in a Patchouli books directory
-        if name.contains("/patchouli_books/") {
-            // Extract book ID from the file path
-            if let Some(captures) = patchouli_path_re.captures(&name) {
-                let book_mod_id = captures.get(1).unwrap().as_str().to_string();
-                let book_id = captures.get(2).unwrap().as_str().to_string();
+        // サブディレクトリも含めてen_us配下の全*.jsonを対象にする
+        if let Some(caps) = en_us_json_re.captures(&name) {
+            let book_mod_id = caps.get(1).unwrap().as_str().to_string();
+            let book_id = caps.get(2).unwrap().as_str().to_string();
+            let json_rel_path = caps.get(3).unwrap().as_str().to_string();
 
-                // Create a key for this book
-                let book_key = format!("{}:{}", book_mod_id, book_id);
-
-                // Add the file path to the list for this book
-                potential_books
-                    .entry(book_key)
-                    .or_insert_with(Vec::new)
-                    .push(name);
-            }
-        }
-    }
-
-    // Now process each potential book
-    for (book_key, file_paths) in potential_books {
-        // Split the book key into mod_id and book_id
-        let parts: Vec<&str> = book_key.split(':').collect();
-        let book_mod_id = parts[0].to_string();
-        let book_id = parts[1].to_string();
-
-        // Look for the en_us.json file
-        let en_us_path = file_paths.iter().find(|path| path.ends_with("en_us.json"));
-
-        if let Some(en_us_path) = en_us_path {
-            // Read the file content
-            let mut file = archive.by_name(en_us_path)?;
+            // Read file content as string
             let mut content_str = String::new();
             file.read_to_string(&mut content_str)?;
 
-            // Parse JSON
-            match serde_json::from_str::<HashMap<String, String>>(&content_str) {
-                Ok(content) => {
-                    // Create PatchouliBook
-                    let book = PatchouliBook {
-                        id: book_id.clone(),
-                        mod_id: book_mod_id.clone(),
-                        name: book_id.clone(),
-                        path: en_us_path.clone(),
-                        lang_files: vec![LangFile {
-                            language: "en_us".to_string(),
-                            path: en_us_path.clone(),
-                            content,
-                        }],
-                    };
-
-                    debug!("Found Patchouli book: {} in {}", book_id, book_mod_id);
-                    patchouli_books.push(book);
-                }
-                Err(e) => {
-                    // Log the error but continue with other books
-                    error!("Failed to parse Patchouli book JSON: {}", e);
+            // Extract translation strings using regex
+            let mut extracted: HashMap<String, String> = HashMap::new();
+            for cap in extract_re.captures_iter(&content_str) {
+                // Check if the matched quote is not escaped
+                if let Some(m) = cap.get(0) {
+                    let start = m.start();
+                    let value = cap[2].to_string();
+                    let mut is_escaped = false;
+                    if start > 0 {
+                        let match_str = &content_str[start..m.end()];
+                        let quote_pos = match_str.rfind('"').unwrap_or(match_str.len() - 1);
+                        let mut backslash_count = 0;
+                        for c in match_str[..quote_pos].chars().rev() {
+                            if c == '\\' {
+                                backslash_count += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                        if backslash_count % 2 == 1 {
+                            is_escaped = true;
+                        }
+                    }
+                    if !is_escaped {
+                        extracted.insert(cap[1].to_string(), value);
+                    }
                 }
             }
+
+            // Add LangFile for this .json
+            let lang_file = LangFile {
+                language: "en_us".to_string(),
+                path: name.clone(),
+                content: extracted,
+            };
+
+            let book_key = format!("{}:{}", book_mod_id, book_id);
+            books_map
+                .entry(book_key.clone())
+                .and_modify(|(_modid, _bookid, lang_files)| lang_files.push(lang_file.clone()))
+                .or_insert((book_mod_id.clone(), book_id.clone(), vec![lang_file]));
         }
+    }
+
+    // Build PatchouliBook structs
+    for (_book_key, (book_mod_id, book_id, lang_files)) in books_map {
+        // Use book_id as name for now (could be improved if needed)
+        let path = lang_files
+            .get(0)
+            .map(|lf| lf.path.clone())
+            .unwrap_or_else(|| "".to_string());
+
+        let book = PatchouliBook {
+            id: book_id.clone(),
+            mod_id: book_mod_id.clone(),
+            name: book_id.clone(),
+            path,
+            lang_files,
+        };
+        patchouli_books.push(book);
     }
 
     Ok(patchouli_books)

@@ -332,6 +332,15 @@ export class TranslationService {
   }
 
   /**
+   * Check if a translation job has been interrupted
+   * @param jobId Job ID
+   * @returns true if interrupted, false otherwise
+   */
+  public isJobInterrupted(jobId: string): boolean {
+    return this.interruptFlags.get(jobId) === true;
+  }
+
+  /**
    * Get a translation job
    * @param jobId Job ID
    * @returns Translation job

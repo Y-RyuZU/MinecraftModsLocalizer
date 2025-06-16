@@ -73,7 +73,8 @@ export function CustomFilesTab() {
     targetLanguage: string,
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
-    addTranslationResult: (result: TranslationResult) => void
+    addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string // for API compatibility, not used
   ) => {
     // Get the directory from the first target
     const directory = selectedTargets[0]?.path.split('/').slice(0, -1).join('/');

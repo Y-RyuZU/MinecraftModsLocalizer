@@ -50,14 +50,6 @@ export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSe
   // Generate a stable ID from the key
   const selectId = `temp-lang-select-${labelKey.replace(/\./g, '-')}`;
 
-  // Add debugging information
-  console.log("TemporaryTargetLanguageSelector rendering with:", {
-    labelKey,
-    availableLanguages: availableLanguages.map(lang => `${lang.name} (${lang.code})`),
-    selectedLanguage,
-    globalLanguage
-  });
-
   // Use the same language options as the TargetLanguageDialog
   // This includes both DEFAULT_LANGUAGES and any additional languages from the config
   // We convert SupportedLanguage to Language format (id -> code)
