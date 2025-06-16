@@ -2,11 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AppConfig } from "@/lib/types/config";
+import { AppConfig, PathsConfig } from "@/lib/types/config";
 
 interface PathSettingsProps {
   config: AppConfig;
-  onSelectDirectory: (path: keyof typeof config.paths) => Promise<void>;
+  onSelectDirectory: (path: keyof PathsConfig) => Promise<void>;
 }
 
 export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {

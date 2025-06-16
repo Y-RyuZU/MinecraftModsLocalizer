@@ -165,7 +165,7 @@ export function ModsTab() {
           .replace("-", "_"),
         targetLanguage,
         type: "mod",
-        getOutputPath: (job) => resourcePackDir,
+        getOutputPath: () => resourcePackDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
           await FileService.writeLangFile(

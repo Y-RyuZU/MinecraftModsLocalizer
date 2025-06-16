@@ -74,6 +74,7 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
+    /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
     selectedDirectory: string // for API compatibility, not used
   ) => {
     // Get the directory from the first target
