@@ -1,38 +1,36 @@
 {
-	"name": "Minecraft Mods Localizer Container",
-	"image": "mcr.microsoft.com/devcontainers/base:jammy",
-	"features": {
-		"ghcr.io/devcontainers/features/desktop-lite:1": {
-			"version": "latest",
-			"noVncVersion": "1.2.0",
-			"password": "vscode",
-			"webPort": "6080",
-			"vncPort": "5901"
-		},
-		"ghcr.io/devcontainers/features/node:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers/features/rust:1": {
-			"version": "latest"
-		},
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-          "version": "latest",
-          "helm": "latest",
-          "minikube": "none"
-        },
-		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-		"ghcr.io/devcontainers-extra/features/tmux-apt-get:1": {},
-		"ghcr.io/devcontainers/features/git:1": {},
-		"ghcr.io/devcontainers/features/github-cli:1": {},
-		"ghcr.io/jungaretti/features/vim:1": {},
-		"ghcr.io/devcontainers-extra/features/neovim-apt-get:1": {}
-	},
-	"remoteEnv": {
-		"EDITOR": "vim"
-	},
-	"forwardPorts": [
-        6080
-    ],
-	"postCreateCommand": "/bin/sh ./.devcontainer/setup.sh"
+  "name": "Minecraft Mods Localizer Container",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "version": "latest",
+      "noVncVersion": "1.2.0",
+      "password": "vscode",
+      "webPort": "6080",
+      "vncPort": "5901"
+    },
+    "ghcr.io/prulloac/devcontainer-features/bun:1": {},
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest",
+      "helm": "latest",
+      "minikube": "none"
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers-extra/features/tmux-apt-get:1": {},
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/jungaretti/features/vim:1": {},
+    "ghcr.io/devcontainers-extra/features/neovim-apt-get:1": {}
+  },
+  "remoteEnv": {
+    "EDITOR": "vim"
+  },
+  "forwardPorts": [
+    6080
+  ],
+  "postCreateCommand": "/bin/sh ./.devcontainer/setup.sh"
 }
