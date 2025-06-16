@@ -205,14 +205,19 @@ export function TranslationTab({
   
   // Cancel translation
   const handleCancelTranslation = () => {
+    // Provide immediate UI feedback
+    setError(t('info.translationCancelled') || "Translation cancelled by user.");
+    setTranslating(false);
+    setProgress(0);
+    setWholeProgress(0);
+    
+    // Interrupt current job if available
     if (currentJobId && translationServiceRef.current) {
       translationServiceRef.current.interruptJob(currentJobId);
-      setError(t('info.translationCancelled') || "Translation cancelled by user.");
-      setCurrentJobId(null);
-      setTranslating(false);
-      setProgress(0);
-      setWholeProgress(0);
     }
+    
+    // Clear job reference
+    setCurrentJobId(null);
   };
 
   // Translate selected items
@@ -254,14 +259,9 @@ export function TranslationTab({
         promptTemplate: config.llm.promptTemplate,
         maxRetries: config.llm.maxRetries,
         onProgress: (job) => {
-          // Track previous progress to detect when progress increases
-          const prevProgress = progress;
-          setProgress(job.progress);
-
-          // If progress has increased significantly, consider it a chunk completion
-          if (job.progress > prevProgress + 10) {
-            incrementCompletedChunks();
-          }
+          // Update individual job progress (bounded 0-100)
+          const boundedProgress = Math.max(0, Math.min(100, job.progress || 0));
+          setProgress(boundedProgress);
         }
       });
 
@@ -407,7 +407,7 @@ export function TranslationTab({
                 variant="destructive" 
                 size="sm" 
                 onClick={handleCancelTranslation}
-                disabled={!currentJobId}
+                disabled={!isTranslating}
               >
                 {t('buttons.cancel')}
               </Button>

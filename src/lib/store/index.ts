@@ -117,14 +117,22 @@ export const useAppStore = create<AppState>((set) => ({
   completedChunks: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
-  setProgress: (progress) => set({ progress }),
-  setWholeProgress: (progress) => set({ wholeProgress: progress }),
-  setTotalChunks: (totalChunks) => set({ totalChunks }),
-  setCompletedChunks: (completedChunks) => set({ completedChunks }),
-  incrementCompletedChunks: () => set((state) => ({ 
-    completedChunks: state.completedChunks + 1,
-    wholeProgress: state.totalChunks > 0 ? Math.round((state.completedChunks + 1) / state.totalChunks * 100) : 0
-  })),
+  setProgress: (progress) => set({ progress: Math.max(0, Math.min(100, progress || 0)) }),
+  setWholeProgress: (progress) => set({ wholeProgress: Math.max(0, Math.min(100, progress || 0)) }),
+  setTotalChunks: (totalChunks) => set({ totalChunks: Math.max(0, totalChunks || 0) }),
+  setCompletedChunks: (completedChunks) => set({ completedChunks: Math.max(0, completedChunks || 0) }),
+  incrementCompletedChunks: () => set((state) => {
+    // Prevent exceeding totalChunks
+    const newCompletedChunks = Math.min(state.completedChunks + 1, state.totalChunks);
+    // Calculate progress with bounds checking (0-100)
+    const rawProgress = state.totalChunks > 0 ? (newCompletedChunks / state.totalChunks * 100) : 0;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedChunks: newCompletedChunks,
+      wholeProgress: boundedProgress
+    };
+  }),
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
   
   // Translation results
