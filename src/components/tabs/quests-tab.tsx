@@ -20,12 +20,15 @@ export function QuestsTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
     currentJobId,
-    setCurrentJobId
+    setCurrentJobId,
+    isCompletionDialogOpen,
+    setCompletionDialogOpen,
+    setLogDialogOpen,
+    resetTranslationState
   } = useAppStore();
 
   // Scan for quests
@@ -138,7 +141,7 @@ export function QuestsTab() {
         await translationService.startJob(job.id);
         
         // Increment completed chunks for whole progress
-        incrementCompletedChunks();
+        // Progress is handled by translation runner
         
         // Get the translated content
         const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -159,10 +162,21 @@ export function QuestsTab() {
           sourceLanguage: config.translation.sourceLanguage,
           targetLanguage: targetLanguage,
           content: { [target.id]: translatedText },
-          outputPath
+          outputPath,
+          success: true
         });
       } catch (error) {
         console.error(`Failed to translate quest: ${target.name}`, error);
+        // Add failed translation result
+        addTranslationResult({
+          type: target.type,
+          id: target.id,
+          sourceLanguage: config.translation.sourceLanguage,
+          targetLanguage: targetLanguage,
+          content: {},
+          outputPath: "",
+          success: false
+        });
       }
     }
     
@@ -207,12 +221,15 @@ export function QuestsTab() {
       setWholeProgress={setWholeProgress}
       setTotalChunks={setTotalChunks}
       setCompletedChunks={setCompletedChunks}
-      incrementCompletedChunks={incrementCompletedChunks}
       addTranslationResult={addTranslationResult}
       error={error}
       setError={setError}
       currentJobId={currentJobId}
       setCurrentJobId={setCurrentJobId}
+      isCompletionDialogOpen={isCompletionDialogOpen}
+      setCompletionDialogOpen={setCompletionDialogOpen}
+      setLogDialogOpen={setLogDialogOpen}
+      resetTranslationState={resetTranslationState}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

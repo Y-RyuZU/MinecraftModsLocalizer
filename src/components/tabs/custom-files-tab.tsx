@@ -20,12 +20,15 @@ export function CustomFilesTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
     currentJobId,
-    setCurrentJobId
+    setCurrentJobId,
+    isCompletionDialogOpen,
+    setCompletionDialogOpen,
+    setLogDialogOpen,
+    resetTranslationState
   } = useAppStore();
 
   // Scan for custom files
@@ -154,7 +157,7 @@ export function CustomFilesTab() {
               targetLanguage, 
               target.name,
               setCurrentJobId,
-              incrementCompletedChunks
+              () => {} // No-op since we handle progress differently
             );
             
             // Stringify JSON
@@ -170,10 +173,21 @@ export function CustomFilesTab() {
               sourceLanguage: config.translation.sourceLanguage,
               targetLanguage: targetLanguage,
               content: { [target.id]: translatedContent } as Record<string, string>,
-              outputPath
+              outputPath,
+              success: true
             });
           } catch (error) {
             console.error(`Failed to parse JSON: ${target.path}`, error);
+            // Add failed translation result
+            addTranslationResult({
+              type: "custom",
+              id: target.id,
+              sourceLanguage: config.translation.sourceLanguage,
+              targetLanguage: targetLanguage,
+              content: {},
+              outputPath: "",
+              success: false
+            });
           }
         } else if (isSnbt) {
           // Create a key for the content
@@ -193,8 +207,7 @@ export function CustomFilesTab() {
           // Start the translation job
           await translationService.startJob(job.id);
           
-          // Increment completed chunks for whole progress
-          incrementCompletedChunks();
+          // Progress is handled by the translation runner
           
           // Get the translated content
           const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -213,13 +226,34 @@ export function CustomFilesTab() {
             sourceLanguage: config.translation.sourceLanguage,
             targetLanguage: targetLanguage,
             content: { [target.id]: translatedText } as Record<string, string>,
-            outputPath
+            outputPath,
+            success: true
           });
         } else {
           console.warn(`Unsupported file type: ${target.path}`);
+          // Add failed translation result for unsupported file type
+          addTranslationResult({
+            type: "custom",
+            id: target.id,
+            sourceLanguage: config.translation.sourceLanguage,
+            targetLanguage: targetLanguage,
+            content: {},
+            outputPath: "",
+            success: false
+          });
         }
       } catch (error) {
         console.error(`Failed to translate file: ${target.name}`, error);
+        // Add failed translation result for general error
+        addTranslationResult({
+          type: "custom",
+          id: target.id,
+          sourceLanguage: config.translation.sourceLanguage,
+          targetLanguage: targetLanguage,
+          content: {},
+          outputPath: "",
+          success: false
+        });
       }
     }
     
@@ -305,7 +339,7 @@ export function CustomFilesTab() {
       const result: Record<string, unknown> = {};
       for (const key in json) {
         result[key] = await translateJsonRecursively(
-          json[key], 
+          (json as Record<string, unknown>)[key], 
           translationService, 
           sourceLanguage, 
           targetLanguage, 
@@ -358,12 +392,15 @@ export function CustomFilesTab() {
       setWholeProgress={setWholeProgress}
       setTotalChunks={setTotalChunks}
       setCompletedChunks={setCompletedChunks}
-      incrementCompletedChunks={incrementCompletedChunks}
       addTranslationResult={addTranslationResult}
       error={error}
       setError={setError}
       currentJobId={currentJobId}
       setCurrentJobId={setCurrentJobId}
+      isCompletionDialogOpen={isCompletionDialogOpen}
+      setCompletionDialogOpen={setCompletionDialogOpen}
+      setLogDialogOpen={setLogDialogOpen}
+      resetTranslationState={resetTranslationState}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

@@ -22,12 +22,15 @@ export function ModsTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
     currentJobId,
-    setCurrentJobId
+    setCurrentJobId,
+    isCompletionDialogOpen,
+    setCompletionDialogOpen,
+    setLogDialogOpen,
+    resetTranslationState
   } = useAppStore();
 
   // Scan for mods
@@ -156,7 +159,7 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedChunks,
+        incrementCompletedChunks: () => {}, // No-op since progress is handled by translation runner
         // Use normalized source language for consistency, fallback to "en_us"
         sourceLanguage: (
           config?.translation?.sourceLanguage || "en_us"
@@ -232,12 +235,15 @@ export function ModsTab() {
       setWholeProgress={setWholeProgress}
       setTotalChunks={setTotalChunks}
       setCompletedChunks={setCompletedChunks}
-      incrementCompletedChunks={incrementCompletedChunks}
       addTranslationResult={addTranslationResult}
       error={error}
       setError={setError}
       currentJobId={currentJobId}
       setCurrentJobId={setCurrentJobId}
+      isCompletionDialogOpen={isCompletionDialogOpen}
+      setCompletionDialogOpen={setCompletionDialogOpen}
+      setLogDialogOpen={setLogDialogOpen}
+      resetTranslationState={resetTranslationState}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

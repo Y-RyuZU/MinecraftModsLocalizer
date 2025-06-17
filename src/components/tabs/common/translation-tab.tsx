@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { LogButton } from "@/components/ui/log-button";
+import { CompletionDialog } from "@/components/ui/completion-dialog";
 import { TranslationTarget, TranslationResult } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { useAppTranslation } from "@/lib/i18n";
@@ -69,12 +70,15 @@ export interface TranslationTabProps {
   setWholeProgress: (progress: number) => void;
   setTotalChunks: (totalChunks: number) => void;
   setCompletedChunks: (completedChunks: number) => void;
-  incrementCompletedChunks: () => void;
   addTranslationResult: (result: TranslationResult) => void;
   error: string | null;
   setError: (error: string | null) => void;
   currentJobId: string | null;
   setCurrentJobId: (jobId: string | null) => void;
+  isCompletionDialogOpen: boolean;
+  setCompletionDialogOpen: (isOpen: boolean) => void;
+  setLogDialogOpen: (isOpen: boolean) => void;
+  resetTranslationState: () => void;
   
   // Custom handlers
   onScan: (directory: string) => Promise<void>;
@@ -117,12 +121,15 @@ export function TranslationTab({
   setWholeProgress,
   setTotalChunks,
   setCompletedChunks,
-  incrementCompletedChunks,
   addTranslationResult,
   error,
   setError,
   currentJobId,
   setCurrentJobId,
+  isCompletionDialogOpen,
+  setCompletionDialogOpen,
+  setLogDialogOpen,
+  resetTranslationState,
 
   // Custom handlers
   onScan,
@@ -134,6 +141,8 @@ export function TranslationTab({
   const [selectedDirectory, setSelectedDirectory] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<string>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [translationResults, setTranslationResults] = useState<TranslationResult[]>([]);
+  const [totalTargets, setTotalTargets] = useState(0);
   const { t } = useAppTranslation();
   
   // Reference to the translation service
@@ -293,15 +302,30 @@ export function TranslationTab({
         // Continue with translation even if log directory creation fails
       }
 
+      // Clear previous results and set total targets
+      setTranslationResults([]);
+      setTotalTargets(selectedTargets.length);
+
+      // Create a wrapper for addTranslationResult to collect results locally
+      const collectResults = (result: TranslationResult) => {
+        setTranslationResults(prev => [...prev, result]);
+        addTranslationResult(result);
+      };
+
       // Call the custom translate function (do not await, so UI can update and cancel is possible)
       void onTranslate(
         selectedTargets,
         targetLanguage,
         translationService,
         setCurrentJobId,
-        addTranslationResult,
+        collectResults,
         actualPath
-      );
+      ).finally(() => {
+        // Show completion dialog when translation finishes
+        setTimeout(() => {
+          setCompletionDialogOpen(true);
+        }, 500); // Small delay to ensure UI updates are complete
+      });
       
       // Progress will be updated by the translation process itself
     } catch (error) {
@@ -336,6 +360,7 @@ export function TranslationTab({
             <TemporaryTargetLanguageSelector
               labelKey="tabs.temporaryTargetLanguage"
               availableLanguages={config.translation.additionalLanguages?.map((lang: { id: string, name: string }) => ({
+                id: lang.id,
                 code: lang.id,
                 name: lang.name
               })) || []}
@@ -516,6 +541,19 @@ export function TranslationTab({
           </Table>
         </ScrollArea>
       </div>
+      
+      {/* Completion Dialog */}
+      <CompletionDialog
+        open={isCompletionDialogOpen}
+        onOpenChange={setCompletionDialogOpen}
+        results={translationResults}
+        hasError={!!error}
+        totalItems={totalTargets}
+        completedItems={translationResults.length}
+        translationType={tabType}
+        onViewLogs={() => setLogDialogOpen(true)}
+        onFinalize={resetTranslationState}
+      />
     </div>
   );
 }

@@ -98,6 +98,17 @@
     "noLogs": "ログはありません",
     "autoScroll": "自動スクロール"
   },
+  "completion": {
+    "completed": "翻訳完了",
+    "failed": "翻訳失敗",
+    "partiallyCompleted": "翻訳部分完了",
+    "successMessage": "{{count}}件の{{type}}の翻訳が完了しました！",
+    "failedMessage": "{{type}}の翻訳に失敗しました。詳細についてはログを確認してください。",
+    "partialMessage": "{{total}}件中{{completed}}件の{{type}}が翻訳されました。いくつかのアイテムは失敗した可能性があります。",
+    "results": "翻訳されたアイテム",
+    "errorHint": "翻訳中にエラーが発生しました。詳細については「ログを表示」をクリックしてください。",
+    "viewLogs": "ログを表示"
+  },
   "common": {
     "close": "閉じる"
   }

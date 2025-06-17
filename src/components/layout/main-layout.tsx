@@ -4,7 +4,6 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageSwitcher } from '@/components/theme/language-switcher';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { LogDialog } from '@/components/ui/log-dialog';
-import { LogButton } from '@/components/ui/log-button';
 import { useAppTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 
@@ -43,7 +42,6 @@ export function MainLayout({ children }: MainLayoutProps) {
               <h1 className="text-xl font-bold">{t('app.title')}</h1>
             </div>
             <div className="flex items-center gap-4">
-              <LogButton />
               <LanguageSwitcher />
               <ThemeToggle />
               <SettingsDialog />

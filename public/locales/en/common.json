@@ -98,6 +98,17 @@
     "noLogs": "No logs available",
     "autoScroll": "Auto-scroll"
   },
+  "completion": {
+    "completed": "Translation Completed",
+    "failed": "Translation Failed",
+    "partiallyCompleted": "Translation Partially Completed",
+    "successMessage": "Successfully translated {{count}} {{type}}!",
+    "failedMessage": "Translation of {{type}} failed. Please check the logs for details.",
+    "partialMessage": "Translated {{completed}} out of {{total}} {{type}}. Some items may have failed.",
+    "results": "Translated Items",
+    "errorHint": "Some errors occurred during translation. Click 'View Logs' for more details.",
+    "viewLogs": "View Logs"
+  },
   "common": {
     "close": "Close"
   }

@@ -141,6 +141,8 @@ export interface TranslationResult {
   content: Record<string, string>;
   /** Output path */
   outputPath: string;
+  /** Whether the translation was successful */
+  success: boolean;
 }
 
 /**

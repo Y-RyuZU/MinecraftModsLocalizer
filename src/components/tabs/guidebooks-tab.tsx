@@ -21,12 +21,15 @@ export function GuidebooksTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
     addTranslationResult,
     error,
       setError,
       currentJobId,
-      setCurrentJobId
+      setCurrentJobId,
+      isCompletionDialogOpen,
+      setCompletionDialogOpen,
+      setLogDialogOpen,
+      resetTranslationState
   } = useAppStore();
 
   // Scan for guidebooks
@@ -152,7 +155,7 @@ export function GuidebooksTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedChunks,
+        incrementCompletedChunks: () => {}, // No-op since progress is handled by translation runner
         sourceLanguage: config.translation.sourceLanguage,
         targetLanguage,
         type: "patchouli",
@@ -224,12 +227,15 @@ export function GuidebooksTab() {
       setWholeProgress={setWholeProgress}
       setTotalChunks={setTotalChunks}
       setCompletedChunks={setCompletedChunks}
-      incrementCompletedChunks={incrementCompletedChunks}
       addTranslationResult={addTranslationResult}
       error={error}
       setError={setError}
       currentJobId={currentJobId}
       setCurrentJobId={setCurrentJobId}
+      isCompletionDialogOpen={isCompletionDialogOpen}
+      setCompletionDialogOpen={setCompletionDialogOpen}
+      setLogDialogOpen={setLogDialogOpen}
+      resetTranslationState={resetTranslationState}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

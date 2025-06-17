@@ -55,6 +55,9 @@ interface AppState {
   // UI state
   isLogDialogOpen: boolean;
   setLogDialogOpen: (isOpen: boolean) => void;
+  isCompletionDialogOpen: boolean;
+  setCompletionDialogOpen: (isOpen: boolean) => void;
+  resetTranslationState: () => void;
 }
 
 /**
@@ -150,4 +153,19 @@ export const useAppStore = create<AppState>((set) => ({
   // UI state
   isLogDialogOpen: false,
   setLogDialogOpen: (isOpen) => set({ isLogDialogOpen: isOpen }),
+  isCompletionDialogOpen: false,
+  setCompletionDialogOpen: (isOpen) => set({ isCompletionDialogOpen: isOpen }),
+  
+  // Reset translation state for new translation workflow
+  resetTranslationState: () => set({
+    isTranslating: false,
+    progress: 0,
+    wholeProgress: 0,
+    totalChunks: 0,
+    completedChunks: 0,
+    currentJobId: null,
+    translationResults: [],
+    error: null,
+    isCompletionDialogOpen: false
+  }),
 }));

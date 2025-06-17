@@ -103,7 +103,8 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         sourceLanguage,
         targetLanguage,
         content,
-        outputPath
+        outputPath,
+        success: job.status === "completed"
       });
     }
   }
