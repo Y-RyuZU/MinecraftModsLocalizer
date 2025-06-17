@@ -45,8 +45,11 @@ interface AppState {
   
   // Translation results
   translationResults: TranslationResult[];
+  historicalResults: TranslationResult[];
   addTranslationResult: (result: TranslationResult) => void;
   clearTranslationResults: () => void;
+  saveResultsToHistory: () => void;
+  clearHistoricalResults: () => void;
   
   // Errors
   error: string | null;
@@ -140,11 +143,16 @@ export const useAppStore = create<AppState>((set) => ({
   
   // Translation results
   translationResults: [],
+  historicalResults: [],
   addTranslationResult: (result) => 
     set((state) => ({ 
       translationResults: [...state.translationResults, result] 
     })),
   clearTranslationResults: () => set({ translationResults: [] }),
+  saveResultsToHistory: () => set((state) => ({
+    historicalResults: [...state.historicalResults, ...state.translationResults]
+  })),
+  clearHistoricalResults: () => set({ historicalResults: [] }),
   
   // Errors
   error: null,

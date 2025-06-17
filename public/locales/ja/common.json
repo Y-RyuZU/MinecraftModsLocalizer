@@ -107,7 +107,20 @@
     "partialMessage": "{{total}}件中{{completed}}件の{{type}}が翻訳されました。いくつかのアイテムは失敗した可能性があります。",
     "results": "翻訳されたアイテム",
     "errorHint": "翻訳中にエラーが発生しました。詳細については「ログを表示」をクリックしてください。",
-    "viewLogs": "ログを表示"
+    "viewLogs": "ログを表示",
+    "searchResults": "結果を検索...",
+    "noResultsFound": "結果が見つかりません",
+    "noResults": "結果なし"
+  },
+  "history": {
+    "title": "翻訳履歴",
+    "tooltip": "翻訳履歴を表示",
+    "totalResults": "合計 {{count}} 件の結果",
+    "searchPlaceholder": "履歴を検索...",
+    "clear": "クリア",
+    "confirmClear": "翻訳履歴をすべてクリアしてもよろしいですか？",
+    "noHistory": "翻訳履歴はまだありません",
+    "noResultsFound": "検索にマッチする結果が見つかりません"
   },
   "common": {
     "close": "閉じる"

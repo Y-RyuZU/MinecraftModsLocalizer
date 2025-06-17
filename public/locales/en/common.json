@@ -107,7 +107,20 @@
     "partialMessage": "Translated {{completed}} out of {{total}} {{type}}. Some items may have failed.",
     "results": "Translated Items",
     "errorHint": "Some errors occurred during translation. Click 'View Logs' for more details.",
-    "viewLogs": "View Logs"
+    "viewLogs": "View Logs",
+    "searchResults": "Search results...",
+    "noResultsFound": "No results found",
+    "noResults": "No results"
+  },
+  "history": {
+    "title": "Translation History",
+    "tooltip": "View translation history",
+    "totalResults": "{{count}} total results",
+    "searchPlaceholder": "Search history...",
+    "clear": "Clear",
+    "confirmClear": "Are you sure you want to clear all translation history?",
+    "noHistory": "No translation history yet",
+    "noResultsFound": "No results found matching your search"
   },
   "common": {
     "close": "Close"

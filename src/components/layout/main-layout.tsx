@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageSwitcher } from '@/components/theme/language-switcher';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { LogDialog } from '@/components/ui/log-dialog';
+import { HistoryButton } from '@/components/ui/history-button';
+import { HistoryDialog } from '@/components/ui/history-dialog';
 import { useAppTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 
@@ -16,6 +18,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const isTranslating = useAppStore((state) => state.isTranslating);
   const isLogDialogOpen = useAppStore((state) => state.isLogDialogOpen);
   const setLogDialogOpen = useAppStore((state) => state.setLogDialogOpen);
+  const [isHistoryDialogOpen, setHistoryDialogOpen] = useState(false);
   
   // Open log dialog when translation starts
   useEffect(() => {
@@ -36,12 +39,18 @@ export function MainLayout({ children }: MainLayoutProps) {
           open={isLogDialogOpen} 
           onOpenChange={setLogDialogOpen} 
         />
+        {/* History Dialog */}
+        <HistoryDialog
+          open={isHistoryDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+        />
         <header className="sticky top-0 z-40 w-full border-b bg-background">
           <div className="container max-w-5xl mx-auto px-4 flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{t('app.title')}</h1>
             </div>
             <div className="flex items-center gap-4">
+              <HistoryButton onClick={() => setHistoryDialogOpen(true)} />
               <LanguageSwitcher />
               <ThemeToggle />
               <SettingsDialog />

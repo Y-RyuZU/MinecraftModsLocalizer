@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
+import { Input } from './input';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Search } from 'lucide-react';
 import { TranslationResult } from '@/lib/types/minecraft';
+import { useAppStore } from '@/lib/store';
 
 interface CompletionDialogProps {
   open: boolean;
@@ -27,12 +29,20 @@ export function CompletionDialog({
   onFinalize
 }: CompletionDialogProps) {
   const { t } = useTranslation();
+  const [filterText, setFilterText] = useState("");
+  const saveResultsToHistory = useAppStore((state) => state.saveResultsToHistory);
 
   // Count successful and failed results based on the success field
   const successfulResults = results.filter(r => r.success);
   const failedResults = results.filter(r => !r.success);
   const successCount = successfulResults.length;
   const failureCount = failedResults.length;
+
+  // Filter results for search
+  const filteredResults = results.filter(result => 
+    !filterText || 
+    result.id.toLowerCase().includes(filterText.toLowerCase())
+  );
 
 
   const getStatusIcon = () => {
@@ -74,7 +84,7 @@ export function CompletionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {getStatusIcon()}
@@ -89,20 +99,37 @@ export function CompletionDialog({
           
           {results.length > 0 && (
             <div className="space-y-2">
-              <h4 className="font-medium">{t('completion.results')}:</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">{t('completion.results')}:</h4>
+                <div className="relative w-[250px]">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder={t('completion.searchResults', 'Search results...')}
+                    className="pl-8 w-full h-8"
+                    value={filterText}
+                    onChange={(e) => setFilterText(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="max-h-32 overflow-y-auto border rounded p-2">
-                {results.map((result, index) => (
-                  <div key={index} className="flex items-center gap-2 text-sm">
-                    {result.success ? (
-                      <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className={result.success ? 'text-green-700' : 'text-red-700'}>
-                      {result.id}
-                    </span>
+                {filteredResults.length > 0 ? (
+                  filteredResults.map((result, index) => (
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      {result.success ? (
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                      )}
+                      <span className={result.success ? 'text-green-700' : 'text-red-700'}>
+                        {result.id}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground text-center py-2">
+                    {filterText ? t('completion.noResultsFound', 'No results found') : t('completion.noResults', 'No results')}
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}
@@ -121,6 +148,7 @@ export function CompletionDialog({
             </Button>
           )}
           <Button onClick={() => {
+            saveResultsToHistory();
             onOpenChange(false);
             onFinalize?.();
           }}>
