@@ -290,13 +290,25 @@ export function TranslationTab({
         // Clear existing logs
         await invoke('clear_logs');
         
-        // Create a new logs directory using the Minecraft directory from config
+        // Generate a unique session ID for this translation job
+        const sessionId = await invoke<string>('generate_session_id');
+        
+        // Create a new logs directory using the session ID for uniqueness
         const minecraftDir = config.paths.minecraftDir || actualPath;
-        const logsDir = await invoke<string>('create_logs_directory', { 
-          minecraftDir: minecraftDir 
+        const logsDir = await invoke<string>('create_logs_directory_with_session', { 
+          minecraftDir: minecraftDir,
+          sessionId: sessionId
         });
-        await invoke('log_translation_process', { message: `Created logs directory: ${logsDir}` });
-        await invoke('log_translation_process', { message: `Starting translation session for ${selectedTargets.length} ${tabType} from ${config.translation.sourceLanguage} to ${targetLanguage}` });
+        
+        // Also create the temp directory with the same session ID for consistency
+        const tempDir = await invoke<string>('create_temp_directory_with_session', {
+          minecraftDir: minecraftDir,
+          sessionId: sessionId
+        });
+        
+        await invoke('log_translation_process', { message: `Created unique session directory: ${logsDir}` });
+        await invoke('log_translation_process', { message: `Created temporary directory: ${tempDir}` });
+        await invoke('log_translation_process', { message: `Starting translation session ${sessionId} for ${selectedTargets.length} ${tabType} from ${config.translation.sourceLanguage} to ${targetLanguage}` });
       } catch (error) {
         console.error('Failed to create logs directory:', error);
         // Continue with translation even if log directory creation fails
