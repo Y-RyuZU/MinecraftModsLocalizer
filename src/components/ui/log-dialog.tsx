@@ -31,7 +31,9 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [autoScroll, setAutoScroll] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [userInteracting, setUserInteracting] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Function to get log level string
   const getLogLevelString = (level: LogEntry['level']): string => {
@@ -186,13 +188,37 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     };
   }, []);
   
-  // Effect to auto-scroll to bottom
+  // Handle user interaction detection
+  const handleUserScroll = () => {
+    setUserInteracting(true);
+    
+    // Clear existing timeout
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    
+    // Set a timeout to mark interaction as finished after 2 seconds
+    interactionTimeoutRef.current = setTimeout(() => {
+      setUserInteracting(false);
+    }, 2000);
+  };
+
+  // Effect to auto-scroll to bottom (only when not actively interacting)
   useEffect(() => {
-    if (autoScroll && scrollAreaRef.current) {
+    if (autoScroll && !userInteracting && scrollAreaRef.current) {
       const scrollArea = scrollAreaRef.current;
       scrollArea.scrollTop = scrollArea.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs, autoScroll, userInteracting]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (interactionTimeoutRef.current) {
+        clearTimeout(interactionTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Close dialog when translation is complete
   useEffect(() => {
@@ -214,7 +240,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{t('logs.translationLogs')}</DialogTitle>
         </DialogHeader>
@@ -224,6 +250,10 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
             ref={scrollAreaRef}
             className="border rounded-md"
             style={{ height: '400px' }}
+            onScroll={handleUserScroll}
+            onWheel={handleUserScroll}
+            onMouseDown={handleUserScroll}
+            onTouchStart={handleUserScroll}
           >
             <div className="p-4 font-mono text-sm whitespace-pre-wrap">
               {filteredLogs.length === 0 ? (
@@ -291,7 +321,9 @@ export function LogViewer({
   const { t } = useTranslation();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [userInteracting, setUserInteracting] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Reset logs when translation starts
   useEffect(() => {
@@ -459,13 +491,37 @@ export function LogViewer({
     };
   }, []);
   
-  // Effect to auto-scroll to bottom
+  // Handle user interaction detection for LogViewer
+  const handleUserScrollViewer = () => {
+    setUserInteracting(true);
+    
+    // Clear existing timeout
+    if (interactionTimeoutRef.current) {
+      clearTimeout(interactionTimeoutRef.current);
+    }
+    
+    // Set a timeout to mark interaction as finished after 2 seconds
+    interactionTimeoutRef.current = setTimeout(() => {
+      setUserInteracting(false);
+    }, 2000);
+  };
+
+  // Effect to auto-scroll to bottom (only when not actively interacting)
   useEffect(() => {
-    if (autoScroll && scrollAreaRef.current) {
+    if (autoScroll && !userInteracting && scrollAreaRef.current) {
       const scrollArea = scrollAreaRef.current;
       scrollArea.scrollTop = scrollArea.scrollHeight;
     }
-  }, [logs, autoScroll]);
+  }, [logs, autoScroll, userInteracting]);
+
+  // Cleanup timeout on unmount for LogViewer
+  useEffect(() => {
+    return () => {
+      if (interactionTimeoutRef.current) {
+        clearTimeout(interactionTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Filter logs
   const filteredLogs = filterLogs(logs);
@@ -478,6 +534,10 @@ export function LogViewer({
           ref={scrollAreaRef}
           className="mt-2 border rounded-md"
           style={{ height }}
+          onScroll={handleUserScrollViewer}
+          onWheel={handleUserScrollViewer}
+          onMouseDown={handleUserScrollViewer}
+          onTouchStart={handleUserScrollViewer}
         >
           <div className="p-4 font-mono text-sm whitespace-pre-wrap">
             {filteredLogs.length === 0 ? (
