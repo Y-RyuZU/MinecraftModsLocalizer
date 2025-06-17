@@ -143,6 +143,9 @@ export function QuestsTab() {
         // Increment completed chunks for whole progress
         // Progress is handled by translation runner
         
+        // Get the job to check its completion status
+        const completedJob = translationService.getJob(job.id);
+        
         // Get the translated content
         const translatedContent = translationService.getCombinedTranslatedContent(job.id);
         const translatedText = translatedContent.content || `[${targetLanguage}] ${content}`;
@@ -155,7 +158,7 @@ export function QuestsTab() {
         
         await FileService.writeTextFile(outputPath, translatedText);
         
-        // Add translation result
+        // Add translation result with proper success determination
         addTranslationResult({
           type: target.type,
           id: target.id,
@@ -163,7 +166,7 @@ export function QuestsTab() {
           targetLanguage: targetLanguage,
           content: { [target.id]: translatedText },
           outputPath,
-          success: true
+          success: completedJob?.status === "completed"
         });
       } catch (error) {
         console.error(`Failed to translate quest: ${target.name}`, error);
