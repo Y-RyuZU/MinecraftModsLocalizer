@@ -10,12 +10,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Language } from '@/lib/types/config';
+import { SupportedLanguage } from '@/lib/types/llm';
 import { DEFAULT_LANGUAGES } from '@/lib/types/llm';
 
 interface TemporaryTargetLanguageSelectorProps {
   labelKey: string; // Changed prop name to indicate it's a key
-  availableLanguages: Language[];
+  availableLanguages: SupportedLanguage[];
   selectedLanguage: string | null; // Temporary language state
   globalLanguage: string; // Global language from config
   onLanguageChange: (language: string | null) => void; // Setter for temporary language
@@ -52,31 +52,25 @@ export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSe
 
   // Use the same language options as the TargetLanguageDialog
   // This includes both DEFAULT_LANGUAGES and any additional languages from the config
-  // We convert SupportedLanguage to Language format (id -> code)
-  const defaultLanguagesConverted = DEFAULT_LANGUAGES.map(lang => ({
-    code: lang.id,
-    name: lang.name
-  }));
-  
   // Combine default languages with available languages, ensuring no duplicates
-  // Create a map to track languages by code to avoid duplicates
+  // Create a map to track languages by id to avoid duplicates
   const languageMap = new Map();
   
   // Add default languages first
-  defaultLanguagesConverted.forEach(lang => {
-    languageMap.set(lang.code, lang);
+  DEFAULT_LANGUAGES.forEach(lang => {
+    languageMap.set(lang.id, lang);
   });
   
-  // Add additional languages, overriding defaults if there's a duplicate code
+  // Add additional languages, overriding defaults if there's a duplicate id
   availableLanguages.forEach(lang => {
-    languageMap.set(lang.code, lang);
+    languageMap.set(lang.id, lang);
   });
   
   // Convert map back to array
   const allLanguages = Array.from(languageMap.values());
   
   // Filter out the source language
-  const languagesToDisplay = allLanguages.filter(lang => lang.code !== sourceLanguage);
+  const languagesToDisplay = allLanguages.filter(lang => lang.id !== sourceLanguage);
 
   return (
     <div className="flex flex-col space-y-1.5">
@@ -92,10 +86,10 @@ export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSe
         </SelectTrigger>
         <SelectContent>
           {languagesToDisplay.map((lang, index) => (
-            <SelectItem key={`${lang.code}-${index}`} value={lang.code}>
-              {lang.name} ({lang.code})
-              {lang.code === globalLanguage && selectedLanguage === null && ` (${t('tabs.default')})`}
-              {lang.code === selectedLanguage && ` (${t('tabs.temporary')})`}
+            <SelectItem key={`${lang.id}-${index}`} value={lang.id}>
+              {lang.name} ({lang.id})
+              {lang.id === globalLanguage && selectedLanguage === null && ` (${t('tabs.default')})`}
+              {lang.id === selectedLanguage && ` (${t('tabs.temporary')})`}
             </SelectItem>
           ))}
         </SelectContent>
