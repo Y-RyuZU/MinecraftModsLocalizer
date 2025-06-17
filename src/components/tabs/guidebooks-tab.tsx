@@ -21,6 +21,7 @@ export function GuidebooksTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
+    incrementCompletedChunks,
     addTranslationResult,
     error,
       setError,
@@ -155,7 +156,7 @@ export function GuidebooksTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedChunks: () => {}, // No-op since progress is handled by translation runner
+        incrementCompletedChunks, // Connect to store for overall progress tracking
         sourceLanguage: config.translation.sourceLanguage,
         targetLanguage,
         type: "patchouli",

@@ -22,6 +22,7 @@ export function ModsTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
+    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
@@ -159,7 +160,7 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedChunks: () => {}, // No-op since progress is handled by translation runner
+        incrementCompletedChunks, // Connect to store for overall progress tracking
         // Use normalized source language for consistency, fallback to "en_us"
         sourceLanguage: (
           config?.translation?.sourceLanguage || "en_us"
