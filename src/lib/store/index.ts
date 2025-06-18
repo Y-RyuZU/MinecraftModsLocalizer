@@ -34,6 +34,9 @@ interface AppState {
   wholeProgress: number;
   totalChunks: number;
   completedChunks: number;
+  // Mod-level progress tracking
+  totalMods: number;
+  completedMods: number;
   currentJobId: string | null;
   setTranslating: (isTranslating: boolean) => void;
   setProgress: (progress: number) => void;
@@ -41,6 +44,12 @@ interface AppState {
   setTotalChunks: (totalChunks: number) => void;
   setCompletedChunks: (completedChunks: number) => void;
   incrementCompletedChunks: () => void;
+  updateProgressTracking: (completedChunks: number, totalChunks: number) => void;
+  // Mod-level progress methods
+  setTotalMods: (totalMods: number) => void;
+  setCompletedMods: (completedMods: number) => void;
+  incrementCompletedMods: () => void;
+  updateModProgress: (completedMods: number, totalMods: number) => void;
   setCurrentJobId: (jobId: string | null) => void;
   
   // Translation results
@@ -121,6 +130,9 @@ export const useAppStore = create<AppState>((set) => ({
   wholeProgress: 0,
   totalChunks: 0,
   completedChunks: 0,
+  // Mod-level progress state
+  totalMods: 0,
+  completedMods: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
   setProgress: (progress) => set({ progress: Math.max(0, Math.min(100, progress || 0)) }),
@@ -141,6 +153,60 @@ export const useAppStore = create<AppState>((set) => ({
     
     return {
       completedChunks: newCompletedChunks,
+      wholeProgress: boundedProgress
+    };
+  }),
+  updateProgressTracking: (completedChunks, totalChunks) => set(() => {
+    // Validate inputs
+    const validTotalChunks = Math.max(1, totalChunks || 1);
+    const validCompletedChunks = Math.max(0, Math.min(completedChunks || 0, validTotalChunks));
+    
+    // Calculate progress with bounds checking (0-100)
+    const rawProgress = (validCompletedChunks / validTotalChunks) * 100;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    console.log(`Updated progress tracking: ${validCompletedChunks}/${validTotalChunks} chunks (${boundedProgress}%)`);
+    
+    return {
+      completedChunks: validCompletedChunks,
+      totalChunks: validTotalChunks,
+      wholeProgress: boundedProgress
+    };
+  }),
+  // Mod-level progress methods
+  setTotalMods: (totalMods) => {
+    console.log(`Setting totalMods to: ${totalMods}`);
+    return set({ totalMods: Math.max(0, totalMods || 0) });
+  },
+  setCompletedMods: (completedMods) => set({ completedMods: Math.max(0, completedMods || 0) }),
+  incrementCompletedMods: () => set((state) => {
+    // Prevent exceeding totalMods
+    const newCompletedMods = Math.min(state.completedMods + 1, state.totalMods);
+    // Calculate progress with bounds checking (0-100)
+    const rawProgress = state.totalMods > 0 ? (newCompletedMods / state.totalMods * 100) : 0;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    console.log(`Mod progress tracking: ${newCompletedMods}/${state.totalMods} mods (${boundedProgress}%)`);
+    
+    return {
+      completedMods: newCompletedMods,
+      wholeProgress: boundedProgress
+    };
+  }),
+  updateModProgress: (completedMods, totalMods) => set(() => {
+    // Validate inputs
+    const validTotalMods = Math.max(1, totalMods || 1);
+    const validCompletedMods = Math.max(0, Math.min(completedMods || 0, validTotalMods));
+    
+    // Calculate progress with bounds checking (0-100)
+    const rawProgress = (validCompletedMods / validTotalMods) * 100;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    console.log(`Updated mod progress tracking: ${validCompletedMods}/${validTotalMods} mods (${boundedProgress}%)`);
+    
+    return {
+      completedMods: validCompletedMods,
+      totalMods: validTotalMods,
       wholeProgress: boundedProgress
     };
   }),
@@ -176,6 +242,8 @@ export const useAppStore = create<AppState>((set) => ({
     wholeProgress: 0,
     totalChunks: 0,
     completedChunks: 0,
+    totalMods: 0,
+    completedMods: 0,
     currentJobId: null,
     translationResults: [],
     error: null,

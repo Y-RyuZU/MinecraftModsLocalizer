@@ -15,6 +15,7 @@ export interface RunTranslationJobsOptions<T extends TranslationJob = Translatio
   onResult?: (result: TranslationResult) => void;
   setCurrentJobId?: (jobId: string | null) => void;
   incrementCompletedChunks?: () => void;
+  incrementCompletedMods?: () => void;
   getOutputPath: (job: T) => string;
   getResultContent: (job: T) => Record<string, string>;
   writeOutput: (job: T, outputPath: string, content: Record<string, string>) => Promise<void>;
@@ -37,6 +38,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     onResult,
     setCurrentJobId,
     incrementCompletedChunks,
+    incrementCompletedMods,
     getOutputPath,
     getResultContent,
     writeOutput,
@@ -102,6 +104,9 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       console.error(`Failed to write output for job ${job.id}:`, error);
       writeSuccess = false;
     }
+    
+    // Increment progress for file writing step
+    if (incrementCompletedChunks) incrementCompletedChunks();
 
     if (onResult) {
       onResult({
@@ -114,6 +119,12 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         success: job.status === "completed" && writeSuccess
       });
     }
+    
+    // Increment progress for result reporting step
+    if (incrementCompletedChunks) incrementCompletedChunks();
+    
+    // Increment mod-level progress when entire job is complete
+    if (incrementCompletedMods) incrementCompletedMods();
   }
   if (setCurrentJobId) setCurrentJobId(null);
 }

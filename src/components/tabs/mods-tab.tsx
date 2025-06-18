@@ -23,6 +23,10 @@ export function ModsTab() {
     setTotalChunks,
     setCompletedChunks,
     incrementCompletedChunks,
+    // Mod-level progress tracking
+    setTotalMods,
+    setCompletedMods,
+    incrementCompletedMods,
     addTranslationResult,
     error,
     setError,
@@ -65,7 +69,41 @@ export function ModsTab() {
           });
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to analyze mod: ${modFile}`, error);
+        
+        // Handle specific Tauri command errors gracefully
+        if (errorMessage.includes("Lang file error") || errorMessage.includes("invalid escape")) {
+          console.warn(`Skipping mod due to JSON parsing error: ${modFile}`);
+          try {
+            await invoke('log_error', { 
+              message: `Skipped mod with JSON parsing error: ${modFile} - ${errorMessage}`, 
+              process_type: "SCAN" 
+            });
+          } catch {
+            // Ignore logging errors
+          }
+        } else if (errorMessage.includes("IO error") || errorMessage.includes("not contain valid UTF-8")) {
+          console.warn(`Skipping mod due to encoding error: ${modFile}`);
+          try {
+            await invoke('log_error', { 
+              message: `Skipped mod with UTF-8 encoding error: ${modFile} - ${errorMessage}`, 
+              process_type: "SCAN" 
+            });
+          } catch {
+            // Ignore logging errors
+          }
+        } else {
+          // Log other unexpected errors
+          try {
+            await invoke('log_error', { 
+              message: `Failed to analyze mod: ${modFile} - ${errorMessage}`, 
+              process_type: "SCAN" 
+            });
+          } catch {
+            // Ignore logging errors
+          }
+        }
       }
     }
 
@@ -81,6 +119,9 @@ export function ModsTab() {
     addTranslationResult: (result: TranslationResult) => void,
     selectedDirectory: string
   ) => {
+    // Sort targets alphabetically by name for predictable processing order
+    const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
+    console.log(`ModsTab: Processing ${sortedTargets.length} mods in alphabetical order:`, sortedTargets.map(t => t.name));
     // Always set resource packs directory to <selectedDirectory>/resourcepacks
     const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
 
@@ -93,14 +134,14 @@ export function ModsTab() {
       resourcePacksDir
     );
 
-    // Reset whole progress tracking
-    setCompletedChunks(0);
+    // Reset progress tracking (use mod-level instead of chunk-level)
+    setCompletedMods(0);
     setWholeProgress(0);
 
-    // Prepare jobs and count total chunks
+    // Prepare jobs and count total chunks (using sorted targets)
     let totalChunksCount = 0;
     const jobs = [];
-    for (const target of selectedTargets) {
+    for (const target of sortedTargets) {
       try {
         // Extract language files
         const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", {
@@ -146,10 +187,15 @@ export function ModsTab() {
       }
     }
 
-    // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
-    const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;
+    // Use mod-level progress tracking: denominator = total mods, numerator = completed mods
+    setTotalMods(sortedTargets.length);
+    console.log(`ModsTab: Set totalMods to ${sortedTargets.length} for mod-level progress tracking`);
+    
+    // Keep chunk tracking for internal processing (optional)
+    const extraStepsPerJob = 2;
+    const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount + (jobs.length * extraStepsPerJob) : jobs.length * 3;
     setTotalChunks(finalTotalChunks);
-    console.log(`ModsTab: Set totalChunks to ${finalTotalChunks} for ${jobs.length} jobs`);
+    console.log(`ModsTab: Set totalChunks to ${finalTotalChunks} (for internal tracking only)`);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {
@@ -163,7 +209,7 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedChunks, // Connect to store for overall progress tracking
+        incrementCompletedMods, // Use mod-level progress instead of chunk-level
         // Use normalized source language for consistency, fallback to "en_us"
         sourceLanguage: (
           config?.translation?.sourceLanguage || "en_us"
@@ -184,19 +230,19 @@ export function ModsTab() {
         },
         onResult: addTranslationResult,
         onJobStart: async (job, i) => {
-          const target = selectedTargets[i];
+          const target = sortedTargets[i];
           try {
             await invoke('log_translation_process', { message: `Starting translation for mod: ${target.name} (${target.id})` });
           } catch {}
         },
         onJobComplete: async (job, i) => {
-          const target = selectedTargets[i];
+          const target = sortedTargets[i];
           try {
             await invoke('log_translation_process', { message: `Finished translation for mod: ${target.name} (${target.id})` });
           } catch {}
         },
         onJobInterrupted: async (job, i) => {
-          const target = selectedTargets[i];
+          const target = sortedTargets[i];
           try {
             await invoke('log_translation_process', { message: `Translation cancelled by user during mod: ${target.name} (${target.id})` });
           } catch {}
