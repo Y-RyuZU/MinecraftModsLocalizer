@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { Card } from './card';
@@ -32,8 +32,19 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
   const [autoScroll, setAutoScroll] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [userInteracting, setUserInteracting] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Callback ref to get the viewport element from ScrollArea
+  const scrollAreaCallbackRef = useCallback((element: HTMLDivElement | null) => {
+    if (element) {
+      // Find the viewport element within the ScrollArea
+      const viewport = element.querySelector('[data-slot="scroll-area-viewport"]') as HTMLDivElement;
+      if (viewport) {
+        scrollViewportRef.current = viewport;
+      }
+    }
+  }, []);
   
   // Function to get log level string
   const getLogLevelString = (level: LogEntry['level']): string => {
@@ -205,9 +216,9 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
 
   // Effect to auto-scroll to bottom (only when not actively interacting)
   useEffect(() => {
-    if (autoScroll && !userInteracting && scrollAreaRef.current) {
-      const scrollArea = scrollAreaRef.current;
-      scrollArea.scrollTop = scrollArea.scrollHeight;
+    if (autoScroll && !userInteracting && scrollViewportRef.current) {
+      const viewport = scrollViewportRef.current;
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [logs, autoScroll, userInteracting]);
 
@@ -247,7 +258,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         
         <div className="py-4">
           <ScrollArea 
-            ref={scrollAreaRef}
+            ref={scrollAreaCallbackRef}
             className="border rounded-md"
             style={{ height: '400px' }}
             onScroll={handleUserScroll}
@@ -322,8 +333,19 @@ export function LogViewer({
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [userInteracting, setUserInteracting] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef2 = useRef<HTMLDivElement>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Callback ref to get the viewport element from ScrollArea
+  const scrollAreaCallbackRef2 = useCallback((element: HTMLDivElement | null) => {
+    if (element) {
+      // Find the viewport element within the ScrollArea
+      const viewport = element.querySelector('[data-slot="scroll-area-viewport"]') as HTMLDivElement;
+      if (viewport) {
+        scrollViewportRef2.current = viewport;
+      }
+    }
+  }, []);
   
   // Reset logs when translation starts
   useEffect(() => {
@@ -508,9 +530,9 @@ export function LogViewer({
 
   // Effect to auto-scroll to bottom (only when not actively interacting)
   useEffect(() => {
-    if (autoScroll && !userInteracting && scrollAreaRef.current) {
-      const scrollArea = scrollAreaRef.current;
-      scrollArea.scrollTop = scrollArea.scrollHeight;
+    if (autoScroll && !userInteracting && scrollViewportRef2.current) {
+      const viewport = scrollViewportRef2.current;
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [logs, autoScroll, userInteracting]);
 
@@ -531,7 +553,7 @@ export function LogViewer({
       <div className="p-4">
         <h3 className="text-lg font-medium">{t('logs.title')}</h3>
         <ScrollArea 
-          ref={scrollAreaRef}
+          ref={scrollAreaCallbackRef2}
           className="mt-2 border rounded-md"
           style={{ height }}
           onScroll={handleUserScrollViewer}
