@@ -20,10 +20,8 @@
     "guidebooks": "Guidebooks",
     "customFiles": "Custom Files",
     "settings": "Settings",
-    "temporaryTargetLanguage": "Target Language",
-    "selectTemporaryLanguage": "Select language",
-    "default": "Default",
-    "temporary": "Temporary"
+    "targetLanguage": "Target Language",
+    "selectLanguage": "Select language"
   },
   "cards": {
     "modTranslation": "Mod Translation",
@@ -81,7 +79,8 @@
     "noGuidebooksSelected": "No guidebooks selected for translation",
     "noFilesSelected": "No files selected for translation",
     "selectDirectoryFirst": "Please select a directory first",
-    "selectProfileDirectoryFirst": "Please select a profile directory first"
+    "selectProfileDirectoryFirst": "Please select a profile directory first",
+    "noTargetLanguageSelected": "No target language selected. Please select a target language from the dropdown in the translation tab."
   },
   "info": {
     "translationCancelled": "Translation cancelled by user"

@@ -9,20 +9,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { SupportedLanguage } from '@/lib/types/llm';
 import { DEFAULT_LANGUAGES } from '@/lib/types/llm';
 
-interface TemporaryTargetLanguageSelectorProps {
+interface TargetLanguageSelectorProps {
   labelKey: string; // Changed prop name to indicate it's a key
   availableLanguages: SupportedLanguage[];
-  selectedLanguage: string | null; // Temporary language state
+  selectedLanguage: string | null; // Language state
   globalLanguage: string; // Global language from config
-  onLanguageChange: (language: string | null) => void; // Setter for temporary language
+  onLanguageChange: (language: string | null) => void; // Setter for language
   sourceLanguage: string; // Source language to filter out
 }
 
-export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSelectorProps> = ({
+export const TargetLanguageSelector: React.FC<TargetLanguageSelectorProps> = ({
   labelKey, // Use the new prop name
   availableLanguages, // Remove default empty array
   selectedLanguage,
@@ -48,7 +47,7 @@ export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSe
   const translatedLabel = t(labelKey);
 
   // Generate a stable ID from the key
-  const selectId = `temp-lang-select-${labelKey.replace(/\./g, '-')}`;
+  const selectId = `lang-select-${labelKey.replace(/\./g, '-')}`;
 
   // Use the same language options as the TargetLanguageDialog
   // This includes both DEFAULT_LANGUAGES and any additional languages from the config
@@ -73,27 +72,21 @@ export const TemporaryTargetLanguageSelector: React.FC<TemporaryTargetLanguageSe
   const languagesToDisplay = allLanguages.filter(lang => lang.id !== sourceLanguage);
 
   return (
-    <div className="flex flex-col space-y-1.5">
-      {/* Use the translated label */}
-      <Label htmlFor={selectId}>{translatedLabel}</Label>
       <Select
         value={effectiveLanguage}
         onValueChange={handleValueChange}
       >
         <SelectTrigger id={selectId}>
           {/* Use a more specific placeholder key */}
-          <SelectValue placeholder={t('tabs.selectTemporaryLanguage')} />
+          <SelectValue placeholder={t('tabs.selectLanguage')} />
         </SelectTrigger>
         <SelectContent>
           {languagesToDisplay.map((lang, index) => (
             <SelectItem key={`${lang.id}-${index}`} value={lang.id}>
               {lang.name} ({lang.id})
-              {lang.id === globalLanguage && selectedLanguage === null && ` (${t('tabs.default')})`}
-              {lang.id === selectedLanguage && ` (${t('tabs.temporary')})`}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-    </div>
   );
 };

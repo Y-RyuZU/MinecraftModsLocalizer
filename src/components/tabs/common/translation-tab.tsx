@@ -14,7 +14,7 @@ import { CompletionDialog } from "@/components/ui/completion-dialog";
 import { TranslationTarget, TranslationResult } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { useAppTranslation } from "@/lib/i18n";
-import { TemporaryTargetLanguageSelector } from "@/components/tabs/temporary-target-language-selector";
+import { TargetLanguageSelector } from "@/components/tabs/target-language-selector";
 import { TranslationService } from "@/lib/services/translation-service";
 import { invoke } from "@tauri-apps/api/core";
 import type { AppConfig } from "@/lib/types/config";
@@ -367,10 +367,10 @@ export function TranslationTab({
             {isTranslating ? t('buttons.translating') : t('buttons.translate')}
           </Button>
           
-          {/* Temporary Target Language Selector */}
+          {/* Target Language Selector */}
           <div className="min-w-[200px]">
-            <TemporaryTargetLanguageSelector
-              labelKey="tabs.temporaryTargetLanguage"
+            <TargetLanguageSelector
+              labelKey="tabs.targetLanguage"
               availableLanguages={config.translation.additionalLanguages?.map((lang: { id: string, name: string }) => ({
                 id: lang.id,
                 code: lang.id,

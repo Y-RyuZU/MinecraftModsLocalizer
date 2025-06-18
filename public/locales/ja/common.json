@@ -20,10 +20,8 @@
     "guidebooks": "ガイドブック",
     "customFiles": "カスタムファイル",
     "settings": "設定",
-    "temporaryTargetLanguage": "対象言語",
-    "selectTemporaryLanguage": "対象言語を選択",
-    "default": "デフォルト",
-    "temporary": "一時的"
+    "targetLanguage": "対象言語",
+    "selectLanguage": "対象言語を選択"
   },
   "cards": {
     "modTranslation": "Mod翻訳",
@@ -81,7 +79,8 @@
     "noGuidebooksSelected": "翻訳するガイドブックが選択されていません",
     "noFilesSelected": "翻訳するファイルが選択されていません",
     "selectDirectoryFirst": "最初にディレクトリを選択してください",
-    "selectProfileDirectoryFirst": "最初にプロファイルディレクトリを選択してください"
+    "selectProfileDirectoryFirst": "最初にプロファイルディレクトリを選択してください",
+    "noTargetLanguageSelected": "対象言語が選択されていません。翻訳タブのドロップダウンから対象言語を選択してください。"
   },
   "info": {
     "translationCancelled": "翻訳はユーザーによってキャンセルされました"
