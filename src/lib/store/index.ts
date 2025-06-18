@@ -125,7 +125,10 @@ export const useAppStore = create<AppState>((set) => ({
   setTranslating: (isTranslating) => set({ isTranslating }),
   setProgress: (progress) => set({ progress: Math.max(0, Math.min(100, progress || 0)) }),
   setWholeProgress: (progress) => set({ wholeProgress: Math.max(0, Math.min(100, progress || 0)) }),
-  setTotalChunks: (totalChunks) => set({ totalChunks: Math.max(0, totalChunks || 0) }),
+  setTotalChunks: (totalChunks) => {
+    console.log(`Setting totalChunks to: ${totalChunks}`);
+    return set({ totalChunks: Math.max(0, totalChunks || 0) });
+  },
   setCompletedChunks: (completedChunks) => set({ completedChunks: Math.max(0, completedChunks || 0) }),
   incrementCompletedChunks: () => set((state) => {
     // Prevent exceeding totalChunks
@@ -133,6 +136,8 @@ export const useAppStore = create<AppState>((set) => ({
     // Calculate progress with bounds checking (0-100)
     const rawProgress = state.totalChunks > 0 ? (newCompletedChunks / state.totalChunks * 100) : 0;
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    console.log(`Progress tracking: ${newCompletedChunks}/${state.totalChunks} chunks (${boundedProgress}%)`);
     
     return {
       completedChunks: newCompletedChunks,

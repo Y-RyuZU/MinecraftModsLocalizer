@@ -146,7 +146,10 @@ export function ModsTab() {
       }
     }
 
-    setTotalChunks(totalChunksCount);
+    // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
+    const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;
+    setTotalChunks(finalTotalChunks);
+    console.log(`ModsTab: Set totalChunks to ${finalTotalChunks} for ${jobs.length} jobs`);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {

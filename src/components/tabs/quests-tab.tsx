@@ -20,6 +20,7 @@ export function QuestsTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
+    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
@@ -140,8 +141,8 @@ export function QuestsTab() {
         // Start the translation job
         await translationService.startJob(job.id);
         
-        // Increment completed chunks for whole progress
-        // Progress is handled by translation runner
+        // Increment completed chunks for whole progress tracking
+        incrementCompletedChunks();
         
         // Get the job to check its completion status
         const completedJob = translationService.getJob(job.id);
@@ -180,6 +181,9 @@ export function QuestsTab() {
           outputPath: "",
           success: false
         });
+        
+        // Increment completed chunks for whole progress tracking (even for failed quests)
+        incrementCompletedChunks();
       }
     }
     

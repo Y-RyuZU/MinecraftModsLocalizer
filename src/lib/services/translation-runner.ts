@@ -94,7 +94,14 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     // Write output and report result
     const outputPath = getOutputPath(job);
     const content = getResultContent(job);
-    await writeOutput(job, outputPath, content);
+    let writeSuccess = true;
+    
+    try {
+      await writeOutput(job, outputPath, content);
+    } catch (error) {
+      console.error(`Failed to write output for job ${job.id}:`, error);
+      writeSuccess = false;
+    }
 
     if (onResult) {
       onResult({
@@ -104,7 +111,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         targetLanguage,
         content,
         outputPath,
-        success: job.status === "completed"
+        success: job.status === "completed" && writeSuccess
       });
     }
   }
