@@ -72,17 +72,18 @@ export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>{t('history.title', 'Translation History')}</DialogTitle>
-        </DialogHeader>
-        
-        <div className="py-4 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="pr-10">
+          <DialogHeader>
+            <DialogTitle>{t('history.title', 'Translation History')}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4 overflow-hidden">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="text-sm text-muted-foreground">
               {t('history.totalResults', '{{count}} total results', { count: historicalResults.length })}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative w-[250px]">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="relative w-[200px] sm:w-[250px]">
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
                   placeholder={t('history.searchPlaceholder', 'Search history...')}
@@ -145,13 +146,14 @@ export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
               </div>
             )}
           </ScrollArea>
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>
+              {t('common.close')}
+            </Button>
+          </DialogFooter>
         </div>
-        
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>
-            {t('common.close')}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

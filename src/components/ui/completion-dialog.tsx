@@ -84,7 +84,7 @@ export function CompletionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] pr-12">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {getStatusIcon()}
@@ -96,6 +96,30 @@ export function CompletionDialog({
           <p className="text-center text-lg">
             {getStatusMessage()}
           </p>
+          
+          {/* Success/Failure Count Display */}
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 py-4 border-y bg-muted/20 rounded-lg">
+            <div className="flex items-center gap-2 min-w-fit">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span className="text-sm font-medium">
+                {t('completion.successful', 'Successful')}: 
+                <span className="ml-1 text-green-700 dark:text-green-400 font-bold">{successCount}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 min-w-fit">
+              <XCircle className="h-5 w-5 text-red-500" />
+              <span className="text-sm font-medium">
+                {t('completion.failed', 'Failed')}: 
+                <span className="ml-1 text-red-700 dark:text-red-400 font-bold">{failureCount}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 min-w-fit">
+              <span className="text-sm font-medium text-muted-foreground">
+                {t('completion.total', 'Total')}: 
+                <span className="ml-1 font-bold">{results.length}</span>
+              </span>
+            </div>
+          </div>
           
           {results.length > 0 && (
             <div className="space-y-2">
