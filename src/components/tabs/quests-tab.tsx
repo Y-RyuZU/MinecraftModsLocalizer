@@ -114,9 +114,29 @@ export function QuestsTab() {
     setCompletedChunks(0);
     setWholeProgress(0);
     
-    // Set total chunks for whole progress tracking
-    // For quests, we'll consider each quest as one chunk
-    setTotalChunks(selectedTargets.length);
+    // For quests, each quest file represents one logical processing unit
+    // However, we need to consider the actual chunks that will be created by the translation service
+    let totalChunksCount = 0;
+    for (const target of selectedTargets) {
+      try {
+        // Read quest file to estimate chunk count
+        const content = await FileService.readTextFile(target.path);
+        // Create a temporary job to see how many chunks it would generate
+        const tempJob = translationService.createJob(
+          { content },
+          config.translation.sourceLanguage,
+          targetLanguage,
+          target.name
+        );
+        totalChunksCount += tempJob.chunks.length;
+      } catch (error) {
+        // If we can't analyze the file, assume 1 chunk
+        totalChunksCount += 1;
+      }
+    }
+    
+    setTotalChunks(totalChunksCount);
+    console.log(`QuestsTab: Set totalChunks to ${totalChunksCount} for ${selectedTargets.length} quest files`);
     
     // Translate each quest
     for (let i = 0; i < selectedTargets.length; i++) {
@@ -141,11 +161,18 @@ export function QuestsTab() {
         // Start the translation job
         await translationService.startJob(job.id);
         
-        // Increment completed chunks for whole progress tracking
-        incrementCompletedChunks();
-        
-        // Get the job to check its completion status
+        // Get the completed job to check chunk count
         const completedJob = translationService.getJob(job.id);
+        
+        // Increment by the actual number of chunks processed
+        if (completedJob && completedJob.chunks) {
+          for (let chunkIndex = 0; chunkIndex < completedJob.chunks.length; chunkIndex++) {
+            incrementCompletedChunks();
+          }
+        } else {
+          // Fallback to single increment if chunks not available
+          incrementCompletedChunks();
+        }
         
         // Get the translated content
         const translatedContent = translationService.getCombinedTranslatedContent(job.id);
@@ -182,7 +209,7 @@ export function QuestsTab() {
           success: false
         });
         
-        // Increment completed chunks for whole progress tracking (even for failed quests)
+        // Increment completed chunks for failed quests (assume 1 chunk)
         incrementCompletedChunks();
       }
     }
