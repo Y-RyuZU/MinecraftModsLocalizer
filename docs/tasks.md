@@ -1,5 +1,23 @@
 # MinecraftModsLocalizer Development Plan
 
+## Current Tasks
+
+- [✅] **TASK_008: Fix Progress Calculation and History Dialog UI Issues** - [Details](TASK_008_Fix_Progress_Calculation_And_History_Dialog_Issues.md) (Completed - 2025-06-18 01:33:18)
+    - Fix incorrect progress denominator causing 100% completion while translation continues
+    - Fix history dialog close button positioning and overflow issues
+
+- [✅] **TASK_009: Fix Mod Progress Calculation and Add Alphabetical Sorting** - [Details](TASK_009_Fix_Mod_Progress_Calculation_And_Add_Alphabetical_Sorting.md) (Completed - 2025-06-18 01:43:36)
+    - Fix remaining mod translation progress calculation issues
+    - Add alphabetical sorting by mod name for translation processing
+
+- [✅] **TASK_010: Fix Tauri Errors and Implement Mod-Level Progress** - [Details](TASK_010_Fix_Tauri_Errors_And_Mod_Level_Progress.md) (Completed - 2025-06-18 01:56:21)
+    - Fix Tauri command errors for JSON parsing and UTF-8 encoding issues
+    - Implement mod-level progress tracking instead of chunk-level
+
+- [✅] **TASK_011: Fix History Dialog and Enhance Completion Dialog** - [Details](TASK_011_Fix_History_Dialog_And_Enhance_Completion_Dialog.md) (Completed - 2025-06-18 02:14:44)
+    - Fix close button overflow in history dialog
+    - Display successful vs failed translation counts in completion dialog
+
 ## Highest Priority Tasks (Architecture and Foundation Design)
 
 - [ ] **Project Initialization and Basic Structure**
