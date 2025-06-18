@@ -18,6 +18,12 @@
     - Fix close button overflow in history dialog
     - Display successful vs failed translation counts in completion dialog
 
+- [ ] **TASK_012: Improve Target Language Selector UI and Consolidate Language Selection** - [Details](TASK_012_Improve_Target_Language_Selector_UI_And_Consolidate_Language_Selection.md) (Active - 2025-06-18 04:00:32)
+    - Fix vertical alignment of target language selector
+    - Remove unnecessary description text
+    - Add context to error messages
+    - Remove "Temporary" prefix and consolidate language selection
+
 ## Highest Priority Tasks (Architecture and Foundation Design)
 
 - [ ] **Project Initialization and Basic Structure**
