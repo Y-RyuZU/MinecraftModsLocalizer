@@ -48,3 +48,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/gen/
+src-tauri/logs/
