@@ -49,7 +49,7 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Translation Settings</CardTitle>
+        <CardTitle>{t('settings.translationSettings')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -69,19 +69,19 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
           {/* Other Translation Settings */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Resource Pack Name</label>
+              <label className="text-sm font-medium">{t('settings.resourcePackName')}</label>
               <Input 
                 value={config.translation.resourcePackName}
                 onChange={(e) => {
                   config.translation.resourcePackName = e.target.value;
                   setConfig({ ...config });
                 }}
-                placeholder="Enter resource pack name"
+                placeholder={t('settings.resourcePackNamePlaceholder')}
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">Mod Chunk Size</label>
+              <label className="text-sm font-medium">{t('settings.modChunkSize')}</label>
               <Input 
                 type="number"
                 value={config.translation.modChunkSize}
@@ -89,12 +89,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
                   config.translation.modChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="Enter chunk size"
+                placeholder={t('settings.chunkSizePlaceholder')}
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">Quest Chunk Size</label>
+              <label className="text-sm font-medium">{t('settings.questChunkSize')}</label>
               <Input 
                 type="number"
                 value={config.translation.questChunkSize}
@@ -102,12 +102,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
                   config.translation.questChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="Enter chunk size"
+                placeholder={t('settings.chunkSizePlaceholder')}
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium">Guidebook Chunk Size</label>
+              <label className="text-sm font-medium">{t('settings.guidebookChunkSize')}</label>
               <Input 
                 type="number"
                 value={config.translation.guidebookChunkSize}
@@ -115,7 +115,7 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
                   config.translation.guidebookChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="Enter chunk size"
+                placeholder={t('settings.chunkSizePlaceholder')}
               />
             </div>
           </div>

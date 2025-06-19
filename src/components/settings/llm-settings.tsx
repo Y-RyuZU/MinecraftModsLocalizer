@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig } from "@/lib/types/config";
+import { useAppTranslation } from "@/lib/i18n";
 
 interface LLMSettingsProps {
   config: AppConfig;
@@ -19,6 +20,7 @@ const DEFAULT_MODELS = {
 };
 
 export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
+  const { t } = useAppTranslation();
   // Set default model when provider changes
   const handleProviderChange = (value: string) => {
     const newConfig = { ...config };
@@ -47,18 +49,18 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>LLM Settings</CardTitle>
+        <CardTitle>{t('settings.llmSettings')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Provider</label>
+            <label className="text-sm font-medium">{t('settings.provider')}</label>
             <Select 
               value={config.llm.provider}
               onValueChange={handleProviderChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select provider" />
+                <SelectValue placeholder={t('settings.selectProvider')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="openai">OpenAI</SelectItem>
@@ -69,7 +71,7 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">API Key</label>
+            <label className="text-sm font-medium">{t('settings.apiKey')}</label>
             <Input 
               type="password"
               value={config.llm.apiKey}
@@ -77,36 +79,36 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
                 config.llm.apiKey = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder="Enter API key"
+              placeholder={t('settings.apiKeyPlaceholder')}
             />
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Base URL (Optional)</label>
+            <label className="text-sm font-medium">{t('settings.baseUrl')}</label>
             <Input 
               value={config.llm.baseUrl || ""}
               onChange={(e) => {
                 config.llm.baseUrl = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder="Enter base URL"
+              placeholder={t('settings.baseUrlPlaceholder')}
             />
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Model</label>
+            <label className="text-sm font-medium">{t('settings.model')}</label>
             <Input 
               value={config.llm.model || ""}
               onChange={(e) => {
                 config.llm.model = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder="Enter model name"
+              placeholder={t('settings.modelPlaceholder')}
             />
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">Max Retries</label>
+            <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
             <Input 
               type="number"
               value={config.llm.maxRetries}
@@ -114,19 +116,19 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
                 config.llm.maxRetries = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
-              placeholder="Enter max retries"
+              placeholder={t('settings.maxRetriesPlaceholder')}
             />
           </div>
           
           <div className="space-y-2 col-span-2">
-            <label className="text-sm font-medium">Custom Prompt Template</label>
+            <label className="text-sm font-medium">{t('settings.customPromptTemplate')}</label>
             <Input 
               value={config.llm.promptTemplate || ""}
               onChange={(e) => {
                 config.llm.promptTemplate = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder="Enter custom prompt template"
+              placeholder={t('settings.promptTemplatePlaceholder')}
             />
           </div>
         </div>

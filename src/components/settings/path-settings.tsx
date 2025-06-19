@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig, PathsConfig } from "@/lib/types/config";
+import { useAppTranslation } from "@/lib/i18n";
 
 interface PathSettingsProps {
   config: AppConfig;
@@ -10,60 +11,61 @@ interface PathSettingsProps {
 }
 
 export function PathSettings({ config, onSelectDirectory }: PathSettingsProps) {
+  const { t } = useAppTranslation();
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Path Settings</CardTitle>
+        <CardTitle>{t('settings.pathSettings')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Minecraft Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.minecraftDir || "Not set"}</p>
+              <label className="text-sm font-medium">{t('settings.minecraftDirectory')}</label>
+              <p className="text-sm text-muted-foreground">{config.paths.minecraftDir || t('settings.notSet')}</p>
             </div>
             <Button onClick={() => onSelectDirectory("minecraftDir")}>
-              Select
+              {t('settings.select')}
             </Button>
           </div>
           
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Mods Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.modsDir || "Not set"}</p>
+              <label className="text-sm font-medium">{t('settings.modsDirectory')}</label>
+              <p className="text-sm text-muted-foreground">{config.paths.modsDir || t('settings.notSet')}</p>
             </div>
             <Button onClick={() => onSelectDirectory("modsDir")}>
-              Select
+              {t('settings.select')}
             </Button>
           </div>
           
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Resource Packs Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.resourcePacksDir || "Not set"}</p>
+              <label className="text-sm font-medium">{t('settings.resourcePacksDirectory')}</label>
+              <p className="text-sm text-muted-foreground">{config.paths.resourcePacksDir || t('settings.notSet')}</p>
             </div>
             <Button onClick={() => onSelectDirectory("resourcePacksDir")}>
-              Select
+              {t('settings.select')}
             </Button>
           </div>
           
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Config Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.configDir || "Not set"}</p>
+              <label className="text-sm font-medium">{t('settings.configDirectory')}</label>
+              <p className="text-sm text-muted-foreground">{config.paths.configDir || t('settings.notSet')}</p>
             </div>
             <Button onClick={() => onSelectDirectory("configDir")}>
-              Select
+              {t('settings.select')}
             </Button>
           </div>
           
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Logs Directory</label>
-              <p className="text-sm text-muted-foreground">{config.paths.logsDir || "Not set"}</p>
+              <label className="text-sm font-medium">{t('settings.logsDirectory')}</label>
+              <p className="text-sm text-muted-foreground">{config.paths.logsDir || t('settings.notSet')}</p>
             </div>
             <Button onClick={() => onSelectDirectory("logsDir")}>
-              Select
+              {t('settings.select')}
             </Button>
           </div>
         </div>
