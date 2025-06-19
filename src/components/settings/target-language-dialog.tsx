@@ -15,8 +15,6 @@ interface TargetLanguageDialogProps {
   additionalLanguages: SupportedLanguage[];
   onAddLanguage: (language: SupportedLanguage) => void;
   onRemoveLanguage: (languageId: string) => void;
-  targetLanguage: string;
-  onTargetLanguageChange: (languageId: string) => void;
 }
 
 export function TargetLanguageDialog({
@@ -25,8 +23,6 @@ export function TargetLanguageDialog({
   additionalLanguages,
   onAddLanguage,
   onRemoveLanguage,
-  targetLanguage,
-  onTargetLanguageChange
 }: TargetLanguageDialogProps) {
   const { t } = useAppTranslation();
   const [newLanguageName, setNewLanguageName] = useState("");
@@ -46,9 +42,6 @@ export function TargetLanguageDialog({
     setNewLanguageName("");
     setNewLanguageId("");
   };
-
-  // Get all available languages (default + additional)
-  const allLanguages = [...DEFAULT_LANGUAGES, ...additionalLanguages];
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,27 +51,6 @@ export function TargetLanguageDialog({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Target Language Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('settings.targetLanguage')}</label>
-            <Select 
-              value={targetLanguage}
-              onValueChange={onTargetLanguageChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t('settings.selectTargetLanguage')} />
-              </SelectTrigger>
-              <SelectContent>
-                {allLanguages.map((lang) => (
-                  <SelectItem key={lang.id} value={lang.id}>
-                    {lang.flag && <span className="mr-2">{lang.flag}</span>}
-                    {lang.name} ({lang.id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
           {/* Available Languages */}
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('settings.availableLanguages')}</label>
