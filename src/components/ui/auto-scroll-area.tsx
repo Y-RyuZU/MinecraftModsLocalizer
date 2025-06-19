@@ -71,7 +71,7 @@ const AutoScrollArea = React.forwardRef<
     toggleAutoScroll,
     enableAutoScroll,
     disableAutoScroll
-  } = useAutoScroll(scrollRef, {
+  } = useAutoScroll(scrollRef as React.RefObject<HTMLElement>, {
     enabled: autoScroll,
     interactionDelay,
     smooth: false,

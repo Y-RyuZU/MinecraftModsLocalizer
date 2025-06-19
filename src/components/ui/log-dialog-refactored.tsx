@@ -41,7 +41,7 @@ export function LogDialogRefactored({ open, onOpenChange }: LogDialogProps) {
     isAutoScrollActive,
     scrollHandlers,
     toggleAutoScroll
-  } = useAutoScroll(scrollAreaRef, {
+  } = useAutoScroll(scrollAreaRef as React.RefObject<HTMLElement>, {
     enabled: true,
     interactionDelay: 2000,
     smooth: false,
