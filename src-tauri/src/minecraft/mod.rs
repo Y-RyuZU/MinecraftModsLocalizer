@@ -179,8 +179,10 @@ pub fn extract_lang_files(
 pub fn extract_patchouli_books(
     jar_path: &str,
     _temp_dir: &str,
+    logger: tauri::State<std::sync::Arc<crate::logging::AppLogger>>,
 ) -> std::result::Result<Vec<PatchouliBook>, String> {
     info!("Extracting Patchouli books from {}", jar_path);
+    logger.info(&format!("Starting Patchouli book extraction from: {}", jar_path), Some("GUIDEBOOK_SCAN"));
 
     let jar_path = PathBuf::from(jar_path);
 
@@ -189,6 +191,7 @@ pub fn extract_patchouli_books(
         Ok(f) => f,
         Err(e) => {
             error!("Failed to open JAR file: {}", e);
+            logger.error(&format!("Failed to open JAR file {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to open JAR file: {}", e));
         }
     };
@@ -197,6 +200,7 @@ pub fn extract_patchouli_books(
         Ok(a) => a,
         Err(e) => {
             error!("Failed to read JAR as ZIP: {}", e);
+            logger.error(&format!("Failed to read JAR {} as ZIP: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to read JAR as ZIP: {}", e));
         }
     };
@@ -209,6 +213,7 @@ pub fn extract_patchouli_books(
         }
         Err(e) => {
             error!("Failed to extract mod info: {}", e);
+            logger.error(&format!("Failed to extract mod info from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to extract mod info: {}", e));
         }
     };
@@ -217,10 +222,12 @@ pub fn extract_patchouli_books(
     let patchouli_books = match extract_patchouli_books_from_archive(&mut archive, &mod_id) {
         Ok(books) => {
             info!("Found {} Patchouli books", books.len());
+            logger.info(&format!("Found {} Patchouli books in {}", books.len(), jar_path.display()), Some("GUIDEBOOK_SCAN"));
             books
         }
         Err(e) => {
             error!("Failed to extract Patchouli books: {}", e);
+            logger.error(&format!("Failed to extract Patchouli books from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to extract Patchouli books: {}", e));
         }
     };
@@ -338,8 +345,11 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
     
     // Try to extract from fabric.mod.json
     if let Ok(mut file) = archive.by_name("fabric.mod.json") {
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        
+        // Try to convert to UTF-8, handling invalid sequences
+        let content = String::from_utf8_lossy(&buffer).to_string();
         debug!(
             "Attempting to parse fabric.mod.json. Content snippet: {}",
             content.chars().take(100).collect::<String>()
@@ -361,8 +371,11 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
 
     // Try to extract from mods.toml
     if let Ok(mut file) = archive.by_name("META-INF/mods.toml") {
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        
+        // Try to convert to UTF-8, handling invalid sequences
+        let content = String::from_utf8_lossy(&buffer).to_string();
 
         // Parse TOML using the toml crate
         let parsed_toml = content
@@ -405,8 +418,11 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
 
     // Try to extract from META-INF/MANIFEST.MF
     if let Ok(mut file) = archive.by_name("META-INF/MANIFEST.MF") {
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+        
+        // Try to convert to UTF-8, handling invalid sequences
+        let content = String::from_utf8_lossy(&buffer).to_string();
 
         // Use a default mod ID
         let jar_name = "unknown".to_string();
@@ -449,8 +465,11 @@ fn extract_lang_files_from_archive(
             // Only process the target language file (case-insensitive)
             if language == target_language.to_lowercase() {
                 // Read the file content
-                let mut content_str = String::new();
-                file.read_to_string(&mut content_str)?;
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)?;
+                
+                // Try to convert to UTF-8, handling invalid sequences
+                let content_str = String::from_utf8_lossy(&buffer).to_string();
                 debug!(
                     "Attempting to parse lang file: {}. Content snippet: {}",
                     name,
@@ -552,8 +571,11 @@ fn extract_patchouli_books_from_archive(
             let json_rel_path = caps.get(3).unwrap().as_str().to_string();
 
             // Read file content as string
-            let mut content_str = String::new();
-            file.read_to_string(&mut content_str)?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)?;
+            
+            // Try to convert to UTF-8, handling invalid sequences
+            let content_str = String::from_utf8_lossy(&buffer).to_string();
 
             // Extract translation strings using regex
             let mut extracted: HashMap<String, String> = HashMap::new();

@@ -69,7 +69,14 @@ export function GuidebooksTab() {
           }
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to extract guidebooks from mod: ${modFile}`, error);
+        
+        // Log error to Tauri backend
+        await FileService.invoke("log_error", {
+          message: `Failed to extract guidebooks from ${modFile}: ${errorMessage}`,
+          processType: "GUIDEBOOK_SCAN"
+        });
       }
     }
 
