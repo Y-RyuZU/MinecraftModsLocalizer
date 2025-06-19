@@ -308,7 +308,7 @@ export function TranslationTab({
         
         await invoke('log_translation_process', { message: `Created unique session directory: ${logsDir}` });
         await invoke('log_translation_process', { message: `Created temporary directory: ${tempDir}` });
-        await invoke('log_translation_process', { message: `Starting translation session ${sessionId} for ${selectedTargets.length} ${tabType} from ${config.translation.sourceLanguage} to ${targetLanguage}` });
+        await invoke('log_translation_process', { message: `Starting translation session ${sessionId} for ${selectedTargets.length} ${tabType} to ${targetLanguage}` });
       } catch (error) {
         console.error('Failed to create logs directory:', error);
         // Continue with translation even if log directory creation fails
@@ -379,7 +379,6 @@ export function TranslationTab({
               selectedLanguage={tempTargetLanguage}
               globalLanguage={config.translation.targetLanguage}
               onLanguageChange={setTempTargetLanguage}
-              sourceLanguage={config.translation.sourceLanguage}
             />
           </div>
         </div>

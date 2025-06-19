@@ -18,7 +18,6 @@ interface TargetLanguageSelectorProps {
   selectedLanguage: string | null; // Language state
   globalLanguage: string; // Global language from config
   onLanguageChange: (language: string | null) => void; // Setter for language
-  sourceLanguage: string; // Source language to filter out
 }
 
 export const TargetLanguageSelector: React.FC<TargetLanguageSelectorProps> = ({
@@ -27,7 +26,6 @@ export const TargetLanguageSelector: React.FC<TargetLanguageSelectorProps> = ({
   selectedLanguage,
   globalLanguage,
   onLanguageChange,
-  sourceLanguage,
 }) => {
   const { t } = useTranslation('common');
 
@@ -68,8 +66,8 @@ export const TargetLanguageSelector: React.FC<TargetLanguageSelectorProps> = ({
   // Convert map back to array
   const allLanguages = Array.from(languageMap.values());
   
-  // Filter out the source language
-  const languagesToDisplay = allLanguages.filter(lang => lang.id !== sourceLanguage);
+  // Use all languages without filtering
+  const languagesToDisplay = allLanguages;
 
   return (
       <Select

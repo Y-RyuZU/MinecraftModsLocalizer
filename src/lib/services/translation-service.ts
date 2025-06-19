@@ -24,8 +24,6 @@ export interface TranslationChunk {
 export interface TranslationJob {
   /** Unique identifier for the job */
   id: string;
-  /** Source language */
-  sourceLanguage: string;
   /** Target language */
   targetLanguage: string;
   /** Chunks to translate */
@@ -115,14 +113,12 @@ export class TranslationService {
   /**
    * Create a new translation job
    * @param content Content to translate
-   * @param sourceLanguage Source language
    * @param targetLanguage Target language
    * @param currentFileName Current file name being processed
    * @returns Translation job
    */
   public createJob(
     content: Record<string, string>,
-    sourceLanguage: string,
     targetLanguage: string,
     currentFileName?: string
   ): TranslationJob {
@@ -135,7 +131,6 @@ export class TranslationService {
     // Create the job
     const job: TranslationJob = {
       id: jobId,
-      sourceLanguage: sourceLanguage,
       targetLanguage: targetLanguage,
       chunks,
       status: "pending",
@@ -218,7 +213,7 @@ export class TranslationService {
     this.updateProgress(job);
     
     // Log job start
-    await this.logTranslation(`Starting translation job ${jobId} from ${job.sourceLanguage} to ${job.targetLanguage}`);
+    await this.logTranslation(`Starting translation job ${jobId} to ${job.targetLanguage}`);
     await this.logTranslation(`Job contains ${job.chunks.length} chunks with a total of ${this.getTotalKeysCount(job)} keys`);
     
     try {

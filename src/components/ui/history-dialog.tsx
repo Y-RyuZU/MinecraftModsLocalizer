@@ -129,7 +129,7 @@ export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
                           <span className="text-muted-foreground">{result.type}</span>
                           <span className="text-muted-foreground">•</span>
                           <span className="text-muted-foreground">
-                            {result.sourceLanguage} → {result.targetLanguage}
+                            {result.targetLanguage}
                           </span>
                         </div>
                       ))}

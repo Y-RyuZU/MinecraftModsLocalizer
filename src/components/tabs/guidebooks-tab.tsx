@@ -114,9 +114,9 @@ export function GuidebooksTab() {
           continue;
         }
 
-        // Find source language file
+        // Find source language file (default to en_us)
         const sourceFile = book.langFiles.find((file: LangFile) =>
-          file.language === config.translation.sourceLanguage
+          file.language === "en_us"
         );
 
         if (!sourceFile) {
@@ -135,7 +135,6 @@ export function GuidebooksTab() {
         const job: import("@/lib/types/minecraft").PatchouliTranslationJob = {
           ...translationService.createJob(
             sourceFile.content,
-            config.translation.sourceLanguage,
             targetLanguage,
             target.name
           ),
@@ -167,7 +166,6 @@ export function GuidebooksTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedChunks, // Connect to store for overall progress tracking
-        sourceLanguage: config.translation.sourceLanguage,
         targetLanguage,
         type: "patchouli",
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,

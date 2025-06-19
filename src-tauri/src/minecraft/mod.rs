@@ -181,7 +181,6 @@ pub fn extract_patchouli_books(
     _temp_dir: &str,
     logger: tauri::State<std::sync::Arc<crate::logging::AppLogger>>,
 ) -> std::result::Result<Vec<PatchouliBook>, String> {
-    info!("Extracting Patchouli books from {}", jar_path);
     logger.info(&format!("Starting Patchouli book extraction from: {}", jar_path), Some("GUIDEBOOK_SCAN"));
 
     let jar_path = PathBuf::from(jar_path);
@@ -190,7 +189,6 @@ pub fn extract_patchouli_books(
     let file = match File::open(&jar_path) {
         Ok(f) => f,
         Err(e) => {
-            error!("Failed to open JAR file: {}", e);
             logger.error(&format!("Failed to open JAR file {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to open JAR file: {}", e));
         }
@@ -199,7 +197,6 @@ pub fn extract_patchouli_books(
     let mut archive = match ZipArchive::new(file) {
         Ok(a) => a,
         Err(e) => {
-            error!("Failed to read JAR as ZIP: {}", e);
             logger.error(&format!("Failed to read JAR {} as ZIP: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to read JAR as ZIP: {}", e));
         }
@@ -208,11 +205,10 @@ pub fn extract_patchouli_books(
     // Extract mod ID from fabric.mod.json or mods.toml
     let (mod_id, _mod_name, _) = match extract_mod_info(&mut archive) {
         Ok(info) => {
-            debug!("Extracted mod info: id={}, name={}", info.0, info.1);
+            logger.debug(&format!("Extracted mod info: id={}, name={}", info.0, info.1), Some("GUIDEBOOK_SCAN"));
             info
         }
         Err(e) => {
-            error!("Failed to extract mod info: {}", e);
             logger.error(&format!("Failed to extract mod info from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to extract mod info: {}", e));
         }
@@ -221,12 +217,10 @@ pub fn extract_patchouli_books(
     // Extract Patchouli books
     let patchouli_books = match extract_patchouli_books_from_archive(&mut archive, &mod_id) {
         Ok(books) => {
-            info!("Found {} Patchouli books", books.len());
             logger.info(&format!("Found {} Patchouli books in {}", books.len(), jar_path.display()), Some("GUIDEBOOK_SCAN"));
             books
         }
         Err(e) => {
-            error!("Failed to extract Patchouli books: {}", e);
             logger.error(&format!("Failed to extract Patchouli books from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
             return Err(format!("Failed to extract Patchouli books: {}", e));
         }

@@ -124,7 +124,6 @@ export function QuestsTab() {
         // Create a temporary job to see how many chunks it would generate
         const tempJob = translationService.createJob(
           { content },
-          config.translation.sourceLanguage,
           targetLanguage,
           target.name
         );
@@ -150,7 +149,6 @@ export function QuestsTab() {
         // Create a translation job with a simple key-value structure
         const job = translationService.createJob(
           { content },
-          config.translation.sourceLanguage,
           targetLanguage,
           target.name
         );
@@ -190,7 +188,6 @@ export function QuestsTab() {
         addTranslationResult({
           type: target.type,
           id: target.id,
-          sourceLanguage: config.translation.sourceLanguage,
           targetLanguage: targetLanguage,
           content: { [target.id]: translatedText },
           outputPath,
@@ -202,7 +199,6 @@ export function QuestsTab() {
         addTranslationResult({
           type: target.type,
           id: target.id,
-          sourceLanguage: config.translation.sourceLanguage,
           targetLanguage: targetLanguage,
           content: {},
           outputPath: "",

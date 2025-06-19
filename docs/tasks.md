@@ -24,6 +24,12 @@
     - Add context to error messages
     - Remove "Temporary" prefix and consolidate language selection
 
+- [ ] **TASK_013: Install And Implement Storybook** - [Details](TASK_013_Install_And_Implement_Storybook.md) (Active - 2025-06-19 12:53:41)
+    - Install Storybook 8.x with Next.js 15 and React 19 compatibility
+    - Configure for existing TypeScript and Tailwind CSS setup
+    - Create stories for UI components
+    - Set up theme and i18n integration
+
 ## Highest Priority Tasks (Architecture and Foundation Design)
 
 - [ ] **Project Initialization and Basic Structure**

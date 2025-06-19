@@ -149,9 +149,9 @@ export function ModsTab() {
           tempDir: ""
         });
 
-        // Find source language file
+        // Find source language file (default to en_us)
         const sourceFile = langFiles.find((file) =>
-          file.language === config?.translation?.sourceLanguage || "en_us"
+          file.language === "en_us"
         );
 
         if (!sourceFile) {
@@ -175,7 +175,6 @@ export function ModsTab() {
         const job: import("@/lib/types/minecraft").ModTranslationJob = {
           ...translationService.createJob(
             sourceFile.content,
-            config.translation.sourceLanguage,
             targetLanguage,
             target.name
           ),
@@ -210,12 +209,6 @@ export function ModsTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedMods, // Use mod-level progress instead of chunk-level
-        // Use normalized source language for consistency, fallback to "en_us"
-        sourceLanguage: (
-          config?.translation?.sourceLanguage || "en_us"
-        )
-          .toLowerCase()
-          .replace("-", "_"),
         targetLanguage,
         type: "mod",
         getOutputPath: () => resourcePackDir,

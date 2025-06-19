@@ -36,8 +36,6 @@ export interface LLMProviderConfig {
  * Translation configuration
  */
 export interface TranslationConfig {
-  /** Source language */
-  sourceLanguage: string;
   /** Target language */
   targetLanguage: string;
   /** Chunk size for mod translations */
@@ -87,7 +85,6 @@ export const DEFAULT_CONFIG: AppConfig = {
     maxRetries: 5
   },
   translation: {
-    sourceLanguage: "en_us",
     targetLanguage: "ja_jp",
     modChunkSize: 50,
     questChunkSize: 1,

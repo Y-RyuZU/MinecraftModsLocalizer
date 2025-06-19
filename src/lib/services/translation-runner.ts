@@ -19,7 +19,6 @@ export interface RunTranslationJobsOptions<T extends TranslationJob = Translatio
   getOutputPath: (job: T) => string;
   getResultContent: (job: T) => Record<string, string>;
   writeOutput: (job: T, outputPath: string, content: Record<string, string>) => Promise<void>;
-  sourceLanguage: string;
   targetLanguage: string;
   type: "mod" | "ftb" | "better" | "patchouli" | "custom";
 }
@@ -42,7 +41,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     getOutputPath,
     getResultContent,
     writeOutput,
-    sourceLanguage,
     targetLanguage,
     type
   } = options;
@@ -112,7 +110,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       onResult({
         type,
         id: type === "mod" ? (job.currentFileName || job.id) : job.id,
-        sourceLanguage,
         targetLanguage,
         content,
         outputPath,

@@ -153,7 +153,6 @@ export function CustomFilesTab() {
             const translatedJson = await translateJsonRecursively(
               jsonData, 
               translationService, 
-              config.translation.sourceLanguage,
               targetLanguage, 
               target.name,
               setCurrentJobId,
@@ -170,7 +169,6 @@ export function CustomFilesTab() {
             addTranslationResult({
               type: "custom",
               id: target.id,
-              sourceLanguage: config.translation.sourceLanguage,
               targetLanguage: targetLanguage,
               content: { [target.id]: translatedContent } as Record<string, string>,
               outputPath,
@@ -182,7 +180,6 @@ export function CustomFilesTab() {
             addTranslationResult({
               type: "custom",
               id: target.id,
-              sourceLanguage: config.translation.sourceLanguage,
               targetLanguage: targetLanguage,
               content: {},
               outputPath: "",
@@ -196,7 +193,6 @@ export function CustomFilesTab() {
           // Create a translation job for SNBT content
           const job = translationService.createJob(
             { [contentKey]: content },
-            config.translation.sourceLanguage,
             targetLanguage,
             target.name
           );
@@ -223,7 +219,6 @@ export function CustomFilesTab() {
           addTranslationResult({
             type: "custom",
             id: target.id,
-            sourceLanguage: config.translation.sourceLanguage,
             targetLanguage: targetLanguage,
             content: { [target.id]: translatedText } as Record<string, string>,
             outputPath,
@@ -235,7 +230,6 @@ export function CustomFilesTab() {
           addTranslationResult({
             type: "custom",
             id: target.id,
-            sourceLanguage: config.translation.sourceLanguage,
             targetLanguage: targetLanguage,
             content: {},
             outputPath: "",
@@ -248,7 +242,6 @@ export function CustomFilesTab() {
         addTranslationResult({
           type: "custom",
           id: target.id,
-          sourceLanguage: config.translation.sourceLanguage,
           targetLanguage: targetLanguage,
           content: {},
           outputPath: "",
@@ -284,7 +277,6 @@ export function CustomFilesTab() {
   const translateJsonRecursively = async (
     json: unknown,
     translationService: TranslationService,
-    sourceLanguage: string,
     targetLanguage: string,
     currentFileName?: string,
     setCurrentJobId?: (jobId: string | null) => void,
@@ -297,7 +289,6 @@ export function CustomFilesTab() {
       // Create a translation job with a simple key-value structure
       const job = translationService.createJob(
         { [textKey]: json },
-        sourceLanguage,
         targetLanguage,
         currentFileName
       );
@@ -327,7 +318,6 @@ export function CustomFilesTab() {
         translatedArray.push(await translateJsonRecursively(
           item, 
           translationService, 
-          sourceLanguage, 
           targetLanguage, 
           currentFileName,
           setCurrentJobId,
@@ -341,7 +331,6 @@ export function CustomFilesTab() {
         result[key] = await translateJsonRecursively(
           (json as Record<string, unknown>)[key], 
           translationService, 
-          sourceLanguage, 
           targetLanguage, 
           currentFileName,
           setCurrentJobId,

@@ -23,19 +23,6 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Source Language</label>
-            <Input 
-              value={config.translation.sourceLanguage}
-              onChange={(e) => {
-                config.translation.sourceLanguage = e.target.value;
-                setConfig({ ...config });
-              }}
-              placeholder="e.g., en_us"
-            />
-          </div>
-          
-          
-          <div className="space-y-2">
             <label className="text-sm font-medium">Resource Pack Name</label>
             <Input 
               value={config.translation.resourcePackName}
