@@ -83,7 +83,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: "openai",
     apiKey: "",
-    model: "gpt-4o-mini-2024-07-18",
+    model: "o4-mini-2025-04-16",
     maxRetries: 5
   },
   translation: {

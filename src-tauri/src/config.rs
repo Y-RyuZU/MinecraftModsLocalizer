@@ -110,7 +110,7 @@ pub fn default_config() -> AppConfig {
             provider: "openai".to_string(),
             api_key: "".to_string(),
             base_url: None,
-            model: Some("gpt-4o-mini-2024-07-18".to_string()),
+            model: Some("o4-mini-2025-04-16".to_string()),
             max_retries: 5,
             prompt_template: None,
         },

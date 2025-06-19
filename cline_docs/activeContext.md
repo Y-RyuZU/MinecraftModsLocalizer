@@ -55,7 +55,7 @@ We have completed the implementation of the Minecraft Mods Localizer application
 - Added support for custom language addition
 - Refactored Settings tab into modular components for better maintainability
 - Added default model selection based on LLM provider
-- Set OpenAI default model to gpt-4o-mini-2024-07-18
+- Set OpenAI default model to o4-mini-2025-04-16
 - Enhanced UI with Card components for better visual grouping of settings
 - Fixed Tauri v2 API import in config-service.ts (replaced direct import with window.__TAURI__?.invoke)
 - Made translation targets independent for each tab (mods, quests, guidebooks, custom files)

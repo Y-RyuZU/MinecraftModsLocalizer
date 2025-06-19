@@ -13,9 +13,9 @@ interface LLMSettingsProps {
 
 // Default models for each provider
 const DEFAULT_MODELS = {
-  openai: "gpt-4o-mini-2024-07-18",
-  anthropic: "claude-3-haiku-20240307",
-  google: "gemini-1.5-pro"
+  openai: "o4-mini-2025-04-16",
+  anthropic: "claude-3-5-haiku-latest",
+  google: "gemini-2.5-flash"
 };
 
 export function LLMSettings({ config, setConfig }: LLMSettingsProps) {

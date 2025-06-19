@@ -26,9 +26,9 @@
   - UISettings
   - SettingsActions
 - Added provider-specific default models:
-  - OpenAI: gpt-4o-mini-2024-07-18
-  - Anthropic: claude-3-haiku-20240307
-  - Google: gemini-1.5-pro
+  - OpenAI: o4-mini-2025-04-16
+  - Anthropic: claude-3-5-haiku-latest
+  - Google: gemini-2.5-flash
 - Enhanced UI with Card components for better visual grouping of settings
 - Fixed Tauri v2 API import in config-service.ts
 - Made translation targets independent for each tab

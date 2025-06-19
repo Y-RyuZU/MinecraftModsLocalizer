@@ -17,7 +17,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   public requiresApiKey = true;
   
   /** Default model to use */
-  private readonly DEFAULT_MODEL = "gpt-4o-mini-2024-07-18";
+  private readonly DEFAULT_MODEL = "o4-mini-2025-04-16";
   
   /** Default API URL */
   private readonly DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";

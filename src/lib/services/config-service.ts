@@ -242,11 +242,11 @@ export class ConfigService {
   public static getDefaultModel(provider: string): string {
     switch (provider.toLowerCase()) {
       case 'openai':
-        return 'gpt-4o-mini-2024-07-18';
+        return 'o4-mini-2025-04-16';
       case 'anthropic':
-        return 'claude-3-haiku-20240307';
+        return 'claude-3-5-haiku-latest';
       case 'google':
-        return 'gemini-1.5-pro';
+        return 'gemini-2.5-flash';
       default:
         return '';
     }
@@ -258,32 +258,27 @@ export class ConfigService {
    * @param source Source object
    * @returns Merged object
    */
-  private static deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
-    const output = { ...target };
+  private static deepMerge<T>(target: T, source: Partial<T>): T {
+    const result = { ...target } as any;
     
-    if (isObject(target) && isObject(source)) {
-      Object.keys(source).forEach(key => {
-        const sourceValue = source[key as keyof T];
-        const targetValue = target[key as keyof T];
+    for (const key in source) {
+      if (source.hasOwnProperty(key)) {
+        const sourceValue = source[key];
+        const targetValue = (target as any)[key];
         
-        if (isObject(sourceValue)) {
-          if (!(key in target)) {
-            Object.assign(output, { [key]: sourceValue });
-          } else if (isObject(targetValue)) {
-            output[key as keyof T] = this.deepMerge(
-              targetValue as Record<string, unknown>,
-              sourceValue as Record<string, unknown>
-            ) as T[keyof T];
-          } else {
-            Object.assign(output, { [key]: sourceValue });
-          }
-        } else {
-          Object.assign(output, { [key]: sourceValue });
+        if (sourceValue === undefined) {
+          continue;
         }
-      });
+        
+        if (isObject(sourceValue) && isObject(targetValue)) {
+          result[key] = this.deepMerge(targetValue, sourceValue);
+        } else {
+          result[key] = sourceValue;
+        }
+      }
     }
     
-    return output;
+    return result as T;
   }
 }
 
