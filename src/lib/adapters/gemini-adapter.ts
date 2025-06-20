@@ -1,34 +1,31 @@
 import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
-import OpenAI from "openai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 /**
- * OpenAI API Adapter
- * Implements the LLM Adapter interface for OpenAI API
+ * Gemini API Adapter
+ * Implements the LLM Adapter interface for Google Gemini API
  */
-export class OpenAIAdapter extends BaseLLMAdapter {
+export class GeminiAdapter extends BaseLLMAdapter {
   /** Unique identifier for the adapter */
-  public id = "openai";
+  public id = "gemini";
   
   /** Display name for the adapter */
-  public name = "OpenAI";
+  public name = "Google Gemini";
   
   /** Whether the adapter requires an API key */
   public requiresApiKey = true;
   
   /** Default model to use */
-  private readonly DEFAULT_MODEL = "o4-mini-2025-04-16";
-  
-  /** Default API URL */
-  private readonly DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";
+  private readonly DEFAULT_MODEL = "gemini-1.5-flash";
   
   /** Default chunk size for this model */
   protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
-   * @param config OpenAI configuration
+   * @param config Gemini configuration
    */
   constructor(config: LLMConfig) {
     super({
@@ -62,7 +59,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   /**
-   * Translate content using OpenAI API
+   * Translate content using Gemini API
    * @param request Translation request
    * @returns Translation response
    */
@@ -71,8 +68,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     
     // Check if API key is defined and not empty
     if (!this.config.apiKey) {
-      await this.logError("OpenAI API key is not configured");
-      throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
+      await this.logError("Gemini API key is not configured");
+      throw new Error("Gemini API key is not configured. Please set your API key in the settings.");
     }
     
     // Format the prompt
@@ -82,16 +79,40 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       request.promptTemplate
     );
     
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: this.config.apiKey,
-      baseURL: this.config.baseUrl || undefined,
-      dangerouslyAllowBrowser: true // Required for browser environments
-    });
+    // Initialize Gemini client
+    const genAI = new GoogleGenerativeAI(this.config.apiKey);
     
     const model = this.config.model || this.DEFAULT_MODEL;
     
-    await this.logApiRequest(`Sending request to OpenAI API (model: ${model})`);
+    // Get the generative model
+    const generativeModel = genAI.getGenerativeModel({
+      model,
+      systemInstruction: "You are a professional translator specializing in Minecraft mods and gaming content.",
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 4096,
+      },
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+      ],
+    });
+    
+    await this.logApiRequest(`Sending request to Gemini API (model: ${model})`);
     
     // Make the API request with retries
     let retries = 0;
@@ -101,28 +122,15 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       try {
         await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
         
-        const completion = await openai.chat.completions.create({
-          model,
-          messages: [
-            {
-              role: "system",
-              content: "You are a professional translator specializing in Minecraft mods and gaming content."
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 4096
-        });
+        const result = await generativeModel.generateContent(prompt);
+        const response = await result.response;
         
         await this.logApiRequest(`API request successful`);
         
-        const translationText = completion.choices[0]?.message?.content?.trim();
+        const translationText = response.text().trim();
         
         if (!translationText) {
-          const errorMessage = "Empty response from OpenAI API";
+          const errorMessage = "Empty response from Gemini API";
           await this.logError(errorMessage);
           throw new Error(errorMessage);
         }
@@ -133,15 +141,18 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
         
-        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${completion.usage?.total_tokens})`);
+        // Get token usage if available
+        const tokensUsed = response.usageMetadata?.totalTokenCount;
+        
+        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${tokensUsed || 'N/A'})`);
         
         // Return the translation response
         return {
           content: translatedContent,
           metadata: {
-            tokensUsed: completion.usage?.total_tokens,
+            tokensUsed,
             timeTaken,
-            model: completion.model
+            model
           }
         };
       } catch (error) {
@@ -149,9 +160,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         await this.logError(`API request failed: ${errorMessage}`);
         
         // Check for rate limit errors
-        if (error instanceof OpenAI.APIError && error.status === 429) {
-          const retryAfter = error.headers?.['retry-after'];
-          const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * (retries + 1);
+        if (errorMessage.includes("429") || errorMessage.includes("quota")) {
+          const waitTime = 1000 * (retries + 1);
           await this.logApiRequest(`Rate limited, waiting ${waitTime}ms before retry`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           retries++;
@@ -168,7 +178,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       }
     }
     
-    const errorMessage = "Failed to get response from OpenAI API after retries";
+    const errorMessage = "Failed to get response from Gemini API after retries";
     await this.logError(errorMessage);
     throw new Error(errorMessage);
   }
@@ -185,16 +195,13 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     }
     
     try {
-      await this.logApiRequest("Validating OpenAI API key");
+      await this.logApiRequest("Validating Gemini API key");
       
-      const openai = new OpenAI({
-        apiKey,
-        baseURL: this.config.baseUrl || undefined,
-        dangerouslyAllowBrowser: true
-      });
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      // Try to list models as a validation check
-      await openai.models.list();
+      // Try to generate a simple response as a validation check
+      await model.generateContent("Hi");
       
       await this.logApiRequest("API key validation successful");
       return true;

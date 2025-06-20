@@ -1,34 +1,34 @@
 import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
 /**
- * OpenAI API Adapter
- * Implements the LLM Adapter interface for OpenAI API
+ * Anthropic API Adapter
+ * Implements the LLM Adapter interface for Anthropic API
  */
-export class OpenAIAdapter extends BaseLLMAdapter {
+export class AnthropicAdapter extends BaseLLMAdapter {
   /** Unique identifier for the adapter */
-  public id = "openai";
+  public id = "anthropic";
   
   /** Display name for the adapter */
-  public name = "OpenAI";
+  public name = "Anthropic";
   
   /** Whether the adapter requires an API key */
   public requiresApiKey = true;
   
   /** Default model to use */
-  private readonly DEFAULT_MODEL = "o4-mini-2025-04-16";
+  private readonly DEFAULT_MODEL = "claude-3-5-haiku-20241022";
   
   /** Default API URL */
-  private readonly DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";
+  private readonly DEFAULT_API_URL = "https://api.anthropic.com";
   
   /** Default chunk size for this model */
   protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
-   * @param config OpenAI configuration
+   * @param config Anthropic configuration
    */
   constructor(config: LLMConfig) {
     super({
@@ -62,7 +62,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   /**
-   * Translate content using OpenAI API
+   * Translate content using Anthropic API
    * @param request Translation request
    * @returns Translation response
    */
@@ -71,8 +71,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     
     // Check if API key is defined and not empty
     if (!this.config.apiKey) {
-      await this.logError("OpenAI API key is not configured");
-      throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
+      await this.logError("Anthropic API key is not configured");
+      throw new Error("Anthropic API key is not configured. Please set your API key in the settings.");
     }
     
     // Format the prompt
@@ -82,16 +82,16 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       request.promptTemplate
     );
     
-    // Initialize OpenAI client
-    const openai = new OpenAI({
+    // Initialize Anthropic client
+    const anthropic = new Anthropic({
       apiKey: this.config.apiKey,
-      baseURL: this.config.baseUrl || undefined,
+      baseURL: this.config.baseUrl || this.DEFAULT_API_URL,
       dangerouslyAllowBrowser: true // Required for browser environments
     });
     
     const model = this.config.model || this.DEFAULT_MODEL;
     
-    await this.logApiRequest(`Sending request to OpenAI API (model: ${model})`);
+    await this.logApiRequest(`Sending request to Anthropic API (model: ${model})`);
     
     // Make the API request with retries
     let retries = 0;
@@ -101,28 +101,33 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       try {
         await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
         
-        const completion = await openai.chat.completions.create({
+        const completion = await anthropic.messages.create({
           model,
+          max_tokens: 4096,
+          temperature: 0.3,
+          system: "You are a professional translator specializing in Minecraft mods and gaming content.",
           messages: [
-            {
-              role: "system",
-              content: "You are a professional translator specializing in Minecraft mods and gaming content."
-            },
             {
               role: "user",
               content: prompt
             }
-          ],
-          temperature: 0.3,
-          max_tokens: 4096
+          ]
         });
         
         await this.logApiRequest(`API request successful`);
         
-        const translationText = completion.choices[0]?.message?.content?.trim();
+        // Extract text content from the response
+        let translationText = "";
+        for (const block of completion.content) {
+          if (block.type === "text") {
+            translationText += block.text;
+          }
+        }
+        
+        translationText = translationText.trim();
         
         if (!translationText) {
-          const errorMessage = "Empty response from OpenAI API";
+          const errorMessage = "Empty response from Anthropic API";
           await this.logError(errorMessage);
           throw new Error(errorMessage);
         }
@@ -133,13 +138,13 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
         
-        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${completion.usage?.total_tokens})`);
+        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${completion.usage.input_tokens + completion.usage.output_tokens})`);
         
         // Return the translation response
         return {
           content: translatedContent,
           metadata: {
-            tokensUsed: completion.usage?.total_tokens,
+            tokensUsed: completion.usage.input_tokens + completion.usage.output_tokens,
             timeTaken,
             model: completion.model
           }
@@ -149,7 +154,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         await this.logError(`API request failed: ${errorMessage}`);
         
         // Check for rate limit errors
-        if (error instanceof OpenAI.APIError && error.status === 429) {
+        if (error instanceof Anthropic.APIError && error.status === 429) {
           const retryAfter = error.headers?.['retry-after'];
           const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * (retries + 1);
           await this.logApiRequest(`Rate limited, waiting ${waitTime}ms before retry`);
@@ -168,7 +173,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       }
     }
     
-    const errorMessage = "Failed to get response from OpenAI API after retries";
+    const errorMessage = "Failed to get response from Anthropic API after retries";
     await this.logError(errorMessage);
     throw new Error(errorMessage);
   }
@@ -185,16 +190,20 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     }
     
     try {
-      await this.logApiRequest("Validating OpenAI API key");
+      await this.logApiRequest("Validating Anthropic API key");
       
-      const openai = new OpenAI({
+      const anthropic = new Anthropic({
         apiKey,
-        baseURL: this.config.baseUrl || undefined,
+        baseURL: this.config.baseUrl || this.DEFAULT_API_URL,
         dangerouslyAllowBrowser: true
       });
       
-      // Try to list models as a validation check
-      await openai.models.list();
+      // Try to create a simple message as a validation check
+      await anthropic.messages.create({
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: 10,
+        messages: [{ role: "user", content: "Hi" }]
+      });
       
       await this.logApiRequest("API key validation successful");
       return true;

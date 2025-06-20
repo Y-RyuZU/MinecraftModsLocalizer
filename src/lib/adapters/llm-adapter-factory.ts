@@ -1,5 +1,7 @@
 import { LLMAdapter, LLMConfig } from "../types/llm";
 import { OpenAIAdapter } from "./openai-adapter";
+import { AnthropicAdapter } from "./anthropic-adapter";
+import { GeminiAdapter } from "./gemini-adapter";
 
 /**
  * LLM Adapter Factory
@@ -27,6 +29,12 @@ export class LLMAdapterFactory {
       case "openai":
         adapter = new OpenAIAdapter(config);
         break;
+      case "anthropic":
+        adapter = new AnthropicAdapter(config);
+        break;
+      case "gemini":
+        adapter = new GeminiAdapter(config);
+        break;
       // Add more adapter implementations here
       default:
         throw new Error(`Unsupported LLM provider: ${config.provider}`);
@@ -45,6 +53,8 @@ export class LLMAdapterFactory {
   public static getAvailableAdapterTypes(): { id: string; name: string; requiresApiKey: boolean }[] {
     return [
       { id: "openai", name: "OpenAI", requiresApiKey: true },
+      { id: "anthropic", name: "Anthropic", requiresApiKey: true },
+      { id: "gemini", name: "Google Gemini", requiresApiKey: true },
       // Add more adapter types here
     ];
   }
