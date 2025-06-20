@@ -18,12 +18,6 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
   const { t } = useAppTranslation();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Handle target language change
-  const handleTargetLanguageChange = (languageId: string) => {
-    config.translation.targetLanguage = languageId;
-    setConfig({ ...config });
-  };
-
   // Handle adding additional language
   const handleAddLanguage = (language: SupportedLanguage) => {
     if (!config.translation.additionalLanguages) {
@@ -55,7 +49,6 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
         <div className="space-y-6">
           {/* Target Language Settings */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('settings.targetLanguage')}</label>
             <div className="flex items-center space-x-2">
               <Button 
                 variant="outline"
@@ -71,12 +64,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('settings.resourcePackName')}</label>
               <Input 
-                value={config.translation.resourcePackName}
+                value={config.translation.resourcePackName || "MinecraftModsLocalizer"}
                 onChange={(e) => {
                   config.translation.resourcePackName = e.target.value;
                   setConfig({ ...config });
                 }}
-                placeholder={t('settings.resourcePackNamePlaceholder')}
+                placeholder="MinecraftModsLocalizer"
               />
             </div>
             
@@ -84,12 +77,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.modChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.modChunkSize}
+                value={config.translation.modChunkSize || 50}
                 onChange={(e) => {
                   config.translation.modChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder={t('settings.chunkSizePlaceholder')}
+                placeholder="50"
               />
             </div>
             
@@ -97,12 +90,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.questChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.questChunkSize}
+                value={config.translation.questChunkSize || 1}
                 onChange={(e) => {
                   config.translation.questChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder={t('settings.chunkSizePlaceholder')}
+                placeholder="1"
               />
             </div>
             
@@ -110,12 +103,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.guidebookChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.guidebookChunkSize}
+                value={config.translation.guidebookChunkSize || 1}
                 onChange={(e) => {
                   config.translation.guidebookChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder={t('settings.chunkSizePlaceholder')}
+                placeholder="1"
               />
             </div>
           </div>
@@ -128,8 +121,6 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
         additionalLanguages={config.translation.additionalLanguages || []}
         onAddLanguage={handleAddLanguage}
         onRemoveLanguage={handleRemoveLanguage}
-        targetLanguage={config.translation.targetLanguage}
-        onTargetLanguageChange={handleTargetLanguageChange}
       />
     </Card>
   );

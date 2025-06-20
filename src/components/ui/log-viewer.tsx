@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Card } from './card';
 import { ScrollArea } from './scroll-area';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 import { FileService } from '@/lib/services/file-service';
 import { listen } from '@tauri-apps/api/event';
 
@@ -36,7 +36,7 @@ export function LogViewer({
   showSource = false,
   filter
 }: LogViewerProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   

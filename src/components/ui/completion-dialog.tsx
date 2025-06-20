@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { Input } from './input';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 import { CheckCircle, XCircle, AlertTriangle, Search } from 'lucide-react';
 import { TranslationResult } from '@/lib/types/minecraft';
 import { useAppStore } from '@/lib/store';
@@ -28,7 +28,7 @@ export function CompletionDialog({
   onViewLogs,
   onFinalize
 }: CompletionDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const [filterText, setFilterText] = useState("");
   const saveResultsToHistory = useAppStore((state) => state.saveResultsToHistory);
 

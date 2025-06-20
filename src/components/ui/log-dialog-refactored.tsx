@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { ScrollArea } from './scroll-area';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 import { FileService } from '@/lib/services/file-service';
 import { listen } from '@tauri-apps/api/event';
@@ -31,7 +31,7 @@ interface LogDialogProps {
  * This demonstrates how to simplify auto-scroll implementation
  */
 export function LogDialogRefactored({ open, onOpenChange }: LogDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);

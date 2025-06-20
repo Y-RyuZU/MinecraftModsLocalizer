@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './button';
 import { History } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 
 interface HistoryButtonProps {
   onClick: () => void;
@@ -10,7 +10,7 @@ interface HistoryButtonProps {
 }
 
 export function HistoryButton({ onClick, variant = 'ghost', size = 'icon' }: HistoryButtonProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   
   return (
     <Button

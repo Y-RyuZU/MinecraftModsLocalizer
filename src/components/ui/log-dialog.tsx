@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './button';
 import { Card } from './card';
 import { ScrollArea } from './scroll-area';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 import { FileService } from '@/lib/services/file-service';
 import { listen } from '@tauri-apps/api/event';
@@ -27,7 +27,7 @@ interface LogDialogProps {
 }
 
 export function LogDialog({ open, onOpenChange }: LogDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [autoScroll, setAutoScroll] = useState(true);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -329,7 +329,7 @@ export function LogViewer({
   showSource = false,
   filter
 }: LogViewerProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [userInteracting, setUserInteracting] = useState(false);

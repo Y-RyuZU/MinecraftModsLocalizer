@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './button';
 import { Input } from './input';
 import { ScrollArea } from './scroll-area';
-import { useTranslation } from 'react-i18next';
+import { useAppTranslation } from '@/lib/i18n';
 import { CheckCircle, XCircle, Search, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { TranslationResult } from '@/lib/types/minecraft';
@@ -14,7 +14,7 @@ interface HistoryDialogProps {
 }
 
 export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useAppTranslation();
   const [filterText, setFilterText] = useState("");
   const historicalResults = useAppStore((state) => state.historicalResults);
   const clearHistoricalResults = useAppStore((state) => state.clearHistoricalResults);

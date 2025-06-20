@@ -2,10 +2,12 @@
 
 import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
+import { DEFAULT_promptTemplate } from "@/lib/types/llm";
 
 interface LLMSettingsProps {
   config: AppConfig;
@@ -84,26 +86,14 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('settings.baseUrl')}</label>
-            <Input 
-              value={config.llm.baseUrl || ""}
-              onChange={(e) => {
-                config.llm.baseUrl = e.target.value;
-                setConfig({ ...config });
-              }}
-              placeholder={t('settings.baseUrlPlaceholder')}
-            />
-          </div>
-          
-          <div className="space-y-2">
             <label className="text-sm font-medium">{t('settings.model')}</label>
             <Input 
-              value={config.llm.model || ""}
+              value={config.llm.model || DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS] || ""}
               onChange={(e) => {
                 config.llm.model = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.modelPlaceholder')}
+              placeholder={DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS] || t('settings.modelPlaceholder')}
             />
           </div>
           
@@ -111,24 +101,26 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
             <Input 
               type="number"
-              value={config.llm.maxRetries}
+              value={config.llm.maxRetries || 5}
               onChange={(e) => {
                 config.llm.maxRetries = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.maxRetriesPlaceholder')}
+              placeholder="5"
             />
           </div>
           
           <div className="space-y-2 col-span-2">
-            <label className="text-sm font-medium">{t('settings.customPromptTemplate')}</label>
-            <Input 
-              value={config.llm.promptTemplate || ""}
+            <label className="text-sm font-medium">{t('settings.prompt')}</label>
+            <Textarea 
+              value={config.llm.promptTemplate || DEFAULT_promptTemplate}
               onChange={(e) => {
                 config.llm.promptTemplate = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.promptTemplatePlaceholder')}
+              placeholder={t('settings.promptPlaceholder')}
+              rows={8}
+              className="resize-vertical"
             />
           </div>
         </div>
