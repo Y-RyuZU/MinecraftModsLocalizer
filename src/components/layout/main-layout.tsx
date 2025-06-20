@@ -23,6 +23,12 @@ export function MainLayout({ children }: MainLayoutProps) {
   const setLogDialogOpen = useAppStore((state) => state.setLogDialogOpen);
   const [isHistoryDialogOpen, setHistoryDialogOpen] = useState(false);
   const [isDebugLogDialogOpen, setDebugLogDialogOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted to true on client-side to prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Open log dialog when translation starts
   useEffect(() => {
@@ -56,7 +62,9 @@ export function MainLayout({ children }: MainLayoutProps) {
         <header className="sticky top-0 z-40 w-full border-b bg-background">
           <div className="container max-w-5xl mx-auto px-4 flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{t('app.title')}</h1>
+              <h1 className="text-xl font-bold">
+                {mounted ? t('app.title') : 'Minecraft Mods Localizer'}
+              </h1>
             </div>
             <div className="flex items-center gap-4">
               <Button

@@ -136,10 +136,10 @@ export class ConfigService {
     
     try {
       if (isTauri) {
-        // Load from Tauri backend
+        // Load from Tauri backend and convert from snake_case
         const configJson = await tauriInvoke<string>("load_config");
-        const parsedConfig = JSON.parse(configJson) as AppConfig;
-        this.config = parsedConfig;
+        const backendConfig = JSON.parse(configJson);
+        this.config = convertFromSnakeCase(backendConfig);
       } else {
         // Try to load from localStorage for development
         const storedConfig = localStorage.getItem(this.STORAGE_KEY);
@@ -169,9 +169,10 @@ export class ConfigService {
       this.config = config;
       
       if (isTauri) {
-        // Save to Tauri backend
+        // Convert to snake_case and save to Tauri backend
+        const backendConfig = convertToSnakeCase(config);
         await tauriInvoke<boolean>("save_config", { 
-          config_json: JSON.stringify(config) 
+          configJson: JSON.stringify(backendConfig) 
         });
       } else {
         // Save to localStorage for development
@@ -280,6 +281,78 @@ export class ConfigService {
     
     return result as T;
   }
+}
+
+/**
+ * Convert camelCase config to snake_case for Tauri backend
+ * @param config Frontend config in camelCase
+ * @returns Backend config in snake_case
+ */
+function convertToSnakeCase(config: AppConfig): Record<string, any> {
+  return {
+    llm: {
+      provider: config.llm.provider,
+      api_key: config.llm.apiKey,
+      base_url: config.llm.baseUrl,
+      model: config.llm.model,
+      max_retries: config.llm.maxRetries,
+      prompt_template: config.llm.promptTemplate
+    },
+    translation: {
+      target_language: config.translation.targetLanguage,
+      mod_chunk_size: config.translation.modChunkSize,
+      quest_chunk_size: config.translation.questChunkSize,
+      guidebook_chunk_size: config.translation.guidebookChunkSize,
+      custom_languages: config.translation.additionalLanguages,
+      resource_pack_name: config.translation.resourcePackName
+    },
+    ui: {
+      theme: config.ui.theme
+    },
+    paths: {
+      minecraft_dir: config.paths.minecraftDir,
+      mods_dir: config.paths.modsDir,
+      resource_packs_dir: config.paths.resourcePacksDir,
+      config_dir: config.paths.configDir,
+      logs_dir: config.paths.logsDir
+    }
+  };
+}
+
+/**
+ * Convert snake_case config from Tauri backend to camelCase for frontend
+ * @param backendConfig Backend config in snake_case
+ * @returns Frontend config in camelCase
+ */
+function convertFromSnakeCase(backendConfig: Record<string, any>): AppConfig {
+  return {
+    llm: {
+      provider: backendConfig.llm?.provider || "",
+      apiKey: backendConfig.llm?.api_key || "",
+      baseUrl: backendConfig.llm?.base_url,
+      model: backendConfig.llm?.model,
+      maxRetries: backendConfig.llm?.max_retries || 5,
+      promptTemplate: backendConfig.llm?.prompt_template
+    },
+    translation: {
+      targetLanguage: backendConfig.translation?.target_language || "ja_jp",
+      modChunkSize: backendConfig.translation?.mod_chunk_size || 50,
+      questChunkSize: backendConfig.translation?.quest_chunk_size || 1,
+      guidebookChunkSize: backendConfig.translation?.guidebook_chunk_size || 1,
+      additionalLanguages: backendConfig.translation?.custom_languages || [],
+      resourcePackName: backendConfig.translation?.resource_pack_name || "MinecraftModsLocalizer"
+    },
+    ui: {
+      theme: backendConfig.ui?.theme || "system"
+    },
+    paths: {
+      minecraftDir: backendConfig.paths?.minecraft_dir || "",
+      modsDir: backendConfig.paths?.mods_dir || "",
+      resourcePacksDir: backendConfig.paths?.resource_packs_dir || "",
+      configDir: backendConfig.paths?.config_dir || "",
+      logsDir: backendConfig.paths?.logs_dir || ""
+    }
+  };
 }
 
 /**
