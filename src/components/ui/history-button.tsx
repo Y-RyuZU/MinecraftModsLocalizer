@@ -11,16 +11,21 @@ interface HistoryButtonProps {
 
 export function HistoryButton({ onClick, variant = 'ghost', size = 'icon' }: HistoryButtonProps) {
   const { t } = useAppTranslation();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
   
   return (
     <Button
       variant={variant}
       size={size}
       onClick={onClick}
-      title={t('history.tooltip', 'View translation history')}
+      title={mounted ? t('history.tooltip', 'View translation history') : 'View translation history'}
     >
       <History className="h-[1.2rem] w-[1.2rem]" />
-      <span className="sr-only">{t('history.title', 'Translation History')}</span>
+      <span className="sr-only">{mounted ? t('history.title', 'Translation History') : 'Translation History'}</span>
     </Button>
   );
 }

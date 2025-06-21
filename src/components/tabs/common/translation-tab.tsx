@@ -248,8 +248,8 @@ export function TranslationTab({
         return;
       }
 
-      // Use temporary target language if set, otherwise use global target language
-      const targetLanguage = tempTargetLanguage ?? config.translation.targetLanguage;
+      // Use temporary target language
+      const targetLanguage = tempTargetLanguage;
       if (!targetLanguage || targetLanguage.trim() === "") {
         setError(t('errors.noTargetLanguageSelected') || "No target language selected");
         setTranslating(false);
@@ -377,7 +377,7 @@ export function TranslationTab({
                 name: lang.name
               })) || []}
               selectedLanguage={tempTargetLanguage}
-              globalLanguage={config.translation.targetLanguage}
+              globalLanguage=""
               onLanguageChange={setTempTargetLanguage}
             />
           </div>
