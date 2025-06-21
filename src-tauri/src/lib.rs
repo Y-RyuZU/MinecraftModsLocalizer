@@ -9,7 +9,7 @@ use minecraft::{analyze_mod_jar, extract_lang_files, extract_patchouli_books, wr
 use filesystem::{
     get_mod_files, get_ftb_quest_files, get_better_quest_files, get_files_with_extension,
     read_text_file, write_text_file, create_directory, open_directory_dialog,
-    create_resource_pack, write_lang_file
+    create_resource_pack, write_lang_file, open_external_url
 };
 use config::{load_config, save_config};
 use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory, create_temp_directory, create_logs_directory_with_session, create_temp_directory_with_session, generate_session_id};
@@ -52,6 +52,9 @@ pub fn run() {
       // Resource pack operations
       create_resource_pack,
       write_lang_file,
+      
+      // External URL operations
+      open_external_url,
       
       // Configuration operations
       load_config,

@@ -384,3 +384,26 @@ pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, langua
     
     Ok(true)
 }
+
+/// Open an external URL in the default browser
+#[tauri::command]
+pub async fn open_external_url(_app_handle: tauri::AppHandle, url: &str) -> std::result::Result<bool, String> {
+    info!("Opening external URL: {}", url);
+    
+    // Validate URL
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err("Invalid URL: must start with http:// or https://".to_string());
+    }
+    
+    // Open URL using the OS default browser
+    match open::that(url) {
+        Ok(_) => {
+            info!("Successfully opened URL: {}", url);
+            Ok(true)
+        }
+        Err(e) => {
+            error!("Failed to open URL {}: {}", url, e);
+            Err(format!("Failed to open URL: {}", e))
+        }
+    }
+}

@@ -47,6 +47,8 @@ export interface AppConfig {
   ui: UIConfig;
   /** File paths configuration */
   paths: PathsConfig;
+  /** Update configuration */
+  update?: UpdateConfig;
 }
 
 /**
@@ -112,6 +114,18 @@ export interface PathsConfig {
 }
 
 /**
+ * Update configuration
+ */
+export interface UpdateConfig {
+  /** Whether to check for updates on startup */
+  checkOnStartup: boolean;
+  /** Last dismissed version (to avoid repeated notifications) */
+  lastDismissedVersion?: string;
+  /** Last check timestamp */
+  lastCheckTime?: number;
+}
+
+/**
  * Default application configuration
  */
 export const DEFAULT_CONFIG: AppConfig = {
@@ -140,5 +154,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     resourcePacksDir: "",
     configDir: "",
     logsDir: ""
+  },
+  update: {
+    checkOnStartup: true
   }
 };

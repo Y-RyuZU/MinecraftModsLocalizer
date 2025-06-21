@@ -162,6 +162,15 @@
     "noHistory": "No translation history yet",
     "noResultsFound": "No results found matching your search"
   },
+  "update": {
+    "title": "Update Available",
+    "description": "A new version of MinecraftModsLocalizer is available for download.",
+    "currentVersion": "Current version:",
+    "latestVersion": "Latest version:",
+    "releaseNotes": "Release Notes:",
+    "remindLater": "Remind Me Later",
+    "viewRelease": "View Release"
+  },
   "common": {
     "close": "Close"
   }
