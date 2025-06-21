@@ -147,6 +147,8 @@ export function TranslationTab({
   
   // Reference to the translation service
   const translationServiceRef = useRef<TranslationService | null>(null);
+  // Flag to track if translation was cancelled
+  const wasCancelledRef = useRef<boolean>(false);
 
   // Select directory
   const handleSelectDirectory = async () => {
@@ -214,6 +216,9 @@ export function TranslationTab({
   
   // Cancel translation
   const handleCancelTranslation = () => {
+    // Set cancellation flag
+    wasCancelledRef.current = true;
+    
     // Provide immediate UI feedback
     setError(t('info.translationCancelled') || "Translation cancelled by user.");
     setTranslating(false);
@@ -232,6 +237,9 @@ export function TranslationTab({
   // Translate selected items
   const handleTranslate = async () => {
     try {
+      // Reset cancellation flag
+      wasCancelledRef.current = false;
+      
       setTranslating(true);
       setProgress(0);
       setWholeProgress(0);
@@ -333,10 +341,12 @@ export function TranslationTab({
         collectResults,
         actualPath
       ).finally(() => {
-        // Show completion dialog when translation finishes
-        setTimeout(() => {
-          setCompletionDialogOpen(true);
-        }, 500); // Small delay to ensure UI updates are complete
+        // Show completion dialog only if translation was not cancelled
+        if (!wasCancelledRef.current) {
+          setTimeout(() => {
+            setCompletionDialogOpen(true);
+          }, 500); // Small delay to ensure UI updates are complete
+        }
       });
       
       // Progress will be updated by the translation process itself
