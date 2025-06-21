@@ -18,22 +18,45 @@ use logging::{init_logger, log_translation_process, log_error, log_file_operatio
 pub fn run() {
   // Initialize the logger
   let logger = init_logger();
-  let logger_clone = logger.clone();
   
-  tauri::Builder::default()
-    .setup(move |app| {
-      // Set the app handle for the logger
-      logger_clone.set_app_handle(app.handle().clone());
-      
-      // Log application start
-      logger_clone.info("Application started", Some("SYSTEM"));
-      
-      Ok(())
-    })
-    .manage(logger)
-    .plugin(tauri_plugin_dialog::init())
-    .plugin(tauri_plugin_shell::init())
-    .plugin(tauri_plugin_updater::Builder::new().build())
+  #[cfg(debug_assertions)]
+  let builder = {
+    let logger_clone = logger.clone();
+    tauri::Builder::default()
+      .setup(move |app| {
+        // Set the app handle for the logger
+        logger_clone.set_app_handle(app.handle().clone());
+        
+        // Log application start
+        logger_clone.info("Application started", Some("SYSTEM"));
+        
+        Ok(())
+      })
+      .manage(logger)
+      .plugin(tauri_plugin_dialog::init())
+      .plugin(tauri_plugin_shell::init())
+  };
+
+  #[cfg(not(debug_assertions))]
+  let builder = {
+    let logger_clone = logger.clone();
+    tauri::Builder::default()
+      .setup(move |app| {
+        // Set the app handle for the logger
+        logger_clone.set_app_handle(app.handle().clone());
+        
+        // Log application start
+        logger_clone.info("Application started", Some("SYSTEM"));
+        
+        Ok(())
+      })
+      .manage(logger)
+      .plugin(tauri_plugin_dialog::init())
+      .plugin(tauri_plugin_shell::init())
+      .plugin(tauri_plugin_updater::Builder::new().build())
+  };
+
+  builder
     .invoke_handler(tauri::generate_handler![
       // Minecraft mod operations
       analyze_mod_jar,
