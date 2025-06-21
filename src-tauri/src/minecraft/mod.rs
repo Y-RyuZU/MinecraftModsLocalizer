@@ -344,15 +344,23 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         
         // Try to convert to UTF-8, handling invalid sequences
         let content = String::from_utf8_lossy(&buffer).to_string();
+        
+        // Clean the JSON content
+        let cleaned_content = clean_json_string(&content);
+        
         debug!(
             "Attempting to parse fabric.mod.json. Content snippet: {}",
-            content.chars().take(100).collect::<String>()
+            cleaned_content.chars().take(100).collect::<String>()
         ); // Log content snippet
 
-        let json: serde_json::Value = serde_json::from_str(&content).map_err(|e| {
-            error!("Failed to parse fabric.mod.json: {}", e); // Log specific error
-            MinecraftError::Json(e) // Keep original error type if possible, or wrap
-        })?;
+        // Try relaxed parsing first
+        let json: serde_json::Value = match relaxed_json_parse(&cleaned_content) {
+            Ok(value) => value,
+            Err(e) => {
+                error!("Failed to parse fabric.mod.json: {}", e);
+                return Err(MinecraftError::Json(e));
+            }
+        };
 
         if let (Some(id), Some(name), Some(version)) = (
             json["id"].as_str(),
@@ -474,10 +482,14 @@ fn extract_lang_files_from_archive(
                 let content: HashMap<String, String> = if name.ends_with(".json") {
                     // Strip _comment lines before parsing
                     let clean_content_str = strip_json_comments(&content_str);
-                    serde_json::from_str(&clean_content_str).map_err(|e| {
-                        error!("Failed to parse lang file '{}': {}", name, e); // Log specific error
-                        MinecraftError::LangFile(format!("Failed to parse {}: {}", name, e)) // Add file context to error
-                    })?
+                    match serde_json::from_str(&clean_content_str) {
+                        Ok(content) => content,
+                        Err(e) => {
+                            error!("Failed to parse lang file '{}': {}. Skipping this file.", name, e);
+                            // Skip this file instead of failing the entire mod
+                            continue;
+                        }
+                    }
                 } else {
                     // .lang legacy format: key=value per line
                     let mut map = HashMap::new();
@@ -506,13 +518,52 @@ fn extract_lang_files_from_archive(
     Ok(lang_files)
 }
 
-/// Remove lines with "_comment" keys from a JSON string.
-/// This is a workaround for Minecraft lang files that use "_comment" keys.
-fn strip_json_comments(json: &str) -> String {
+/// Clean a JSON string by removing control characters and other problematic content
+fn clean_json_string(json: &str) -> String {
     // Remove BOM if present
     let json = json.trim_start_matches('\u{feff}');
+    
+    // Remove control characters but preserve structure
+    json.chars()
+        .map(|c| {
+            let code = c as u32;
+            // Replace control characters (except tab, newline, CR) with spaces
+            if code < 0x20 && code != 0x09 && code != 0x0A && code != 0x0D {
+                ' '
+            } else {
+                c
+            }
+        })
+        .collect()
+}
+
+/// Remove lines with "_comment" keys from a JSON string and fix common issues.
+/// This is a workaround for Minecraft lang files that use "_comment" keys and have other issues.
+fn strip_json_comments(json: &str) -> String {
+    // Clean the JSON first (removes BOM and control characters)
+    let cleaned_json = clean_json_string(json);
+    
+    // First, try to parse as-is to check if it's valid JSON
+    if serde_json::from_str::<serde_json::Value>(&cleaned_json).is_ok() {
+        return cleaned_json;
+    }
+    
+    // If not valid, try to fix it
+    // Try to parse as serde_json::Value to get more lenient parsing
+    match relaxed_json_parse(&cleaned_json) {
+        Ok(value) => {
+            // Successfully parsed with relaxed parser, serialize back to valid JSON
+            match serde_json::to_string(&value) {
+                Ok(fixed_json) => return fixed_json,
+                Err(_) => {} // Fall back to line-by-line processing
+            }
+        }
+        Err(_) => {} // Fall back to line-by-line processing
+    }
+    
+    // If relaxed parsing failed, try line-by-line cleanup
     // Remove lines with "_comment" keys and blank lines
-    let mut lines: Vec<&str> = json
+    let mut lines: Vec<&str> = cleaned_json
         .lines()
         .filter(|line| {
             let trimmed = line.trim_start();
@@ -533,7 +584,73 @@ fn strip_json_comments(json: &str) -> String {
         }
     }
 
-    lines.join("\n")
+    let result = lines.join("\n");
+    
+    // Try to parse the result and provide more detailed error info if it fails
+    if let Err(e) = serde_json::from_str::<serde_json::Value>(&result) {
+        debug!("JSON still invalid after cleanup. Error: {}", e);
+        let col = e.column();
+        let line_no = e.line();
+        debug!("Error at line {}, column {}", line_no, col);
+        // Try to show the problematic line
+        if let Some(problematic_line) = result.lines().nth(line_no.saturating_sub(1)) {
+            debug!("Problematic line: {}", problematic_line);
+        }
+    }
+    
+    result
+}
+
+/// Attempt to parse JSON with common Minecraft mod JSON issues fixed
+fn relaxed_json_parse(json: &str) -> Result<serde_json::Value, serde_json::Error> {
+    // Create a temporary fixed version
+    let mut fixed = String::new();
+    let mut in_string = false;
+    let mut escape_next = false;
+    let mut chars = json.chars().peekable();
+    
+    while let Some(ch) = chars.next() {
+        if escape_next {
+            // Handle escape sequences
+            match ch {
+                '\\' | '"' | '/' | 'b' | 'f' | 'n' | 'r' | 't' => {
+                    fixed.push('\\');
+                    fixed.push(ch);
+                }
+                'u' => {
+                    fixed.push('\\');
+                    fixed.push('u');
+                    // Copy the next 4 hex digits
+                    for _ in 0..4 {
+                        if let Some(hex_ch) = chars.next() {
+                            fixed.push(hex_ch);
+                        }
+                    }
+                }
+                // For any other escaped character, just include the character itself
+                _ => {
+                    fixed.push(ch);
+                }
+            }
+            escape_next = false;
+        } else if ch == '\\' && in_string {
+            escape_next = true;
+        } else if ch == '"' && !escape_next {
+            in_string = !in_string;
+            fixed.push(ch);
+        } else {
+            // Filter out control characters when inside strings
+            let code = ch as u32;
+            if in_string && code < 0x20 && code != 0x09 && code != 0x0A && code != 0x0D {
+                // Skip control characters in strings, or replace with space
+                fixed.push(' ');
+            } else {
+                fixed.push(ch);
+            }
+        }
+    }
+    
+    serde_json::from_str(&fixed)
 }
 
 /// Extract Patchouli books from a JAR archive
