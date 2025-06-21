@@ -77,8 +77,12 @@ export interface LLMConfig {
   model?: string;
   /** Maximum number of retries on failure */
   maxRetries?: number;
-  /** Custom prompt template */
+  /** Custom prompt template (legacy - combined system and user) */
   promptTemplate?: string;
+  /** System prompt for setting the AI's role and behavior */
+  systemPrompt?: string;
+  /** User prompt template with variables for the specific task */
+  userPrompt?: string;
 }
 
 /**
@@ -109,17 +113,15 @@ export const DEFAULT_LANGUAGES: SupportedLanguage[] = [
 ];
 
 /**
- * Default translation prompt template
+ * Default system prompt for translation
+ * Contains the role and translation rules
  */
-export const DEFAULT_promptTemplate = `You are a professional translator. Please translate the following English text into {language}. 
+export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator specializing in Minecraft mods and gaming content.
 
 ## Important Translation Rules
 - Translate line by line, strictly in order
 - Ensure the number of lines before and after translation matches exactly (do not add or remove lines)
 - Output only the translation result, without any greetings or explanations
-
-## Input Text Information
-- Number of lines: {line_count}
 
 ## Detailed Translation Instructions
 - Treat sentences on different lines as separate, even if they seem contextually connected
@@ -128,8 +130,24 @@ export const DEFAULT_promptTemplate = `You are a professional translator. Please
 - Preserve programming variables (e.g., %s, $1, \\") and special symbols as they are
 - Maintain backslashes (\\\\) as they may be used as escape characters
 - Do not edit any characters that appear to be special symbols
-- For idiomatic expressions, prioritize conveying the meaning over literal translation.
-- When appropriate, adapt cultural references to be more relevant to the target language audience.
-- The text is about Minecraft mods. Keep this context in mind while translating
+- For idiomatic expressions, prioritize conveying the meaning over literal translation
+- When appropriate, adapt cultural references to be more relevant to the target language audience
+- The text is about Minecraft mods. Keep this context in mind while translating`;
 
-Once you receive the input text, proceed with the translation following these rules strictly.`;
+/**
+ * Default user prompt template for translation
+ * Contains the specific task with variables
+ */
+export const DEFAULT_USER_PROMPT = `Please translate the following English text into {language}.
+
+## Input Text Information
+- Number of lines: {line_count}
+
+# Content to Translate
+{content}`;
+
+/**
+ * Default translation prompt template (legacy - for backward compatibility)
+ * This combines system and user prompts into one
+ */
+export const DEFAULT_PROMPT_TEMPLATE = DEFAULT_SYSTEM_PROMPT + '\n\n' + DEFAULT_USER_PROMPT;

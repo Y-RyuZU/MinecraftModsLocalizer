@@ -1,4 +1,5 @@
-import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "../types/llm";
+import { DEFAULT_API_CONFIG } from "../types/config";
 
 /**
  * Base LLM Adapter class
@@ -16,12 +17,6 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   
   /** Configuration for the adapter */
   protected config: LLMConfig;
-  
-  /** Default maximum retries */
-  protected readonly DEFAULT_maxRetries = 5;
-  
-  /** Default chunk size */
-  protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
@@ -50,7 +45,7 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * @returns Maximum chunk size
    */
   public getMaxChunkSize(): number {
-    return this.DEFAULT_CHUNK_SIZE;
+    return DEFAULT_API_CONFIG.chunkSize;
   }
 
   /**
@@ -58,11 +53,95 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * @returns Maximum number of retries
    */
   protected getMaxRetries(): number {
-    return this.config.maxRetries ?? this.DEFAULT_maxRetries;
+    return this.config.maxRetries ?? DEFAULT_API_CONFIG.maxRetries;
   }
 
   /**
-   * Format the prompt for translation
+   * Get the system prompt
+   * @param customSystemPrompt Optional custom system prompt
+   * @returns System prompt
+   */
+  protected getSystemPrompt(customSystemPrompt?: string): string {
+    // Use custom system prompt if provided
+    if (customSystemPrompt) {
+      return customSystemPrompt;
+    }
+    
+    // Use config system prompt if available
+    if (this.config.systemPrompt) {
+      return this.config.systemPrompt;
+    }
+    
+    // If using legacy promptTemplate, extract system part (everything before user task)
+    if (this.config.promptTemplate) {
+      const userMarker = "Please translate the following";
+      const systemEndIdx = this.config.promptTemplate.indexOf(userMarker);
+      if (systemEndIdx > 0) {
+        return this.config.promptTemplate.substring(0, systemEndIdx).trim();
+      }
+    }
+    
+    // Default system prompt
+    return DEFAULT_SYSTEM_PROMPT;
+  }
+
+  /**
+   * Get the user prompt template
+   * @param customUserPrompt Optional custom user prompt template
+   * @returns User prompt template
+   */
+  protected getUserPromptTemplate(customUserPrompt?: string): string {
+    // Use custom user prompt if provided
+    if (customUserPrompt) {
+      return customUserPrompt;
+    }
+    
+    // Use config user prompt if available
+    if (this.config.userPrompt) {
+      return this.config.userPrompt;
+    }
+    
+    // If using legacy promptTemplate, extract user part
+    if (this.config.promptTemplate) {
+      const userMarker = "Please translate the following";
+      const userStartIdx = this.config.promptTemplate.indexOf(userMarker);
+      if (userStartIdx >= 0) {
+        return this.config.promptTemplate.substring(userStartIdx);
+      }
+    }
+    
+    // Default user prompt
+    return DEFAULT_USER_PROMPT;
+  }
+
+  /**
+   * Format the user prompt with variables
+   * @param content Content to translate
+   * @param targetLanguage Target language
+   * @param customUserPrompt Optional custom user prompt template
+   * @returns Formatted user prompt
+   */
+  protected formatUserPrompt(
+    content: Record<string, string>,
+    targetLanguage: string,
+    customUserPrompt?: string
+  ): string {
+    const userPromptTemplate = this.getUserPromptTemplate(customUserPrompt);
+    const contentLines = Object.entries(content).map(([key, value]) => `${key}: ${value}`);
+    const lineCount = contentLines.length;
+    
+    // Format content
+    const formattedContent = contentLines.join('\n');
+    
+    // Replace variables
+    return userPromptTemplate
+      .replace("{language}", targetLanguage)
+      .replace("{line_count}", lineCount.toString())
+      .replace("{content}", formattedContent);
+  }
+
+  /**
+   * Format the prompt for translation (legacy method for backward compatibility)
    * @param content Content to translate
    * @param targetLanguage Target language
    * @param promptTemplate Custom prompt template (optional)
@@ -86,11 +165,17 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
       .replace("{language}", targetLanguage)
       .replace("{line_count}", lineCount.toString());
 
-    // Add the content to translate
-    prompt += "\n\n# Content to Translate\n";
-    contentLines.forEach(line => {
-      prompt += `${line}\n`;
-    });
+    // Add the content to translate if not already in template
+    if (!prompt.includes("{content}")) {
+      prompt += "\n\n# Content to Translate\n";
+      contentLines.forEach(line => {
+        prompt += `${line}\n`;
+      });
+    } else {
+      // Replace content placeholder
+      const formattedContent = contentLines.join('\n');
+      prompt = prompt.replace("{content}", formattedContent);
+    }
 
     return prompt;
   }

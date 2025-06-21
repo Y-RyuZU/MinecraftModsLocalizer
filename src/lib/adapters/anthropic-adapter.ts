@@ -1,4 +1,5 @@
-import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_MODELS, DEFAULT_API_URLS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import Anthropic from "@anthropic-ai/sdk";
@@ -16,15 +17,6 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   
   /** Whether the adapter requires an API key */
   public requiresApiKey = true;
-  
-  /** Default model to use */
-  private readonly DEFAULT_MODEL = "claude-3-5-haiku-20241022";
-  
-  /** Default API URL */
-  private readonly DEFAULT_API_URL = "https://api.anthropic.com";
-  
-  /** Default chunk size for this model */
-  protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
@@ -33,7 +25,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   constructor(config: LLMConfig) {
     super({
       ...config,
-      promptTemplate: config.promptTemplate || DEFAULT_promptTemplate,
+      promptTemplate: config.promptTemplate || DEFAULT_PROMPT_TEMPLATE,
     });
   }
 
@@ -61,6 +53,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     }
   }
 
+
   /**
    * Translate content using Anthropic API
    * @param request Translation request
@@ -75,21 +68,21 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       throw new Error("Anthropic API key is not configured. Please set your API key in the settings.");
     }
     
-    // Format the prompt
-    const prompt = this.formatPrompt(
+    // Get system prompt and user prompt
+    const systemPrompt = this.getSystemPrompt();
+    const userPrompt = this.formatUserPrompt(
       request.content,
-      request.targetLanguage,
-      request.promptTemplate
+      request.targetLanguage
     );
     
     // Initialize Anthropic client
     const anthropic = new Anthropic({
       apiKey: this.config.apiKey,
-      baseURL: this.config.baseUrl || this.DEFAULT_API_URL,
+      baseURL: this.config.baseUrl || DEFAULT_API_URLS.anthropic,
       dangerouslyAllowBrowser: true // Required for browser environments
     });
     
-    const model = this.config.model || this.DEFAULT_MODEL;
+    const model = this.config.model || DEFAULT_MODELS.anthropic;
     
     await this.logApiRequest(`Sending request to Anthropic API (model: ${model})`);
     
@@ -103,13 +96,21 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         
         const completion = await anthropic.messages.create({
           model,
-          max_tokens: 4096,
-          temperature: 0.3,
-          system: "You are a professional translator specializing in Minecraft mods and gaming content.",
+          max_tokens: DEFAULT_API_CONFIG.maxTokens,
+          temperature: DEFAULT_API_CONFIG.temperature,
+          system: [
+            {
+              type: "text",
+              text: systemPrompt,
+              cache_control: {
+                type: "ephemeral"
+              }
+            }
+          ],
           messages: [
             {
               role: "user",
-              content: prompt
+              content: userPrompt
             }
           ]
         });
@@ -138,7 +139,18 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
         
-        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${completion.usage.input_tokens + completion.usage.output_tokens})`);
+        // Log cache usage information if available
+        const cacheCreationTokens = (completion.usage as any).cache_creation_input_tokens || 0;
+        const cacheReadTokens = (completion.usage as any).cache_read_input_tokens || 0;
+        let cacheInfo = '';
+        if (cacheCreationTokens > 0) {
+          cacheInfo += ` (cache write: ${cacheCreationTokens} tokens)`;
+        }
+        if (cacheReadTokens > 0) {
+          cacheInfo += ` (cache hit: ${cacheReadTokens} tokens)`;
+        }
+        
+        await this.logApiRequest(`Translation completed in ${timeTaken}ms${cacheInfo}`);
         
         // Return the translation response
         return {
@@ -178,6 +190,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     throw new Error(errorMessage);
   }
 
+
   /**
    * Validate API key
    * @param apiKey API key to validate
@@ -194,7 +207,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       
       const anthropic = new Anthropic({
         apiKey,
-        baseURL: this.config.baseUrl || this.DEFAULT_API_URL,
+        baseURL: this.config.baseUrl || DEFAULT_API_URLS.anthropic,
         dangerouslyAllowBrowser: true
       });
       

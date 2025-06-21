@@ -1,4 +1,5 @@
-import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
@@ -16,12 +17,6 @@ export class GeminiAdapter extends BaseLLMAdapter {
   
   /** Whether the adapter requires an API key */
   public requiresApiKey = true;
-  
-  /** Default model to use */
-  private readonly DEFAULT_MODEL = "gemini-1.5-flash";
-  
-  /** Default chunk size for this model */
-  protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
@@ -30,7 +25,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
   constructor(config: LLMConfig) {
     super({
       ...config,
-      promptTemplate: config.promptTemplate || DEFAULT_promptTemplate,
+      promptTemplate: config.promptTemplate || DEFAULT_PROMPT_TEMPLATE,
     });
   }
 
@@ -60,6 +55,8 @@ export class GeminiAdapter extends BaseLLMAdapter {
 
   /**
    * Translate content using Gemini API
+   * Note: Implicit caching is automatic for Gemini 2.5 models.
+   * For Gemini 1.5 models, explicit caching would require separate cache management.
    * @param request Translation request
    * @returns Translation response
    */
@@ -72,25 +69,25 @@ export class GeminiAdapter extends BaseLLMAdapter {
       throw new Error("Gemini API key is not configured. Please set your API key in the settings.");
     }
     
-    // Format the prompt
-    const prompt = this.formatPrompt(
+    // Get system and user prompts
+    const systemPrompt = this.getSystemPrompt();
+    const userPrompt = this.formatUserPrompt(
       request.content,
-      request.targetLanguage,
-      request.promptTemplate
+      request.targetLanguage
     );
     
     // Initialize Gemini client
     const genAI = new GoogleGenerativeAI(this.config.apiKey);
     
-    const model = this.config.model || this.DEFAULT_MODEL;
+    const model = this.config.model || DEFAULT_MODELS.google;
     
     // Get the generative model
     const generativeModel = genAI.getGenerativeModel({
       model,
-      systemInstruction: "You are a professional translator specializing in Minecraft mods and gaming content.",
+      systemInstruction: systemPrompt,
       generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 4096,
+        temperature: DEFAULT_API_CONFIG.temperature,
+        maxOutputTokens: DEFAULT_API_CONFIG.maxTokens,
       },
       safetySettings: [
         {
@@ -122,7 +119,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
       try {
         await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
         
-        const result = await generativeModel.generateContent(prompt);
+        const result = await generativeModel.generateContent(userPrompt);
         const response = await result.response;
         
         await this.logApiRequest(`API request successful`);
@@ -143,8 +140,15 @@ export class GeminiAdapter extends BaseLLMAdapter {
         
         // Get token usage if available
         const tokensUsed = response.usageMetadata?.totalTokenCount;
+        const promptTokens = response.usageMetadata?.promptTokenCount;
+        const cachedTokens = response.usageMetadata?.cachedContentTokenCount || 0;
         
-        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${tokensUsed || 'N/A'})`);
+        // Log cache information if available (automatic for Gemini 2.5 models)
+        const cacheInfo = cachedTokens > 0 
+          ? ` (cached: ${cachedTokens}/${promptTokens} prompt tokens)`
+          : '';
+        
+        await this.logApiRequest(`Translation completed in ${timeTaken}ms${cacheInfo}`);
         
         // Return the translation response
         return {

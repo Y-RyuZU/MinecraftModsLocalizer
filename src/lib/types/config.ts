@@ -1,4 +1,39 @@
-import { SupportedLanguage } from "./llm";
+import { SupportedLanguage, DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "./llm";
+
+/**
+ * Default model configurations for each provider
+ */
+export const DEFAULT_MODELS = {
+  openai: "o4-mini-2025-04-16",
+  anthropic: "claude-3-5-haiku-20241022",
+  google: "gemini-1.5-flash"
+} as const;
+
+/**
+ * Default API URLs for each provider
+ */
+export const DEFAULT_API_URLS = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  anthropic: "https://api.anthropic.com",
+  google: undefined // Google uses SDK default
+} as const;
+
+/**
+ * Default API configuration
+ */
+export const DEFAULT_API_CONFIG = {
+  temperature: 0.3,
+  maxTokens: 4096,
+  maxRetries: 5,
+  chunkSize: 50
+} as const;
+
+/**
+ * Storage keys
+ */
+export const STORAGE_KEYS = {
+  config: "minecraft-mods-localizer-config"
+} as const;
 
 /**
  * Application configuration
@@ -28,8 +63,12 @@ export interface LLMProviderConfig {
   model?: string;
   /** Maximum number of retries on failure */
   maxRetries: number;
-  /** Custom prompt template */
+  /** Custom prompt template (legacy - combined system and user) */
   promptTemplate?: string;
+  /** System prompt for setting the AI's role and behavior */
+  systemPrompt?: string;
+  /** User prompt template with variables for the specific task */
+  userPrompt?: string;
 }
 
 /**
@@ -79,11 +118,14 @@ export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: "openai",
     apiKey: "",
-    model: "o4-mini-2025-04-16",
-    maxRetries: 5
+    model: DEFAULT_MODELS.openai,
+    maxRetries: DEFAULT_API_CONFIG.maxRetries,
+    promptTemplate: DEFAULT_PROMPT_TEMPLATE,
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    userPrompt: DEFAULT_USER_PROMPT
   },
   translation: {
-    modChunkSize: 50,
+    modChunkSize: DEFAULT_API_CONFIG.chunkSize,
     questChunkSize: 1,
     guidebookChunkSize: 1,
     additionalLanguages: [],

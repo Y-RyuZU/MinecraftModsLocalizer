@@ -1,4 +1,4 @@
-import { AppConfig, DEFAULT_CONFIG } from "../types/config";
+import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS } from "../types/config";
 
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
@@ -116,8 +116,6 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
  * Manages application configuration
  */
 export class ConfigService {
-  /** Configuration storage key */
-  private static readonly STORAGE_KEY = "minecraft-mods-localizer-config";
   
   /** Current configuration */
   private static config: AppConfig = DEFAULT_CONFIG;
@@ -142,7 +140,7 @@ export class ConfigService {
         this.config = convertFromSnakeCase(backendConfig);
       } else {
         // Try to load from localStorage for development
-        const storedConfig = localStorage.getItem(this.STORAGE_KEY);
+        const storedConfig = localStorage.getItem(STORAGE_KEYS.config);
         
         if (storedConfig) {
           // Parse and merge with default config to ensure all fields are present
@@ -176,7 +174,7 @@ export class ConfigService {
         });
       } else {
         // Save to localStorage for development
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
+        localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(config));
       }
     } catch (error) {
       console.error("Failed to save configuration:", error);
@@ -241,16 +239,8 @@ export class ConfigService {
    * @returns Default model for the provider
    */
   public static getDefaultModel(provider: string): string {
-    switch (provider.toLowerCase()) {
-      case 'openai':
-        return 'o4-mini-2025-04-16';
-      case 'anthropic':
-        return 'claude-3-5-haiku-latest';
-      case 'google':
-        return 'gemini-2.5-flash';
-      default:
-        return '';
-    }
+    const providerKey = provider.toLowerCase() as keyof typeof DEFAULT_MODELS;
+    return DEFAULT_MODELS[providerKey] || '';
   }
 
   /**
@@ -296,10 +286,11 @@ function convertToSnakeCase(config: AppConfig): Record<string, any> {
       base_url: config.llm.baseUrl,
       model: config.llm.model,
       max_retries: config.llm.maxRetries,
-      prompt_template: config.llm.promptTemplate
+      prompt_template: config.llm.promptTemplate,
+      system_prompt: config.llm.systemPrompt,
+      user_prompt: config.llm.userPrompt
     },
     translation: {
-      target_language: config.translation.targetLanguage,
       mod_chunk_size: config.translation.modChunkSize,
       quest_chunk_size: config.translation.questChunkSize,
       guidebook_chunk_size: config.translation.guidebookChunkSize,
@@ -332,10 +323,11 @@ function convertFromSnakeCase(backendConfig: Record<string, any>): AppConfig {
       baseUrl: backendConfig.llm?.base_url,
       model: backendConfig.llm?.model,
       maxRetries: backendConfig.llm?.max_retries || 5,
-      promptTemplate: backendConfig.llm?.prompt_template
+      promptTemplate: backendConfig.llm?.prompt_template,
+      systemPrompt: backendConfig.llm?.system_prompt,
+      userPrompt: backendConfig.llm?.user_prompt
     },
     translation: {
-      targetLanguage: backendConfig.translation?.target_language || "ja_jp",
       modChunkSize: backendConfig.translation?.mod_chunk_size || 50,
       questChunkSize: backendConfig.translation?.quest_chunk_size || 1,
       guidebookChunkSize: backendConfig.translation?.guidebook_chunk_size || 1,

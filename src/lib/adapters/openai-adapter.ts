@@ -1,4 +1,5 @@
-import { DEFAULT_promptTemplate, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { DEFAULT_MODELS, DEFAULT_API_URLS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import OpenAI from "openai";
@@ -16,15 +17,6 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   
   /** Whether the adapter requires an API key */
   public requiresApiKey = true;
-  
-  /** Default model to use */
-  private readonly DEFAULT_MODEL = "o4-mini-2025-04-16";
-  
-  /** Default API URL */
-  private readonly DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions";
-  
-  /** Default chunk size for this model */
-  protected readonly DEFAULT_CHUNK_SIZE = 50;
 
   /**
    * Constructor
@@ -33,7 +25,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   constructor(config: LLMConfig) {
     super({
       ...config,
-      promptTemplate: config.promptTemplate || DEFAULT_promptTemplate,
+      promptTemplate: config.promptTemplate || DEFAULT_PROMPT_TEMPLATE,
     });
   }
 
@@ -75,11 +67,11 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
     }
     
-    // Format the prompt
-    const prompt = this.formatPrompt(
+    // Get system and user prompts
+    const systemPrompt = this.getSystemPrompt();
+    const userPrompt = this.formatUserPrompt(
       request.content,
-      request.targetLanguage,
-      request.promptTemplate
+      request.targetLanguage
     );
     
     // Initialize OpenAI client
@@ -89,7 +81,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       dangerouslyAllowBrowser: true // Required for browser environments
     });
     
-    const model = this.config.model || this.DEFAULT_MODEL;
+    const model = this.config.model || DEFAULT_MODELS.openai;
     
     await this.logApiRequest(`Sending request to OpenAI API (model: ${model})`);
     
@@ -106,15 +98,16 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           messages: [
             {
               role: "system",
-              content: "You are a professional translator specializing in Minecraft mods and gaming content."
+              content: systemPrompt
             },
             {
               role: "user",
-              content: prompt
+              content: userPrompt
             }
           ],
-          temperature: 0.3,
-          max_tokens: 4096
+          temperature: DEFAULT_API_CONFIG.temperature,
+          max_tokens: DEFAULT_API_CONFIG.maxTokens,
+          user: "minecraft-mod-localizer" // For better cache routing
         });
         
         await this.logApiRequest(`API request successful`);
@@ -133,7 +126,11 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
         
-        await this.logApiRequest(`Translation completed in ${timeTaken}ms (tokens: ${completion.usage?.total_tokens})`);
+        const cachedTokens = (completion.usage as any)?.prompt_tokens_details?.cached_tokens || 0;
+        const cacheInfo = cachedTokens > 0 
+          ? ` (cached: ${cachedTokens}/${completion.usage?.prompt_tokens} prompt tokens)`
+          : '';
+        await this.logApiRequest(`Translation completed in ${timeTaken}ms${cacheInfo}`);
         
         // Return the translation response
         return {
