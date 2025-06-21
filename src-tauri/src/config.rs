@@ -54,8 +54,6 @@ pub struct LLMProviderConfig {
 /// Translation configuration
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TranslationConfig {
-    /// Target language
-    pub target_language: String,
     /// Chunk size for mod translations
     pub mod_chunk_size: u32,
     /// Chunk size for quest translations
@@ -113,7 +111,6 @@ pub fn default_config() -> AppConfig {
             prompt_template: None,
         },
         translation: TranslationConfig {
-            target_language: "ja_jp".to_string(),
             mod_chunk_size: 50,
             quest_chunk_size: 1,
             guidebook_chunk_size: 1,
