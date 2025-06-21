@@ -4,6 +4,7 @@ use thiserror::Error;
 use std::path::Path;
 use walkdir::WalkDir;
 use std::collections::HashMap;
+use tauri_plugin_shell::ShellExt;
 
 /// File system errors
 #[derive(Error, Debug)]
@@ -387,7 +388,7 @@ pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, langua
 
 /// Open an external URL in the default browser
 #[tauri::command]
-pub async fn open_external_url(_app_handle: tauri::AppHandle, url: &str) -> std::result::Result<bool, String> {
+pub async fn open_external_url(app_handle: tauri::AppHandle, url: &str) -> std::result::Result<bool, String> {
     info!("Opening external URL: {}", url);
     
     // Validate URL
@@ -395,8 +396,9 @@ pub async fn open_external_url(_app_handle: tauri::AppHandle, url: &str) -> std:
         return Err("Invalid URL: must start with http:// or https://".to_string());
     }
     
-    // Open URL using the OS default browser
-    match open::that(url) {
+    // Use Tauri's shell plugin to open the URL
+    let shell = app_handle.shell();
+    match shell.open(url, None) {
         Ok(_) => {
             info!("Successfully opened URL: {}", url);
             Ok(true)

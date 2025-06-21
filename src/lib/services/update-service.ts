@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import packageJson from '../../../package.json';
 
 // GitHub repository details
 const GITHUB_USER = 'Y-RyuZU';
@@ -49,9 +50,7 @@ export class UpdateService {
    * @returns Current version from package.json
    */
   private static getCurrentVersion(): string {
-    // In a real implementation, this would be injected during build
-    // For now, we'll use the version from package.json
-    return "0.1.0";
+    return packageJson.version;
   }
   
   /**

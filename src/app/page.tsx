@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/main-layout";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
-import { UpdateService, UpdateCheckResult } from "@/lib/services/update-service";
-import { UpdateDialog } from "@/components/ui/update-dialog";
 import { useAppTranslation } from "@/lib/i18n";
 
 // Import tabs
@@ -18,8 +16,6 @@ import { CustomFilesTab } from "@/components/tabs/custom-files-tab";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const { setConfig } = useAppStore();
   const { t } = useAppTranslation();
 
@@ -29,26 +25,6 @@ export default function Home() {
       try {
         const config = await ConfigService.load();
         setConfig(config);
-        
-        // Check for updates after config is loaded
-        // Only check if enabled in config
-        if (config.update?.checkOnStartup !== false) {
-          // Run asynchronously after a short delay to avoid blocking UI
-          setTimeout(async () => {
-            try {
-              const result = await UpdateService.checkForUpdates();
-              // Only show dialog if update is available and not previously dismissed
-              if (result.updateAvailable && 
-                  config.update?.lastDismissedVersion !== result.latestVersion) {
-                setUpdateInfo(result);
-                setUpdateDialogOpen(true);
-              }
-            } catch (error) {
-              console.error("Failed to check for updates:", error);
-            }
-          }, 3000); // Check 3 seconds after startup
-        }
-        
       } catch (error) {
         console.error("Failed to load configuration:", error);
       } finally {
@@ -119,15 +95,6 @@ export default function Home() {
           </Card>
         </TabsContent>
       </Tabs>
-      
-      {/* Update Dialog */}
-      {updateInfo && (
-        <UpdateDialog
-          open={updateDialogOpen}
-          onOpenChange={setUpdateDialogOpen}
-          updateInfo={updateInfo}
-        />
-      )}
     </MainLayout>
   );
 }

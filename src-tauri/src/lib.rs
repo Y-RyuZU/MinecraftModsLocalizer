@@ -32,6 +32,8 @@ pub fn run() {
     })
     .manage(logger)
     .plugin(tauri_plugin_dialog::init())
+    .plugin(tauri_plugin_shell::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
     .invoke_handler(tauri::generate_handler![
       // Minecraft mod operations
       analyze_mod_jar,

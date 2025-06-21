@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0"
+version = "3.0.0"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
@@ -24,6 +24,8 @@ log = "0.4"
 tauri = { version = "2.4.0", features = [] }
 tauri-plugin-log = "2.0.0-rc"
 tauri-plugin-dialog = "2.0.0"
+tauri-plugin-shell = "2.0.0"
+tauri-plugin-updater = "2.0.0"
 zip = "0.6"
 walkdir = "2.3"
 thiserror = "1.0"
@@ -32,4 +34,3 @@ chrono = "0.4"
 dirs = "5.0"
 rfd = "0.12"
 toml = "=0.8.20"
-open = "5.0"

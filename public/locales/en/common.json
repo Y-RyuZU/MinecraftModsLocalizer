@@ -167,11 +167,23 @@
     "description": "A new version of MinecraftModsLocalizer is available for download.",
     "currentVersion": "Current version:",
     "latestVersion": "Latest version:",
-    "releaseNotes": "Release Notes:",
+    "releaseNotes": "Release Notes",
+    "noReleaseNotes": "No release notes available.",
     "remindLater": "Remind Me Later",
-    "viewRelease": "View Release"
+    "viewRelease": "View Release",
+    "viewReleaseNotes": "View Release Notes",
+    "checkForUpdates": "Check for updates",
+    "newVersionAvailable": "New version available",
+    "openDownloadPage": "Download",
+    "manualDownload": "Manual Download",
+    "installNow": "Install Now",
+    "downloading": "Downloading Update...",
+    "installing": "Installing Update..."
   },
   "common": {
     "close": "Close"
+  },
+  "header": {
+    "downloadReleases": "Download releases"
   }
 }

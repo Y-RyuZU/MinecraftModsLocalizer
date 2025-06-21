@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '@/components/theme/theme-provider';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { LanguageSwitcher } from '@/components/theme/language-switcher';
-import { SettingsDialog } from '@/components/settings/settings-dialog';
 import { LogDialog } from '@/components/ui/log-dialog';
-import { HistoryButton } from '@/components/ui/history-button';
 import { HistoryDialog } from '@/components/ui/history-dialog';
 import { DebugLogDialog } from '@/components/debug-log-dialog';
-import { Button } from '@/components/ui/button';
-import { Bug } from 'lucide-react';
-import { useAppTranslation } from '@/lib/i18n';
+import { Header } from './header';
 import { useAppStore } from '@/lib/store';
 
 interface MainLayoutProps {
@@ -17,18 +11,11 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { t } = useAppTranslation();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const isLogDialogOpen = useAppStore((state) => state.isLogDialogOpen);
   const setLogDialogOpen = useAppStore((state) => state.setLogDialogOpen);
   const [isHistoryDialogOpen, setHistoryDialogOpen] = useState(false);
   const [isDebugLogDialogOpen, setDebugLogDialogOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  
-  // Set mounted to true on client-side to prevent hydration mismatches
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   
   // Open log dialog when translation starts
   useEffect(() => {
@@ -59,29 +46,11 @@ export function MainLayout({ children }: MainLayoutProps) {
           open={isDebugLogDialogOpen}
           onOpenChange={setDebugLogDialogOpen}
         />
-        <header className="sticky top-0 z-40 w-full border-b bg-background">
-          <div className="container max-w-5xl mx-auto px-4 flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">
-                {mounted ? t('app.title') : 'Minecraft Mods Localizer'}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDebugLogDialogOpen(true)}
-                title="Debug Logs"
-              >
-                <Bug className="h-5 w-5" />
-              </Button>
-              <HistoryButton onClick={() => setHistoryDialogOpen(true)} />
-              <LanguageSwitcher />
-              <ThemeToggle />
-              <SettingsDialog />
-            </div>
-          </div>
-        </header>
+        {/* Header */}
+        <Header 
+          onDebugLogClick={() => setDebugLogDialogOpen(true)}
+          onHistoryClick={() => setHistoryDialogOpen(true)}
+        />
         <main className="container max-w-5xl mx-auto px-4 py-6">{children}</main>
       </div>
     </ThemeProvider>
