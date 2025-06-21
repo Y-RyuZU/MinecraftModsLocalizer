@@ -364,10 +364,10 @@ describe('Translation Runner', () => {
 
       // Interrupt after first chunk
       let chunkCount = 0;
-      mockTranslationService.translateChunk.mockImplementation(async (content, targetLanguage, jobId) => {
+      mockTranslationService.translateChunk.mockImplementation(async (content: Record<string, string>, targetLanguage: string) => {
         chunkCount++;
         if (chunkCount === 2) {
-          mockTranslationService.interruptJob(jobId);
+          mockTranslationService.interruptJob(job.id);
         }
         return createMockTranslationResults(content, targetLanguage);
       });

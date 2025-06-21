@@ -68,10 +68,12 @@ export class TauriUpdateService {
       }
       
       // Download and install the update
+      let totalContentLength = 0;
       await update.downloadAndInstall((event) => {
         switch (event.event) {
           case 'Started':
             if (event.data.contentLength) {
+              totalContentLength = event.data.contentLength;
               console.log(`Started downloading ${event.data.contentLength} bytes`);
             }
             if (onProgress) {
@@ -82,10 +84,10 @@ export class TauriUpdateService {
             }
             break;
           case 'Progress':
-            console.log(`Downloaded ${event.data.chunkLength} of ${event.data.contentLength || 'unknown'}`);
+            console.log(`Downloaded ${event.data.chunkLength} of ${totalContentLength || 'unknown'}`);
             if (onProgress) {
               onProgress({
-                contentLength: event.data.contentLength,
+                contentLength: totalContentLength,
                 downloaded: event.data.chunkLength
               });
             }

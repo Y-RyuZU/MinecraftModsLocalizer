@@ -65,7 +65,7 @@ describe('UpdateService', () => {
           body: 'Test release notes'
         })
       });
-      global.fetch = mockFetch;
+      global.fetch = mockFetch as any;
       
       // First call should make a request
       await UpdateService.checkForUpdates();

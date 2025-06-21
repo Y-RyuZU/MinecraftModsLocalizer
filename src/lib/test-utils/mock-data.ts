@@ -1,4 +1,4 @@
-import { ModTranslationTarget, QuestTranslationTarget, GuidebookTranslationTarget } from '@/lib/types/minecraft';
+import { TranslationTarget } from '@/lib/types/minecraft';
 import { TranslationJob, TranslationChunk } from '@/lib/services/translation-service';
 
 /**
@@ -150,35 +150,28 @@ export const mockGuidebookData = {
 /**
  * Mock translation targets
  */
-export const createMockModTarget = (modData: typeof mockModData.simpleMod): ModTranslationTarget => ({
+export const createMockModTarget = (modData: typeof mockModData.simpleMod): TranslationTarget => ({
   type: 'mod',
-  modId: modData.modId,
+  id: modData.modId,
   name: modData.name,
   path: modData.path,
-  selected: true,
-  isEnabled: true,
-  totalTranslations: Object.keys(modData.content).length,
-  hasExistingTranslation: false
+  selected: true
 });
 
-export const createMockQuestTarget = (questData: typeof mockQuestData.simpleQuest): QuestTranslationTarget => ({
-  type: 'quest',
+export const createMockQuestTarget = (questData: typeof mockQuestData.simpleQuest): TranslationTarget => ({
+  type: 'ftb',
   id: questData.id,
   name: questData.name,
   path: questData.path,
-  selected: true,
-  content: questData.content
+  selected: true
 });
 
-export const createMockGuidebookTarget = (bookData: typeof mockGuidebookData.simpleBook): GuidebookTranslationTarget => ({
-  type: 'guidebook',
+export const createMockGuidebookTarget = (bookData: typeof mockGuidebookData.simpleBook): TranslationTarget => ({
+  type: 'patchouli',
   id: bookData.id,
-  modId: bookData.modId,
   name: bookData.name,
   path: bookData.path,
-  selected: true,
-  content: bookData.content,
-  totalPages: Object.keys(bookData.content).length
+  selected: true
 });
 
 /**
