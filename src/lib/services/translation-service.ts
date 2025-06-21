@@ -439,7 +439,7 @@ export class TranslationService {
    * @param targetLanguage Target language
    * @returns Translated content
    */
-  private async translateChunk(
+  public async translateChunk(
     content: Record<string, string>,
     targetLanguage: string,
     jobId: string

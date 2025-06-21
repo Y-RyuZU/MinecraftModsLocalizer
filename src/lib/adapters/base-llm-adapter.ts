@@ -193,32 +193,85 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     const originalKeys = Object.keys(originalContent);
     const translatedContent: Record<string, string> = {};
     
-    // Split the response into lines and process each line
-    const responseLines = response.trim().split("\n");
+    // Split the response into lines and filter out empty lines
+    const allLines = response.trim().split("\n").filter(line => line.trim() !== "");
     
-    // Basic validation - check if we have the same number of lines
-    if (responseLines.length !== originalKeys.length) {
-      throw new Error(
-        `Response line count (${responseLines.length}) does not match original content line count (${originalKeys.length})`
-      );
+    // First approach: Try to extract all lines that match the exact key format
+    for (const key of originalKeys) {
+      for (const line of allLines) {
+        const keyValueMatch = line.match(new RegExp(`^${key}:\\s*(.+)$`));
+        if (keyValueMatch) {
+          translatedContent[key] = keyValueMatch[1].trim();
+          break; // Found this key, move to next
+        }
+      }
     }
-
-    // Process each line
-    for (let i = 0; i < originalKeys.length; i++) {
-      const key = originalKeys[i];
-      const line = responseLines[i];
+    
+    // If we found all keys using exact matching, return
+    if (Object.keys(translatedContent).length === originalKeys.length) {
+      return translatedContent;
+    }
+    
+    // Second approach: Handle cases where response doesn't include keys
+    // Try to filter out markdown blocks, explanations, etc.
+    const filteredLines = allLines.filter(line => {
+      const trimmed = line.trim();
       
-      // Try to extract the translated value
-      // First check if the line contains the key (format: "key: value")
+      // Skip markdown code blocks
+      if (trimmed.startsWith('```') || trimmed.endsWith('```')) {
+        return false;
+      }
+      
+      // Skip common explanatory patterns
+      if (trimmed.toLowerCase().includes('translation') || 
+          trimmed.toLowerCase().includes('here') ||
+          trimmed.toLowerCase().includes('translated') ||
+          trimmed.startsWith('#') ||
+          trimmed.startsWith('*') ||
+          trimmed.startsWith('-')) {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Reset and try positional matching with filtered lines
+    for (const key of Object.keys(translatedContent)) {
+      delete translatedContent[key];
+    }
+    
+    // Use the first N filtered lines that could be translations
+    const candidateLines = filteredLines.slice(0, originalKeys.length);
+    
+    for (let i = 0; i < originalKeys.length && i < candidateLines.length; i++) {
+      const key = originalKeys[i];
+      const line = candidateLines[i];
+      
+      // Check if line includes the key
       const keyValueMatch = line.match(new RegExp(`^${key}:\\s*(.+)$`));
       
       if (keyValueMatch) {
-        // If the line contains the key, extract the value
         translatedContent[key] = keyValueMatch[1].trim();
       } else {
-        // If the line doesn't contain the key, use the whole line as the value
+        // Use the entire line as the translation
         translatedContent[key] = line.trim();
       }
+    }
+    
+    // Final validation
+    if (Object.keys(translatedContent).length !== originalKeys.length) {
+      // Log the response for debugging
+      console.warn('Failed to parse LLM response:', {
+        originalKeys,
+        allLinesCount: allLines.length,
+        filteredLinesCount: filteredLines.length,
+        parsedKeys: Object.keys(translatedContent),
+        response: response.substring(0, 500) + (response.length > 500 ? '...' : '')
+      });
+      
+      throw new Error(
+        `Could not parse all translations. Expected ${originalKeys.length} translations but only found ${Object.keys(translatedContent).length}. Response had ${allLines.length} lines (${filteredLines.length} after filtering).`
+      );
     }
 
     return translatedContent;

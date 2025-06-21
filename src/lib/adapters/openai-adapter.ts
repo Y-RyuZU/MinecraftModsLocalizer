@@ -106,7 +106,6 @@ export class OpenAIAdapter extends BaseLLMAdapter {
             }
           ],
           temperature: DEFAULT_API_CONFIG.temperature,
-          max_tokens: DEFAULT_API_CONFIG.maxTokens,
           user: "minecraft-mod-localizer" // For better cache routing
         });
         

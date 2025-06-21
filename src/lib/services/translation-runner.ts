@@ -65,7 +65,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       const chunk = job.chunks[chunkIndex];
       chunk.status = "processing";
       try {
-        const translatedContent = await translationService["translateChunk"](
+        const translatedContent = await translationService.translateChunk(
           chunk.content,
           job.targetLanguage,
           job.id
@@ -76,6 +76,8 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         chunk.status = "failed";
         chunk.error = error instanceof Error ? error.message : String(error);
       }
+      
+      // Increment chunk-level progress once per chunk (only if chunk tracking is used)
       if (incrementCompletedChunks) incrementCompletedChunks();
       if (onJobChunkComplete) onJobChunkComplete(job, chunkIndex);
     }
@@ -102,9 +104,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       console.error(`Failed to write output for job ${job.id}:`, error);
       writeSuccess = false;
     }
-    
-    // Increment progress for file writing step
-    if (incrementCompletedChunks) incrementCompletedChunks();
 
     if (onResult) {
       onResult({
@@ -117,10 +116,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       });
     }
     
-    // Increment progress for result reporting step
-    if (incrementCompletedChunks) incrementCompletedChunks();
-    
-    // Increment mod-level progress when entire job is complete
+    // Increment mod-level progress when entire job is complete (only if mod tracking is used)
     if (incrementCompletedMods) incrementCompletedMods();
   }
   if (setCurrentJobId) setCurrentJobId(null);

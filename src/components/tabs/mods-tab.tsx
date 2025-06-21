@@ -208,7 +208,7 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedMods, // Use mod-level progress instead of chunk-level
+        incrementCompletedMods, // Use mod-level progress for whole progress display
         targetLanguage,
         type: "mod",
         getOutputPath: () => resourcePackDir,
