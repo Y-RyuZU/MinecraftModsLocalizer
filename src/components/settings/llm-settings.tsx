@@ -1,28 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AppConfig } from "@/lib/types/config";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
+import { AppConfig, DEFAULT_MODELS } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
-import { DEFAULT_promptTemplate } from "@/lib/types/llm";
+import { DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "@/lib/types/llm";
 
 interface LLMSettingsProps {
   config: AppConfig;
   setConfig: (config: AppConfig) => void;
 }
 
-// Default models for each provider
-const DEFAULT_MODELS = {
-  openai: "o4-mini-2025-04-16",
-  anthropic: "claude-3-5-haiku-latest",
-  google: "gemini-2.5-flash"
-};
 
 export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
   const { t } = useAppTranslation();
+  const [showApiKey, setShowApiKey] = useState(false);
   // Set default model when provider changes
   const handleProviderChange = (value: string) => {
     const newConfig = { ...config };
@@ -74,15 +71,29 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('settings.apiKey')}</label>
-            <Input 
-              type="password"
-              value={config.llm.apiKey}
-              onChange={(e) => {
-                config.llm.apiKey = e.target.value;
-                setConfig({ ...config });
-              }}
-              placeholder={t('settings.apiKeyPlaceholder')}
-            />
+            <div className="relative flex items-center">
+              <Input 
+                type={showApiKey ? "text" : "password"}
+                value={config.llm.apiKey}
+                onChange={(e) => {
+                  config.llm.apiKey = e.target.value;
+                  setConfig({ ...config });
+                }}
+                placeholder={t('settings.apiKeyPlaceholder')}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -111,17 +122,34 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           </div>
           
           <div className="space-y-2 col-span-2">
-            <label className="text-sm font-medium">{t('settings.prompt')}</label>
+            <label className="text-sm font-medium">{t('settings.systemPrompt') || 'System Prompt'}</label>
             <Textarea 
-              value={config.llm.promptTemplate || DEFAULT_promptTemplate}
+              value={config.llm.systemPrompt || DEFAULT_SYSTEM_PROMPT}
               onChange={(e) => {
-                config.llm.promptTemplate = e.target.value;
+                config.llm.systemPrompt = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.promptPlaceholder')}
-              rows={8}
+              placeholder={t('settings.systemPromptPlaceholder') || 'Enter system prompt...'}
+              rows={6}
               className="resize-vertical"
             />
+          </div>
+          
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">{t('settings.userPrompt') || 'User Prompt Template'}</label>
+            <Textarea 
+              value={config.llm.userPrompt || DEFAULT_USER_PROMPT}
+              onChange={(e) => {
+                config.llm.userPrompt = e.target.value;
+                setConfig({ ...config });
+              }}
+              placeholder={t('settings.userPromptPlaceholder') || 'Enter user prompt template...'}
+              rows={4}
+              className="resize-vertical"
+            />
+            <p className="text-xs text-muted-foreground">
+              Available variables: {'{language}'}, {'{line_count}'}, {'{content}'}
+            </p>
           </div>
         </div>
       </CardContent>
