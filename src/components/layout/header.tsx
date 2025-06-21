@@ -112,7 +112,7 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
                 variant="ghost"
                 size="icon"
                 onClick={onDebugLogClick}
-                title="Debug Logs"
+                title={t('header.debugLogs', 'Debug Logs')}
               >
                 <Bug className="h-5 w-5" />
               </Button>

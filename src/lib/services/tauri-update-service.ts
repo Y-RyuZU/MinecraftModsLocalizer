@@ -19,6 +19,12 @@ export class TauriUpdateService {
    */
   public static async checkForUpdates(): Promise<UpdateResult> {
     try {
+      // Check if we're in development mode
+      if (typeof window !== 'undefined' && window.__TAURI_DEBUG__) {
+        console.log('Skipping update check in development mode');
+        return { shouldUpdate: false };
+      }
+      
       const update = await check();
       
       if (update?.available) {
@@ -46,13 +52,19 @@ export class TauriUpdateService {
    * Download and install update
    */
   public static async downloadAndInstall(
-    onProgress?: (progress: UpdateProgress) => void
+    onProgress?: (progress: UpdateProgress) => void,
+    t?: (key: string, fallback: string) => string
   ): Promise<void> {
     try {
+      // Check if we're in development mode
+      if (typeof window !== 'undefined' && window.__TAURI_DEBUG__) {
+        throw new Error(t?.('update.errors.devModeNotAvailable', 'Auto-update not available in development mode') || 'Auto-update not available in development mode');
+      }
+      
       const update = await check();
       
       if (!update?.available) {
-        throw new Error('No update available');
+        throw new Error(t?.('update.errors.noUpdateAvailable', 'No update available') || 'No update available');
       }
       
       // Download and install the update
@@ -86,12 +98,12 @@ export class TauriUpdateService {
       
       // Ask user to restart the app
       const shouldRestart = await ask(
-        'Update has been installed. Would you like to restart the application now?',
+        t?.('update.restartPrompt', 'Update has been installed. Would you like to restart the application now?') || 'Update has been installed. Would you like to restart the application now?',
         {
-          title: 'Update Complete',
+          title: t?.('update.updateComplete', 'Update Complete') || 'Update Complete',
           kind: 'info',
-          okLabel: 'Restart Now',
-          cancelLabel: 'Later'
+          okLabel: t?.('update.restartNow', 'Restart Now') || 'Restart Now',
+          cancelLabel: t?.('update.restartLater', 'Later') || 'Later'
         }
       );
       
@@ -101,9 +113,9 @@ export class TauriUpdateService {
     } catch (error) {
       console.error('Failed to download and install update:', error);
       await message(
-        error instanceof Error ? error.message : 'Failed to install update',
+        error instanceof Error ? error.message : (t?.('update.errors.installFailed', 'Failed to install update') || 'Failed to install update'),
         {
-          title: 'Update Error',
+          title: t?.('update.errors.updateError', 'Update Error') || 'Update Error',
           kind: 'error'
         }
       );

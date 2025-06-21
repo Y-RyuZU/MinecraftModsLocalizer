@@ -21,9 +21,12 @@ export function UpdateDialog({ open, onOpenChange, updateInfo }: UpdateDialogPro
   const handleAutoUpdate = async () => {
     setIsUpdating(true);
     try {
-      await TauriUpdateService.downloadAndInstall((progress) => {
-        setUpdateProgress(progress);
-      });
+      await TauriUpdateService.downloadAndInstall(
+        (progress) => {
+          setUpdateProgress(progress);
+        },
+        t
+      );
     } catch (error) {
       console.error("Failed to auto-update:", error);
       setIsUpdating(false);
@@ -113,8 +116,10 @@ export function UpdateDialog({ open, onOpenChange, updateInfo }: UpdateDialogPro
               />
               {updateProgress.contentLength && (
                 <p className="text-xs text-muted-foreground text-center">
-                  {Math.round(updateProgress.downloaded / 1024 / 1024)}MB / 
-                  {Math.round(updateProgress.contentLength / 1024 / 1024)}MB
+                  {t('update.progressSize', '{downloaded}MB / {total}MB', {
+                    downloaded: Math.round(updateProgress.downloaded / 1024 / 1024),
+                    total: Math.round(updateProgress.contentLength / 1024 / 1024)
+                  })}
                 </p>
               )}
             </div>

@@ -178,12 +178,24 @@
     "manualDownload": "Manual Download",
     "installNow": "Install Now",
     "downloading": "Downloading Update...",
-    "installing": "Installing Update..."
+    "installing": "Installing Update...",
+    "progressSize": "{downloaded}MB / {total}MB",
+    "restartPrompt": "Update has been installed. Would you like to restart the application now?",
+    "updateComplete": "Update Complete",
+    "restartNow": "Restart Now",
+    "restartLater": "Later",
+    "errors": {
+      "devModeNotAvailable": "Auto-update not available in development mode",
+      "noUpdateAvailable": "No update available",
+      "installFailed": "Failed to install update",
+      "updateError": "Update Error"
+    }
   },
   "common": {
     "close": "Close"
   },
   "header": {
-    "downloadReleases": "Download releases"
+    "downloadReleases": "Download releases",
+    "debugLogs": "Debug Logs"
   }
 }
