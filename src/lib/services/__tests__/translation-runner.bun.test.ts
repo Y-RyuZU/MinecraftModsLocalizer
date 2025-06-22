@@ -1,6 +1,5 @@
 import { test, describe, beforeEach, expect, mock } from 'bun:test';
 import { runTranslationJobs, RunTranslationJobsOptions } from '../translation-runner';
-import { TranslationService } from '../translation-service';
 import { TranslationResult } from '../../types/minecraft';
 import { 
   mockModData, 
