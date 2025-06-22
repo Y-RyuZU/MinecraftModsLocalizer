@@ -1,0 +1,73 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+            node_modules
+          key: ${{ runner.os }}-pr-${{ hashFiles('**/Cargo.lock', '**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-pr-
+      
+      - name: Install dependencies
+        run: bun install
+      
+      - name: Check formatting (Rust)
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      
+      - name: Run Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+      
+      - name: Run linting (TypeScript)
+        run: bun run lint
+      
+      - name: Run type checking
+        run: bun run typecheck
+      
+      - name: Run tests
+        run: bun test
+      
+      - name: Build check
+        run: |
+          cd src-tauri
+          cargo check --all-features
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run cargo audit
+        uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true

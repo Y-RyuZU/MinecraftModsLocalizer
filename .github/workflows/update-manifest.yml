@@ -1,0 +1,63 @@
+name: Generate Update Manifest
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-manifest:
+    name: Generate latest.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate update manifest
+        run: |
+          # Extract version and download URLs from release
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix
+          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Find asset URLs
+          WINDOWS_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".msi")) | .browser_download_url' | head -1)
+          MACOS_INTEL_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | contains("x86_64-apple-darwin")) | .browser_download_url' | head -1)
+          MACOS_ARM_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | contains("aarch64-apple-darwin")) | .browser_download_url' | head -1)
+          LINUX_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".AppImage")) | .browser_download_url' | head -1)
+          
+          # Validate that all URLs were found
+          if [ -z "$WINDOWS_URL" ] || [ -z "$MACOS_INTEL_URL" ] || [ -z "$MACOS_ARM_URL" ] || [ -z "$LINUX_URL" ]; then
+            echo "Error: Not all platform assets were found"
+            echo "Windows URL: $WINDOWS_URL"
+            echo "macOS Intel URL: $MACOS_INTEL_URL"
+            echo "macOS ARM URL: $MACOS_ARM_URL"
+            echo "Linux URL: $LINUX_URL"
+            exit 1
+          fi
+          
+          # Generate latest.json with proper JSON escaping
+          jq -n \
+            --arg version "$VERSION_NUMBER" \
+            --arg notes "${{ github.event.release.body }}" \
+            --arg pub_date "$RELEASE_DATE" \
+            --arg windows_url "$WINDOWS_URL" \
+            --arg macos_intel_url "$MACOS_INTEL_URL" \
+            --arg macos_arm_url "$MACOS_ARM_URL" \
+            --arg linux_url "$LINUX_URL" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": { url: $windows_url },
+                "darwin-x86_64": { url: $macos_intel_url },
+                "darwin-aarch64": { url: $macos_arm_url },
+                "linux-x86_64": { url: $linux_url }
+              }
+            }' > latest.json
+          
+          # Upload latest.json to release
+          gh release upload "${{ github.event.release.tag_name }}" latest.json --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
