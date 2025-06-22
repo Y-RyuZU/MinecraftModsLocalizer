@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AppConfig } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
-import { SupportedLanguage, DEFAULT_LANGUAGES } from "@/lib/types/llm";
+import { SupportedLanguage } from "@/lib/types/llm";
 import { TargetLanguageDialog } from "./target-language-dialog";
 
 interface TranslationSettingsProps {
@@ -37,8 +37,6 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
     }
   };
 
-  // Get all available languages (default + additional)
-  const allLanguages = [...DEFAULT_LANGUAGES, ...(config.translation.additionalLanguages || [])];
 
   return (
     <Card className="mb-6">

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SupportedLanguage, DEFAULT_LANGUAGES } from "@/lib/types/llm";
 import { useAppTranslation } from "@/lib/i18n";
 import { X } from "lucide-react";

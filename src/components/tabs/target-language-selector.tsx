@@ -41,8 +41,6 @@ export const TargetLanguageSelector: React.FC<TargetLanguageSelectorProps> = ({
     }
   };
 
-  // Translate the label key here
-  const translatedLabel = t(labelKey);
 
   // Generate a stable ID from the key
   const selectId = `lang-select-${labelKey.replace(/\./g, '-')}`;

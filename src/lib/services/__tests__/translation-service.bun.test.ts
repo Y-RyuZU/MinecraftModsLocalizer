@@ -134,7 +134,7 @@ describe('TranslationService', () => {
   describe('Job Management', () => {
     test('should clear jobs correctly', () => {
       const job1 = translationService.createJob(mockModData.simpleMod.content, 'ja_jp');
-      const job2 = translationService.createJob({'key': 'value'}, 'zh_cn');
+      translationService.createJob({'key': 'value'}, 'zh_cn');
 
       expect(translationService.getAllJobs()).toHaveLength(2);
 
@@ -186,7 +186,7 @@ describe('TranslationService', () => {
         apiKey: 'test-key'
       };
 
-      const service = new TranslationService({ llmConfig: config });
+      new TranslationService({ llmConfig: config });
       
       // Should use adapter's max chunk size (50) as default
       expect(mockAdapter.getMaxChunkSize).toHaveBeenCalled();

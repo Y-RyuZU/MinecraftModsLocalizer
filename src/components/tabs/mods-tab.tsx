@@ -22,7 +22,6 @@ export function ModsTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
     // Mod-level progress tracking
     setTotalMods,
     setCompletedMods,

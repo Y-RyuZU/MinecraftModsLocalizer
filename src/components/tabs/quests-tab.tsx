@@ -128,7 +128,7 @@ export function QuestsTab() {
           target.name
         );
         totalChunksCount += tempJob.chunks.length;
-      } catch (error) {
+      } catch {
         // If we can't analyze the file, assume 1 chunk
         totalChunksCount += 1;
       }
