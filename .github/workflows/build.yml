@@ -35,11 +35,6 @@ jobs:
       
       - name: Run tests
         run: bun run test:jest
-      
-      - name: Setup tmate session (for debugging)
-        if: failure() || github.event_name == 'workflow_dispatch'
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 3
 
   build:
     name: Build - ${{ matrix.platform.target }}
