@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
-import { AppConfig, DEFAULT_MODELS } from "@/lib/types/config";
+import { AppConfig, DEFAULT_MODELS, DEFAULT_API_CONFIG } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "@/lib/types/llm";
 
@@ -111,13 +111,32 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
             <Input 
               type="number"
-              value={config.llm.maxRetries || 5}
+              value={config.llm.maxRetries ?? DEFAULT_API_CONFIG.maxRetries}
               onChange={(e) => {
                 config.llm.maxRetries = parseInt(e.target.value);
                 setConfig({ ...config });
               }}
-              placeholder="5"
+              placeholder={DEFAULT_API_CONFIG.maxRetries.toString()}
             />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('settings.temperature') || 'Temperature'}</label>
+            <Input 
+              type="number"
+              value={config.llm.temperature ?? DEFAULT_API_CONFIG.temperature}
+              onChange={(e) => {
+                config.llm.temperature = parseFloat(e.target.value);
+                setConfig({ ...config });
+              }}
+              placeholder={DEFAULT_API_CONFIG.temperature.toString()}
+              min="0"
+              max="2"
+              step="0.1"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('settings.temperatureHint') || 'Controls randomness (0.0-2.0). Higher values make output more creative.'}
+            </p>
           </div>
           
           <div className="space-y-2 col-span-2">

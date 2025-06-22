@@ -96,8 +96,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         
         const completion = await anthropic.messages.create({
           model,
-          max_tokens: DEFAULT_API_CONFIG.maxTokens,
-          temperature: DEFAULT_API_CONFIG.temperature,
+          max_tokens: 4096,
+          temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
           system: [
             {
               type: "text",

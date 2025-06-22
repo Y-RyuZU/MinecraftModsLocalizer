@@ -289,7 +289,8 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       max_retries: config.llm.maxRetries,
       prompt_template: config.llm.promptTemplate,
       system_prompt: config.llm.systemPrompt,
-      user_prompt: config.llm.userPrompt
+      user_prompt: config.llm.userPrompt,
+      temperature: config.llm.temperature
     },
     translation: {
       mod_chunk_size: config.translation.modChunkSize,
@@ -328,27 +329,28 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       apiKey: (llm?.api_key as string) || "",
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
-      maxRetries: (llm?.max_retries as number) || 5,
+      maxRetries: (llm?.max_retries as number) || DEFAULT_CONFIG.llm.maxRetries,
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
-      userPrompt: llm?.user_prompt as string | undefined
+      userPrompt: llm?.user_prompt as string | undefined,
+      temperature: (llm?.temperature as number) || DEFAULT_CONFIG.llm.temperature
     },
     translation: {
-      modChunkSize: (translation?.mod_chunk_size as number) || 50,
-      questChunkSize: (translation?.quest_chunk_size as number) || 1,
-      guidebookChunkSize: (translation?.guidebook_chunk_size as number) || 1,
-      additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || [],
-      resourcePackName: (translation?.resource_pack_name as string) || "MinecraftModsLocalizer"
+      modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,
+      questChunkSize: (translation?.quest_chunk_size as number) || DEFAULT_CONFIG.translation.questChunkSize,
+      guidebookChunkSize: (translation?.guidebook_chunk_size as number) || DEFAULT_CONFIG.translation.guidebookChunkSize,
+      additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || DEFAULT_CONFIG.translation.additionalLanguages,
+      resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName
     },
     ui: {
-      theme: (ui?.theme as "light" | "dark" | "system") || "system"
+      theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme
     },
     paths: {
-      minecraftDir: (paths?.minecraft_dir as string) || "",
-      modsDir: (paths?.mods_dir as string) || "",
-      resourcePacksDir: (paths?.resource_packs_dir as string) || "",
-      configDir: (paths?.config_dir as string) || "",
-      logsDir: (paths?.logs_dir as string) || ""
+      minecraftDir: (paths?.minecraft_dir as string) || DEFAULT_CONFIG.paths.minecraftDir,
+      modsDir: (paths?.mods_dir as string) || DEFAULT_CONFIG.paths.modsDir,
+      resourcePacksDir: (paths?.resource_packs_dir as string) || DEFAULT_CONFIG.paths.resourcePacksDir,
+      configDir: (paths?.config_dir as string) || DEFAULT_CONFIG.paths.configDir,
+      logsDir: (paths?.logs_dir as string) || DEFAULT_CONFIG.paths.logsDir
     }
   };
 }
