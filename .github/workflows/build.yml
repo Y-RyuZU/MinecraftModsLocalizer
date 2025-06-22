@@ -39,6 +39,10 @@ jobs:
   build:
     name: Build - ${{ matrix.platform.target }}
     needs: test
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}      # Repository Secret
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
     strategy:
       fail-fast: false
       matrix:
