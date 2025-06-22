@@ -114,10 +114,10 @@ export class UpdateService {
       
       const data = await response.json();
       return data as GitHubRelease;
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timeout: Unable to reach GitHub API');
       }
       
@@ -167,8 +167,8 @@ export class UpdateService {
       );
       
       return result;
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to check for updates';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to check for updates';
       console.error('Update check failed:', errorMessage);
       await this.logError(errorMessage);
       
@@ -189,9 +189,9 @@ export class UpdateService {
     try {
       await invoke('open_external_url', { url });
       await this.logMessage(`Opened release URL: ${url}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to open URL:', error);
-      await this.logError(`Failed to open URL: ${error.message || error}`);
+      await this.logError(`Failed to open URL: ${error instanceof Error ? error.message : String(error)}`);
       // Fallback to window.open if Tauri command fails
       if (typeof window !== 'undefined') {
         window.open(url, '_blank');
@@ -206,7 +206,7 @@ export class UpdateService {
   private static async logMessage(message: string): Promise<void> {
     try {
       await invoke('log_file_operation', { message: `[UpdateService] ${message}` });
-    } catch (error) {
+    } catch {
       console.log(`[UpdateService] ${message}`);
     }
   }
@@ -221,7 +221,7 @@ export class UpdateService {
         message: `[UpdateService] ${message}`,
         processType: 'update_check'
       });
-    } catch (error) {
+    } catch {
       console.error(`[UpdateService] ${message}`);
     }
   }

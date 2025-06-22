@@ -9,7 +9,7 @@ export interface UpdateProgress {
 
 export interface UpdateResult {
   shouldUpdate: boolean;
-  manifest?: any;
+  manifest?: Record<string, unknown>;
   error?: string;
 }
 

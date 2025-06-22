@@ -250,12 +250,12 @@ export class ConfigService {
    * @returns Merged object
    */
   private static deepMerge<T>(target: T, source: Partial<T>): T {
-    const result = { ...target } as any;
+    const result = { ...target } as Record<string, unknown>;
     
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
         const sourceValue = source[key];
-        const targetValue = (target as any)[key];
+        const targetValue = (target as Record<string, unknown>)[key];
         
         if (sourceValue === undefined) {
           continue;
@@ -278,7 +278,7 @@ export class ConfigService {
  * @param config Frontend config in camelCase
  * @returns Backend config in snake_case
  */
-function convertToSnakeCase(config: AppConfig): Record<string, any> {
+function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
   return {
     llm: {
       provider: config.llm.provider,
@@ -315,34 +315,39 @@ function convertToSnakeCase(config: AppConfig): Record<string, any> {
  * @param backendConfig Backend config in snake_case
  * @returns Frontend config in camelCase
  */
-function convertFromSnakeCase(backendConfig: Record<string, any>): AppConfig {
+function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig {
+  const llm = backendConfig.llm as Record<string, unknown> | undefined;
+  const translation = backendConfig.translation as Record<string, unknown> | undefined;
+  const ui = backendConfig.ui as Record<string, unknown> | undefined;
+  const paths = backendConfig.paths as Record<string, unknown> | undefined;
+
   return {
     llm: {
-      provider: backendConfig.llm?.provider || "",
-      apiKey: backendConfig.llm?.api_key || "",
-      baseUrl: backendConfig.llm?.base_url,
-      model: backendConfig.llm?.model,
-      maxRetries: backendConfig.llm?.max_retries || 5,
-      promptTemplate: backendConfig.llm?.prompt_template,
-      systemPrompt: backendConfig.llm?.system_prompt,
-      userPrompt: backendConfig.llm?.user_prompt
+      provider: (llm?.provider as string) || "",
+      apiKey: (llm?.api_key as string) || "",
+      baseUrl: llm?.base_url as string | undefined,
+      model: llm?.model as string | undefined,
+      maxRetries: (llm?.max_retries as number) || 5,
+      promptTemplate: llm?.prompt_template as string | undefined,
+      systemPrompt: llm?.system_prompt as string | undefined,
+      userPrompt: llm?.user_prompt as string | undefined
     },
     translation: {
-      modChunkSize: backendConfig.translation?.mod_chunk_size || 50,
-      questChunkSize: backendConfig.translation?.quest_chunk_size || 1,
-      guidebookChunkSize: backendConfig.translation?.guidebook_chunk_size || 1,
-      additionalLanguages: backendConfig.translation?.custom_languages || [],
-      resourcePackName: backendConfig.translation?.resource_pack_name || "MinecraftModsLocalizer"
+      modChunkSize: (translation?.mod_chunk_size as number) || 50,
+      questChunkSize: (translation?.quest_chunk_size as number) || 1,
+      guidebookChunkSize: (translation?.guidebook_chunk_size as number) || 1,
+      additionalLanguages: (translation?.custom_languages as unknown[]) || [],
+      resourcePackName: (translation?.resource_pack_name as string) || "MinecraftModsLocalizer"
     },
     ui: {
-      theme: backendConfig.ui?.theme || "system"
+      theme: (ui?.theme as string) || "system"
     },
     paths: {
-      minecraftDir: backendConfig.paths?.minecraft_dir || "",
-      modsDir: backendConfig.paths?.mods_dir || "",
-      resourcePacksDir: backendConfig.paths?.resource_packs_dir || "",
-      configDir: backendConfig.paths?.config_dir || "",
-      logsDir: backendConfig.paths?.logs_dir || ""
+      minecraftDir: (paths?.minecraft_dir as string) || "",
+      modsDir: (paths?.mods_dir as string) || "",
+      resourcePacksDir: (paths?.resource_packs_dir as string) || "",
+      configDir: (paths?.config_dir as string) || "",
+      logsDir: (paths?.logs_dir as string) || ""
     }
   };
 }
