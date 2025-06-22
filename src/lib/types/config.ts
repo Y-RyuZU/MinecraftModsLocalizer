@@ -18,15 +18,7 @@ export const DEFAULT_API_URLS = {
   google: undefined // Google uses SDK default
 } as const;
 
-/**
- * Default API configuration
- */
-export const DEFAULT_API_CONFIG = {
-  temperature: 0.3,
-  maxTokens: 4096,
-  maxRetries: 5,
-  chunkSize: 50
-} as const;
+// Removed DEFAULT_API_CONFIG - values moved to DEFAULT_CONFIG for unified configuration
 
 /**
  * Storage keys
@@ -71,6 +63,8 @@ export interface LLMProviderConfig {
   systemPrompt?: string;
   /** User prompt template with variables for the specific task */
   userPrompt?: string;
+  /** Temperature setting for the LLM (0.0 to 2.0) */
+  temperature?: number;
 }
 
 /**
@@ -127,19 +121,21 @@ export interface UpdateConfig {
 
 /**
  * Default application configuration
+ * Unified configuration with all default values in one place
  */
 export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: "openai",
     apiKey: "",
     model: DEFAULT_MODELS.openai,
-    maxRetries: DEFAULT_API_CONFIG.maxRetries,
+    maxRetries: 3,
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
-    userPrompt: DEFAULT_USER_PROMPT
+    userPrompt: DEFAULT_USER_PROMPT,
+    temperature: 1.0
   },
   translation: {
-    modChunkSize: DEFAULT_API_CONFIG.chunkSize,
+    modChunkSize: 50,
     questChunkSize: 1,
     guidebookChunkSize: 1,
     additionalLanguages: [],
@@ -159,3 +155,13 @@ export const DEFAULT_CONFIG: AppConfig = {
     checkOnStartup: true
   }
 };
+
+/**
+ * Backward compatibility: Export individual default values from unified config
+ * This maintains existing API while using the unified configuration as source
+ */
+export const DEFAULT_API_CONFIG = {
+  temperature: DEFAULT_CONFIG.llm.temperature!,
+  maxRetries: DEFAULT_CONFIG.llm.maxRetries,
+  chunkSize: DEFAULT_CONFIG.translation.modChunkSize
+} as const;

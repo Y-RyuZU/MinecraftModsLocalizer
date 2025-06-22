@@ -86,8 +86,8 @@ export class GeminiAdapter extends BaseLLMAdapter {
       model,
       systemInstruction: systemPrompt,
       generationConfig: {
-        temperature: DEFAULT_API_CONFIG.temperature,
-        maxOutputTokens: DEFAULT_API_CONFIG.maxTokens,
+        temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+        maxOutputTokens: 4096,
       },
       safetySettings: [
         {

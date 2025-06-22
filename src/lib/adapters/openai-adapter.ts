@@ -105,8 +105,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
               content: userPrompt
             }
           ],
-          temperature: DEFAULT_API_CONFIG.temperature,
-          user: "minecraft-mod-localizer" // For better cache routing
+          temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+          user: "minecraft-mod-localizer"
         });
         
         await this.logApiRequest(`API request successful`);
