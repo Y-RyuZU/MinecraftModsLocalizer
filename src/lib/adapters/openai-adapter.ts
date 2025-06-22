@@ -1,5 +1,5 @@
 import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
-import { DEFAULT_MODELS, DEFAULT_API_URLS, DEFAULT_API_CONFIG } from "../types/config";
+import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import OpenAI from "openai";
@@ -125,7 +125,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
         
-        const cachedTokens = (completion.usage as any)?.prompt_tokens_details?.cached_tokens || 0;
+        const usage = completion.usage as Record<string, unknown> | undefined;
+        const promptTokensDetails = usage?.prompt_tokens_details as Record<string, unknown> | undefined;
+        const cachedTokens = (promptTokensDetails?.cached_tokens as number) || 0;
         const cacheInfo = cachedTokens > 0 
           ? ` (cached: ${cachedTokens}/${completion.usage?.prompt_tokens} prompt tokens)`
           : '';

@@ -40,7 +40,7 @@ interface AutoScrollAreaProps extends React.ComponentProps<typeof ScrollArea> {
   /**
    * Dependencies that trigger auto-scroll
    */
-  scrollDependencies?: any[];
+  scrollDependencies?: unknown[];
   
   /**
    * Callback when auto-scroll state changes
@@ -68,9 +68,7 @@ const AutoScrollArea = React.forwardRef<
   const {
     isAutoScrollActive,
     scrollHandlers,
-    toggleAutoScroll,
-    enableAutoScroll,
-    disableAutoScroll
+    toggleAutoScroll
   } = useAutoScroll(scrollRef as React.RefObject<HTMLElement>, {
     enabled: autoScroll,
     interactionDelay,

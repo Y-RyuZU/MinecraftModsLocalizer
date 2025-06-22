@@ -22,7 +22,7 @@ export interface UseAutoScrollOptions {
   /**
    * Dependency array to trigger scroll
    */
-  dependencies?: any[];
+  dependencies?: unknown[];
 }
 
 export interface UseAutoScrollReturn {
@@ -142,12 +142,12 @@ export function useAutoScroll(
     setIsAutoScrollEnabled(false);
   }, []);
 
-  // Auto-scroll effect
+  // Auto-scroll effect  
   useEffect(() => {
     if (isAutoScrollActive) {
       scrollToBottom();
     }
-  }, [...dependencies, isAutoScrollActive, scrollToBottom]);
+  }, [dependencies, isAutoScrollActive, scrollToBottom]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
