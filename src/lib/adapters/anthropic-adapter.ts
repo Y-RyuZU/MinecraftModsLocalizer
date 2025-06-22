@@ -140,7 +140,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         const timeTaken = Date.now() - startTime;
         
         // Log cache usage information if available
-        const usage = completion.usage as Record<string, unknown>;
+        const usage = completion.usage as unknown as Record<string, unknown>;
         const cacheCreationTokens = (usage?.cache_creation_input_tokens as number) || 0;
         const cacheReadTokens = (usage?.cache_read_input_tokens as number) || 0;
         let cacheInfo = '';
