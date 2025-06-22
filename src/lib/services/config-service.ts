@@ -1,4 +1,5 @@
 import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS } from "../types/config";
+import { SupportedLanguage } from "../types/llm";
 
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
@@ -336,11 +337,11 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       modChunkSize: (translation?.mod_chunk_size as number) || 50,
       questChunkSize: (translation?.quest_chunk_size as number) || 1,
       guidebookChunkSize: (translation?.guidebook_chunk_size as number) || 1,
-      additionalLanguages: (translation?.custom_languages as unknown[]) || [],
+      additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || [],
       resourcePackName: (translation?.resource_pack_name as string) || "MinecraftModsLocalizer"
     },
     ui: {
-      theme: (ui?.theme as string) || "system"
+      theme: (ui?.theme as "light" | "dark" | "system") || "system"
     },
     paths: {
       minecraftDir: (paths?.minecraft_dir as string) || "",
