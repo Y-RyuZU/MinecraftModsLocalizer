@@ -133,6 +133,8 @@ export interface TranslationResult {
   type: "mod" | "ftb" | "better" | "patchouli" | "custom";
   /** Target ID */
   id: string;
+  /** Display name (optional, used for guidebooks and other items where name differs from ID) */
+  displayName?: string;
   /** Target language */
   targetLanguage: string;
   /** Translated content */

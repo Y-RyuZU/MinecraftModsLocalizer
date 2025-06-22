@@ -41,7 +41,8 @@ export function CompletionDialog({
   // Filter results for search
   const filteredResults = results.filter(result => 
     !filterText || 
-    result.id.toLowerCase().includes(filterText.toLowerCase())
+    result.id.toLowerCase().includes(filterText.toLowerCase()) ||
+    (result.displayName && result.displayName.toLowerCase().includes(filterText.toLowerCase()))
   );
 
 
@@ -145,7 +146,7 @@ export function CompletionDialog({
                         <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                       )}
                       <span className={result.success ? 'text-green-700' : 'text-red-700'}>
-                        {result.id}
+                        {result.displayName || result.id}
                       </span>
                     </div>
                   ))

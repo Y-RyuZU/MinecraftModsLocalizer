@@ -109,6 +109,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       onResult({
         type,
         id: type === "mod" ? (job.currentFileName || job.id) : job.id,
+        displayName: job.targetName,
         targetLanguage,
         content,
         outputPath,
