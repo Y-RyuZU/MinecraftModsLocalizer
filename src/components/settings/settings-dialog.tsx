@@ -5,11 +5,11 @@ import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { LLMSettings } from "@/components/settings/llm-settings";
 import { TranslationSettings } from "@/components/settings/translation-settings";
 import { PathSettings } from "@/components/settings/path-settings";
 import { UISettings } from "@/components/settings/ui-settings";
-import { SettingsActions } from "@/components/settings/settings-actions";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from "@/lib/services/file-service";
@@ -19,6 +19,7 @@ export function SettingsDialog() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { config, setConfig } = useAppStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [originalConfig, setOriginalConfig] = useState(config);
   
   // Save settings
   const handleSave = async () => {
@@ -32,6 +33,12 @@ export function SettingsDialog() {
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  // Discard changes
+  const handleDiscard = () => {
+    setConfig(originalConfig);
+    setIsDialogOpen(false);
   };
   
   // Reset settings
@@ -69,11 +76,24 @@ export function SettingsDialog() {
         <Settings className="h-5 w-5" />
       </Button>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        if (open) {
+          setOriginalConfig(config);
+        }
+        setIsDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('cards.settings')}</DialogTitle>
           </DialogHeader>
+          <div className="flex items-center justify-end space-x-2 pb-4 border-b">
+            <Button variant="outline" onClick={handleDiscard}>
+              {t('settings.discard')}
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? t('settings.saving') : t('settings.saveSettings')}
+            </Button>
+          </div>
           <div className="space-y-8 py-4">
             {/* LLM Settings */}
             <LLMSettings config={config} setConfig={setConfig} />
@@ -87,12 +107,16 @@ export function SettingsDialog() {
             {/* UI Settings */}
             <UISettings config={config} setConfig={setConfig} />
             
-            {/* Actions */}
-            <SettingsActions 
-              isSaving={isSaving} 
-              onSave={handleSave} 
-              onReset={handleReset} 
-            />
+            {/* Reset Button */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-end">
+                  <Button variant="outline" onClick={handleReset}>
+                    {t('settings.resetToDefaults')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </DialogContent>
       </Dialog>

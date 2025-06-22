@@ -53,7 +53,8 @@
     "system": "System",
     "resetToDefaults": "Reset to Defaults",
     "saveSettings": "Save Settings",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "discard": "Discard"
   },
   "tabs": {
     "mods": "Mods",
