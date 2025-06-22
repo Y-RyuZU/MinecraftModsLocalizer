@@ -88,56 +88,97 @@ pub async fn get_mod_files(_app_handle: tauri::AppHandle, dir: &str) -> std::res
 pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> std::result::Result<Vec<String>, String> {
     info!("Getting FTB quest files from {}", dir);
     
-    let path = Path::new(dir);
-    if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
-    }
+    // Validate and canonicalize the path to prevent directory traversal attacks
+    let path = match Path::new(dir).canonicalize() {
+        Ok(canonical_path) => {
+            // Ensure the path is actually a directory
+            if !canonical_path.is_dir() {
+                return Err(format!("Path is not a directory: {}", dir));
+            }
+            canonical_path
+        }
+        Err(e) => {
+            error!("Failed to canonicalize path {}: {}", dir, e);
+            return Err(format!("Invalid directory path: {}", dir));
+        }
+    };
     
     let mut quest_files = Vec::new();
     
-    // Look for FTB quests in the config/ftbquests directory
-    let config_dir = path.join("config");
-    let ftb_quests_dir = config_dir.join("ftbquests");
-    
-    if ftb_quests_dir.exists() && ftb_quests_dir.is_dir() {
-        info!("Found FTB quests directory: {}", ftb_quests_dir.display());
-        // Walk through the directory and find all SNBT files
-        for entry in WalkDir::new(ftb_quests_dir).into_iter().filter_map(|e| e.ok()) {
-            let entry_path = entry.path();
-            
-            // Check if the file is an SNBT file
-            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "snbt") {
-                if let Some(path_str) = entry_path.to_str() {
-                    quest_files.push(path_str.to_string());
-                }
-            }
-        }
-    } else {
-        info!("No FTB quests directory found at {}", ftb_quests_dir.display());
-    }
-    
-    // Also check for kubejs lang files
+    // First, check for KubeJS lang files - if they exist, use them exclusively
     let kubejs_dir = path.join("kubejs");
     let kubejs_assets_dir = kubejs_dir.join("assets").join("kubejs").join("lang");
+    let kubejs_en_us_file = kubejs_assets_dir.join("en_us.json");
     
-    if kubejs_assets_dir.exists() && kubejs_assets_dir.is_dir() {
-        info!("Found kubejs lang directory: {}", kubejs_assets_dir.display());
-        // Walk through the directory and find all JSON files
-        for entry in WalkDir::new(kubejs_assets_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
-            let entry_path = entry.path();
-            
-            // Check if the file is a JSON file
-            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
-                if let Some(path_str) = entry_path.to_str() {
-                    quest_files.push(path_str.to_string());
+    if kubejs_en_us_file.exists() && kubejs_en_us_file.is_file() {
+        info!("Found KubeJS en_us.json file - using KubeJS lang file translation method");
+        
+        if kubejs_assets_dir.exists() && kubejs_assets_dir.is_dir() {
+            info!("Scanning kubejs lang directory: {}", kubejs_assets_dir.display());
+            // Walk through the directory and find all JSON files
+            for entry in WalkDir::new(kubejs_assets_dir).max_depth(1).into_iter() {
+                match entry {
+                    Ok(entry) => {
+                        let entry_path = entry.path();
+                        
+                        // Check if the file is a JSON file
+                        if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
+                            match entry_path.to_str() {
+                                Some(path_str) => quest_files.push(path_str.to_string()),
+                                None => {
+                                    error!("Failed to convert path to string: {}", entry_path.display());
+                                    return Err(format!("Invalid path encoding: {}", entry_path.display()));
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Error reading KubeJS lang directory entry: {}", e);
+                        return Err(format!("Failed to read KubeJS lang directory: {}", e));
+                    }
                 }
             }
+        } else {
+            return Err(format!("KubeJS lang directory not accessible: {}", kubejs_assets_dir.display()));
         }
     } else {
-        info!("No kubejs lang directory found at {}", kubejs_assets_dir.display());
+        info!("No KubeJS en_us.json found - falling back to SNBT file translation method");
+        
+        // Look for FTB quests in the config/ftbquests directory
+        let config_dir = path.join("config");
+        let ftb_quests_dir = config_dir.join("ftbquests");
+        
+        if ftb_quests_dir.exists() && ftb_quests_dir.is_dir() {
+            info!("Scanning FTB quests directory: {}", ftb_quests_dir.display());
+            // Walk through the directory and find all SNBT files
+            for entry in WalkDir::new(ftb_quests_dir).into_iter() {
+                match entry {
+                    Ok(entry) => {
+                        let entry_path = entry.path();
+                        
+                        // Check if the file is an SNBT file
+                        if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "snbt") {
+                            match entry_path.to_str() {
+                                Some(path_str) => quest_files.push(path_str.to_string()),
+                                None => {
+                                    error!("Failed to convert SNBT path to string: {}", entry_path.display());
+                                    return Err(format!("Invalid SNBT path encoding: {}", entry_path.display()));
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Error reading FTB quests directory entry: {}", e);
+                        return Err(format!("Failed to read FTB quests directory: {}", e));
+                    }
+                }
+            }
+        } else {
+            info!("No FTB quests directory found at {}", ftb_quests_dir.display());
+        }
     }
     
-    debug!("Found {} FTB quest files", quest_files.len());
+    debug!("Found {} FTB quest files using conditional logic", quest_files.len());
     Ok(quest_files)
 }
 
