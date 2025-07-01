@@ -352,3 +352,122 @@ pub fn create_temp_directory_with_session(minecraft_dir: String, session_id: Str
 pub fn generate_session_id() -> String {
     generate_session_timestamp()
 }
+
+/// Log translation process start with session information
+#[tauri::command]
+pub fn log_translation_start(
+    session_id: &str, 
+    target_language: &str, 
+    total_files: i32, 
+    total_content_size: i32,
+    logger: tauri::State<Arc<AppLogger>>
+) {
+    let message = format!(
+        "Starting translation session {} to {} - {} files, ~{} translation keys", 
+        session_id, target_language, total_files, total_content_size
+    );
+    logger.info(&message, Some("TRANSLATION_START"));
+}
+
+/// Log pre-translation statistics
+#[tauri::command]
+pub fn log_translation_statistics(
+    total_files: i32,
+    estimated_keys: i32, 
+    estimated_lines: i32,
+    content_types: Vec<String>,
+    logger: tauri::State<Arc<AppLogger>>
+) {
+    logger.info(
+        &format!("Translation scope: {} files containing ~{} keys and ~{} lines", 
+                total_files, estimated_keys, estimated_lines), 
+        Some("TRANSLATION_STATS")
+    );
+    
+    if !content_types.is_empty() {
+        logger.info(
+            &format!("Content types to translate: {}", content_types.join(", ")), 
+            Some("TRANSLATION_STATS")
+        );
+    }
+}
+
+/// Log individual file progress with detailed status
+#[tauri::command]
+pub fn log_file_progress(
+    file_name: &str,
+    file_index: i32,
+    total_files: i32,
+    chunks_completed: i32,
+    total_chunks: i32,
+    keys_completed: i32,
+    total_keys: i32,
+    logger: tauri::State<Arc<AppLogger>>
+) {
+    let percentage = if total_files > 0 { 
+        (file_index as f32 / total_files as f32 * 100.0) as i32 
+    } else { 0 };
+    
+    let message = format!(
+        "File {}/{} ({}%): {} - {}/{} chunks, {}/{} keys completed",
+        file_index, total_files, percentage, file_name, 
+        chunks_completed, total_chunks, keys_completed, total_keys
+    );
+    
+    logger.info(&message, Some("TRANSLATION_PROGRESS"));
+}
+
+/// Log translation completion with comprehensive summary
+#[tauri::command]
+pub fn log_translation_completion(
+    session_id: &str,
+    duration_seconds: f64,
+    total_files_processed: i32,
+    successful_files: i32,
+    failed_files: i32,
+    total_keys_translated: i32,
+    total_api_calls: i32,
+    logger: tauri::State<Arc<AppLogger>>
+) {
+    let success_rate = if total_files_processed > 0 {
+        (successful_files as f32 / total_files_processed as f32 * 100.0) as i32
+    } else { 0 };
+    
+    logger.info(
+        &format!(
+            "Translation session {} completed in {:.2}s - {}/{} files successful ({}%)", 
+            session_id, duration_seconds, successful_files, total_files_processed, success_rate
+        ), 
+        Some("TRANSLATION_COMPLETE")
+    );
+    
+    logger.info(
+        &format!(
+            "Summary: {} keys translated across {} API calls - {} failed files",
+            total_keys_translated, total_api_calls, failed_files
+        ),
+        Some("TRANSLATION_COMPLETE")
+    );
+}
+
+/// Log performance metrics for debugging
+#[tauri::command]
+pub fn log_performance_metrics(
+    operation: &str,
+    duration_ms: f64,
+    memory_usage_mb: Option<f64>,
+    additional_info: Option<String>,
+    logger: tauri::State<Arc<AppLogger>>
+) {
+    let mut message = format!("Performance: {} took {:.2}ms", operation, duration_ms);
+    
+    if let Some(memory) = memory_usage_mb {
+        message.push_str(&format!(", memory: {:.1}MB", memory));
+    }
+    
+    if let Some(info) = additional_info {
+        message.push_str(&format!(", {}", info));
+    }
+    
+    logger.debug(&message, Some("PERFORMANCE"));
+}

@@ -47,7 +47,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
    */
   private async logError(message: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: "API_REQUEST" });
+      await invoke('log_error', { message, processType: "API_REQUEST" });
     } catch (error) {
       console.error('Failed to log error message:', error);
     }

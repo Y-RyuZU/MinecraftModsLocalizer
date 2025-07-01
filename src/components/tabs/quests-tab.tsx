@@ -5,6 +5,7 @@ import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
+import { invoke } from "@tauri-apps/api/core";
 
 export function QuestsTab() {
   const { 
@@ -128,6 +129,8 @@ export function QuestsTab() {
           target.name
         );
         totalChunksCount += tempJob.chunks.length;
+        // Clean up the temporary job
+        translationService.clearJob(tempJob.id);
       } catch {
         // If we can't analyze the file, assume 1 chunk
         totalChunksCount += 1;
@@ -143,6 +146,15 @@ export function QuestsTab() {
       setProgress(Math.round((i / selectedTargets.length) * 100));
       
       try {
+        // Log quest translation start
+        try {
+          await invoke('log_translation_process', { 
+            message: `Starting translation for quest: ${target.name} (${target.id})` 
+          });
+        } catch (error) {
+          console.error('Failed to log quest start:', error);
+        }
+        
         // Read quest file
         const content = await FileService.readTextFile(target.path);
         
@@ -152,6 +164,11 @@ export function QuestsTab() {
           targetLanguage,
           target.name
         );
+        
+        // Set job properties for proper logging
+        job.totalFiles = selectedTargets.length;
+        job.currentFileIndex = i + 1;
+        job.sessionId = job.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         
         // Store the job ID
         setCurrentJobId(job.id);
@@ -184,6 +201,15 @@ export function QuestsTab() {
         
         await FileService.writeTextFile(outputPath, translatedText);
         
+        // Log quest translation completion
+        try {
+          await invoke('log_translation_process', { 
+            message: `Completed translation for quest: ${target.name} (${target.id})` 
+          });
+        } catch (error) {
+          console.error('Failed to log quest completion:', error);
+        }
+        
         // Add translation result with proper success determination
         addTranslationResult({
           type: target.type,
@@ -195,6 +221,17 @@ export function QuestsTab() {
         });
       } catch (error) {
         console.error(`Failed to translate quest: ${target.name}`, error);
+        
+        // Log quest translation error
+        try {
+          await invoke('log_error', { 
+            message: `Failed to translate quest: ${target.name} (${target.id}) - ${error}`,
+            processType: 'TRANSLATION'
+          });
+        } catch (logError) {
+          console.error('Failed to log quest error:', logError);
+        }
+        
         // Add failed translation result
         addTranslationResult({
           type: target.type,

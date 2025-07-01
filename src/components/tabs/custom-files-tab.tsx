@@ -197,6 +197,10 @@ export function CustomFilesTab() {
             target.name
           );
           
+          // Set totalFiles and sessionId for proper logging
+          job.totalFiles = 1;
+          job.sessionId = job.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          
           // Store the job ID
           setCurrentJobId(job.id);
           
@@ -292,6 +296,10 @@ export function CustomFilesTab() {
         targetLanguage,
         currentFileName
       );
+      
+      // Set totalFiles and sessionId for proper logging
+      job.totalFiles = 1;
+      job.sessionId = job.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       
       // Store the job ID
       if (setCurrentJobId) {

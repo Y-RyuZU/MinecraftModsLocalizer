@@ -12,7 +12,7 @@ use filesystem::{
     create_resource_pack, write_lang_file, open_external_url
 };
 use config::{load_config, save_config};
-use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory, create_temp_directory, create_logs_directory_with_session, create_temp_directory_with_session, generate_session_id};
+use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory, create_temp_directory, create_logs_directory_with_session, create_temp_directory_with_session, generate_session_id, log_translation_start, log_translation_statistics, log_file_progress, log_translation_completion, log_performance_metrics};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -96,7 +96,14 @@ pub fn run() {
       create_temp_directory,
       create_logs_directory_with_session,
       create_temp_directory_with_session,
-      generate_session_id
+      generate_session_id,
+      
+      // Enhanced translation logging
+      log_translation_start,
+      log_translation_statistics,
+      log_file_progress,
+      log_translation_completion,
+      log_performance_metrics
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

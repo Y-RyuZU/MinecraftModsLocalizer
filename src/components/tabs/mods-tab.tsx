@@ -77,7 +77,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with JSON parsing error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -87,7 +87,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with UTF-8 encoding error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -97,7 +97,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Failed to analyze mod: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -156,7 +156,7 @@ export function ModsTab() {
         if (!sourceFile) {
           console.warn(`Source language file not found for mod: ${target.name}`);
           try {
-            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, process_type: "TRANSLATION" });
+            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, processType: "TRANSLATION" });
           } catch {
             // ignore logging errors
           }

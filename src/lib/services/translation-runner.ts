@@ -1,5 +1,6 @@
 import { TranslationService, TranslationJob } from "./translation-service";
 import { TranslationResult } from "../types/minecraft";
+import { invoke } from "@tauri-apps/api/core";
 
 /**
  * Shared translation runner for all tabs.
@@ -47,12 +48,28 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
 
   for (let i = 0; i < jobs.length; i++) {
     const job = jobs[i];
+    
+    // Set session information for comprehensive logging
+    job.totalFiles = jobs.length;
+    job.currentFileIndex = i + 1;
+    
     if (onJobStart) onJobStart(job, i);
     if (setCurrentJobId) setCurrentJobId(job.id);
 
     // Start the translation job chunk-by-chunk, checking for interruption
     job.status = "processing";
     job.startTime = Date.now();
+    
+    // Log initial file progress
+    await logFileProgress(
+      job.currentFileName || `File ${i + 1}`,
+      i + 1,
+      jobs.length,
+      0,
+      job.chunks.length,
+      0,
+      getTotalKeysInJob(job)
+    );
 
     for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
       // Check for cancellation
@@ -80,6 +97,22 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
       // Increment chunk-level progress once per chunk (only if chunk tracking is used)
       if (incrementCompletedChunks) incrementCompletedChunks();
       if (onJobChunkComplete) onJobChunkComplete(job, chunkIndex);
+      
+      // Log updated file progress after chunk completion
+      const completedChunks = job.chunks.filter(c => c.status === "completed").length;
+      const completedKeys = job.chunks
+        .filter(c => c.status === "completed")
+        .reduce((sum, c) => sum + Object.keys(c.content).length, 0);
+      
+      await logFileProgress(
+        job.currentFileName || `File ${i + 1}`,
+        i + 1,
+        jobs.length,
+        completedChunks,
+        job.chunks.length,
+        completedKeys,
+        getTotalKeysInJob(job)
+      );
     }
 
     // If interrupted, stop processing further jobs
@@ -91,6 +124,19 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     // Mark job as complete
     job.status = job.chunks.every((c: import("./translation-service").TranslationChunk) => c.status === "completed") ? "completed" : "failed";
     job.endTime = Date.now();
+    
+    // Log performance metrics for this job
+    const jobDuration = job.endTime - job.startTime;
+    const jobTotalKeys = getTotalKeysInJob(job);
+    const keysPerSecond = jobTotalKeys / (jobDuration / 1000);
+    
+    await logPerformanceMetrics(
+      `Job Translation`,
+      jobDuration,
+      undefined,
+      `${jobTotalKeys} keys, ${keysPerSecond.toFixed(2)} keys/sec, ${job.chunks.length} chunks`
+    );
+    
     if (onJobComplete) onJobComplete(job, i);
 
     // Write output and report result
@@ -121,4 +167,72 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     if (incrementCompletedMods) incrementCompletedMods();
   }
   if (setCurrentJobId) setCurrentJobId(null);
+}
+
+/**
+ * Log file progress with detailed status
+ * @param fileName Name of the file
+ * @param fileIndex Current file index (1-based)
+ * @param totalFiles Total number of files
+ * @param chunksCompleted Chunks completed for this file
+ * @param totalChunks Total chunks for this file
+ * @param keysCompleted Keys completed for this file
+ * @param totalKeys Total keys for this file
+ */
+async function logFileProgress(
+  fileName: string,
+  fileIndex: number,
+  totalFiles: number,
+  chunksCompleted: number,
+  totalChunks: number,
+  keysCompleted: number,
+  totalKeys: number
+): Promise<void> {
+  try {
+    await invoke('log_file_progress', {
+      fileName: fileName,
+      fileIndex: fileIndex,
+      totalFiles: totalFiles,
+      chunksCompleted: chunksCompleted,
+      totalChunks: totalChunks,
+      keysCompleted: keysCompleted,
+      totalKeys: totalKeys
+    });
+  } catch (error) {
+    console.error('Failed to log file progress:', error);
+  }
+}
+
+/**
+ * Get total number of keys in a translation job
+ * @param job Translation job
+ * @returns Total number of keys
+ */
+function getTotalKeysInJob(job: TranslationJob): number {
+  return job.chunks.reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
+}
+
+/**
+ * Log performance metrics for debugging
+ * @param operation Operation name
+ * @param durationMs Duration in milliseconds
+ * @param memoryUsageMb Optional memory usage in MB
+ * @param additionalInfo Optional additional information
+ */
+async function logPerformanceMetrics(
+  operation: string,
+  durationMs: number,
+  memoryUsageMb?: number,
+  additionalInfo?: string
+): Promise<void> {
+  try {
+    await invoke('log_performance_metrics', {
+      operation,
+      durationMs: durationMs,
+      memoryUsageMb: memoryUsageMb,
+      additionalInfo: additionalInfo
+    });
+  } catch (error) {
+    console.error('Failed to log performance metrics:', error);
+  }
 }

@@ -108,7 +108,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         return true;
       }
       
-      // 2. Translation process logs (progress, completion, etc.)
+      // 2. Enhanced translation process logs
       if (log.process_type === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
@@ -119,17 +119,52 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         return true;
       }
       
-      // 3. API request logs
+      // 3. New enhanced translation logging categories
+      if (log.process_type === 'TRANSLATION_START') {
+        return true; // Always show translation start logs
+      }
+      
+      if (log.process_type === 'TRANSLATION_STATS') {
+        return true; // Show pre-translation statistics
+      }
+      
+      if (log.process_type === 'TRANSLATION_PROGRESS') {
+        // Show file progress but limit frequency to avoid spam
+        const message = log.message.toLowerCase();
+        // Only show progress at certain milestones or completion
+        if (message.includes('100%') || message.includes('completed') || 
+            message.includes('50%') || message.includes('75%')) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (log.process_type === 'TRANSLATION_COMPLETE') {
+        return true; // Always show completion summaries
+      }
+      
+      // 4. Performance logs - only show for errors or important milestones
+      if (log.process_type === 'PERFORMANCE') {
+        // Only show performance logs for debug purposes (can be filtered out in production)
+        return levelStr === 'error' || levelStr === 'warning';
+      }
+      
+      // 5. API request logs
       if (log.process_type === 'API_REQUEST') {
         return true;
       }
       
-      // 4. File operation logs
+      // 6. File operation logs
       if (log.process_type === 'FILE_OPERATION') {
         return true;
       }
       
-      // 5. Warnings that might be important
+      // 7. System logs
+      if (log.process_type === 'SYSTEM') {
+        return true;
+      }
+      
+      // 8. Warnings that might be important
       if (levelStr === 'warning' || levelStr === 'warn') {
         return true;
       }
@@ -430,7 +465,7 @@ export function LogViewer({
         return true;
       }
       
-      // 2. Translation process logs (progress, completion, etc.)
+      // 2. Enhanced translation process logs
       if (log.process_type === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
@@ -441,17 +476,52 @@ export function LogViewer({
         return true;
       }
       
-      // 3. API request logs
+      // 3. New enhanced translation logging categories
+      if (log.process_type === 'TRANSLATION_START') {
+        return true; // Always show translation start logs
+      }
+      
+      if (log.process_type === 'TRANSLATION_STATS') {
+        return true; // Show pre-translation statistics
+      }
+      
+      if (log.process_type === 'TRANSLATION_PROGRESS') {
+        // Show file progress but limit frequency to avoid spam
+        const message = log.message.toLowerCase();
+        // Only show progress at certain milestones or completion
+        if (message.includes('100%') || message.includes('completed') || 
+            message.includes('50%') || message.includes('75%')) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (log.process_type === 'TRANSLATION_COMPLETE') {
+        return true; // Always show completion summaries
+      }
+      
+      // 4. Performance logs - only show for errors or important milestones
+      if (log.process_type === 'PERFORMANCE') {
+        // Only show performance logs for debug purposes (can be filtered out in production)
+        return levelStr === 'error' || levelStr === 'warning';
+      }
+      
+      // 5. API request logs
       if (log.process_type === 'API_REQUEST') {
         return true;
       }
       
-      // 4. File operation logs
+      // 6. File operation logs
       if (log.process_type === 'FILE_OPERATION') {
         return true;
       }
       
-      // 5. Warnings that might be important
+      // 7. System logs
+      if (log.process_type === 'SYSTEM') {
+        return true;
+      }
+      
+      // 8. Warnings that might be important
       if (levelStr === 'warning' || levelStr === 'warn') {
         return true;
       }
