@@ -131,7 +131,7 @@ export class TranslationService {
     
     // Token-based chunking configuration
     this.useTokenBasedChunking = options.useTokenBasedChunking ?? false;
-    this.maxTokensPerChunk = options.maxTokensPerChunk ?? 5000;
+    this.maxTokensPerChunk = options.maxTokensPerChunk ?? this.adapter.getMaxTokensPerChunk();
     this.fallbackToEntryBased = options.fallbackToEntryBased ?? true;
   }
 
@@ -763,22 +763,22 @@ export class TranslationService {
   private getTokenConfigForProvider(): Partial<TokenEstimationConfig> {
     const provider = this.adapter.id;
     
-    // Provider-specific configurations
+    // Provider-specific configurations with increased overhead estimates
     const providerConfigs: Record<string, Partial<TokenEstimationConfig>> = {
       openai: {
-        wordToTokenRatio: 1.3,
-        systemPromptOverhead: 100,
-        userPromptOverhead: 50,
+        wordToTokenRatio: 1.5, // More conservative ratio
+        systemPromptOverhead: 300, // Increased for longer system prompts
+        userPromptOverhead: 200, // Increased for formatting overhead
       },
       anthropic: {
-        wordToTokenRatio: 1.2,
-        systemPromptOverhead: 80,
-        userPromptOverhead: 40,
+        wordToTokenRatio: 1.4,
+        systemPromptOverhead: 250,
+        userPromptOverhead: 150,
       },
       gemini: {
-        wordToTokenRatio: 1.4,
-        systemPromptOverhead: 120,
-        userPromptOverhead: 60,
+        wordToTokenRatio: 1.6,
+        systemPromptOverhead: 350,
+        userPromptOverhead: 250,
       },
     };
     

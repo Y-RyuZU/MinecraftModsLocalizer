@@ -275,6 +275,10 @@ export function TranslationTab({
         chunkSize: getChunkSizeForTabType(config, tabType),
         promptTemplate: config.llm.promptTemplate,
         maxRetries: config.llm.maxRetries,
+        // Token-based chunking configuration
+        useTokenBasedChunking: config.translation.useTokenBasedChunking,
+        maxTokensPerChunk: config.translation.maxTokensPerChunk,
+        fallbackToEntryBased: config.translation.fallbackToEntryBased,
         onProgress: (job) => {
           // Update individual job progress (bounded 0-100)
           const boundedProgress = Math.max(0, Math.min(100, job.progress || 0));

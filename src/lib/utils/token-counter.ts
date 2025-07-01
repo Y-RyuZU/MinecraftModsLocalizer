@@ -33,11 +33,11 @@ export interface TokenEstimationResult {
 
 /** Default configuration for token estimation */
 export const DEFAULT_TOKEN_CONFIG: TokenEstimationConfig = {
-  wordToTokenRatio: 1.3, // Conservative estimate: 1 word ≈ 1.3 tokens
-  jsonOverhead: 20,
-  systemPromptOverhead: 100,
-  userPromptOverhead: 50,
-  responseOverhead: 30,
+  wordToTokenRatio: 1.5, // More conservative estimate: 1 word ≈ 1.5 tokens
+  jsonOverhead: 50,
+  systemPromptOverhead: 300, // Increased for longer system prompts
+  userPromptOverhead: 200, // Increased for formatting overhead
+  responseOverhead: 100, // Increased for response space
 };
 
 /**
@@ -155,22 +155,22 @@ export function estimateTokensForProvider(
   content: Record<string, string>,
   provider: 'openai' | 'anthropic' | 'gemini'
 ): TokenEstimationResult {
-  // Provider-specific configurations
+  // Provider-specific configurations with increased overhead estimates
   const providerConfigs: Record<string, Partial<TokenEstimationConfig>> = {
     openai: {
-      wordToTokenRatio: 1.3, // OpenAI's tokenization is fairly standard
-      systemPromptOverhead: 100,
-      userPromptOverhead: 50,
+      wordToTokenRatio: 1.5, // More conservative ratio
+      systemPromptOverhead: 300, // Increased for longer system prompts
+      userPromptOverhead: 200, // Increased for formatting overhead
     },
     anthropic: {
-      wordToTokenRatio: 1.2, // Claude tends to be slightly more efficient
-      systemPromptOverhead: 80,
-      userPromptOverhead: 40,
+      wordToTokenRatio: 1.4,
+      systemPromptOverhead: 250,
+      userPromptOverhead: 150,
     },
     gemini: {
-      wordToTokenRatio: 1.4, // Gemini can be slightly less efficient
-      systemPromptOverhead: 120,
-      userPromptOverhead: 60,
+      wordToTokenRatio: 1.6,
+      systemPromptOverhead: 350,
+      userPromptOverhead: 250,
     },
   };
   

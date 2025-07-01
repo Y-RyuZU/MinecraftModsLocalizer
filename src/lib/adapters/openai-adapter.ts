@@ -54,6 +54,28 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   /**
+   * Get model-specific token limits for OpenAI models
+   * @returns Maximum tokens per chunk based on model
+   */
+  public getMaxTokensPerChunk(): number {
+    const model = this.config.model?.toLowerCase() || '';
+    
+    // Model-specific conservative limits (leaving room for system/user prompts)
+    if (model.includes('gpt-4o') || model.includes('o1') || model.includes('o4')) {
+      return 8000; // These models have 128K context, so we can be less conservative
+    }
+    if (model.includes('gpt-4')) {
+      return 6000; // GPT-4 models typically have 8K-32K context
+    }
+    if (model.includes('gpt-3.5')) {
+      return 2000; // GPT-3.5 has 4K-16K context
+    }
+    
+    // Default conservative limit for unknown models
+    return 3000;
+  }
+
+  /**
    * Translate content using OpenAI API
    * @param request Translation request
    * @returns Translation response

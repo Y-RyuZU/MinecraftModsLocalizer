@@ -146,8 +146,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     guidebookChunkSize: 1,
     additionalLanguages: [],
     resourcePackName: "MinecraftModsLocalizer",
-    useTokenBasedChunking: false,
-    maxTokensPerChunk: 5000,
+    useTokenBasedChunking: true,
+    maxTokensPerChunk: 3000,
     fallbackToEntryBased: true
   },
   ui: {

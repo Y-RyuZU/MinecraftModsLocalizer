@@ -53,8 +53,9 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
    * @returns Maximum tokens per chunk
    */
   public getMaxTokensPerChunk(): number {
-    // Default conservative limit that works for most models
-    return 5000;
+    // Very conservative limit to prevent token overflow across all models
+    // Individual adapters can override this for model-specific limits
+    return 3000;
   }
 
   /**
