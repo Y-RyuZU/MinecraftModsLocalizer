@@ -81,6 +81,12 @@ export interface TranslationConfig {
   additionalLanguages: SupportedLanguage[];
   /** Resource pack name */
   resourcePackName: string;
+  /** Enable token-based chunking instead of entry-based */
+  useTokenBasedChunking?: boolean;
+  /** Maximum tokens per chunk (when using token-based chunking) */
+  maxTokensPerChunk?: number;
+  /** Fallback to entry-based chunking if token estimation fails */
+  fallbackToEntryBased?: boolean;
 }
 
 /**
@@ -139,7 +145,10 @@ export const DEFAULT_CONFIG: AppConfig = {
     questChunkSize: 1,
     guidebookChunkSize: 1,
     additionalLanguages: [],
-    resourcePackName: "MinecraftModsLocalizer"
+    resourcePackName: "MinecraftModsLocalizer",
+    useTokenBasedChunking: false,
+    maxTokensPerChunk: 5000,
+    fallbackToEntryBased: true
   },
   ui: {
     theme: "system"
