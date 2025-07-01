@@ -297,7 +297,10 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       quest_chunk_size: config.translation.questChunkSize,
       guidebook_chunk_size: config.translation.guidebookChunkSize,
       custom_languages: config.translation.additionalLanguages,
-      resource_pack_name: config.translation.resourcePackName
+      resource_pack_name: config.translation.resourcePackName,
+      use_token_based_chunking: config.translation.useTokenBasedChunking,
+      max_tokens_per_chunk: config.translation.maxTokensPerChunk,
+      fallback_to_entry_based: config.translation.fallbackToEntryBased
     },
     ui: {
       theme: config.ui.theme
@@ -340,7 +343,10 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       questChunkSize: (translation?.quest_chunk_size as number) || DEFAULT_CONFIG.translation.questChunkSize,
       guidebookChunkSize: (translation?.guidebook_chunk_size as number) || DEFAULT_CONFIG.translation.guidebookChunkSize,
       additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || DEFAULT_CONFIG.translation.additionalLanguages,
-      resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName
+      resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName,
+      useTokenBasedChunking: (translation?.use_token_based_chunking as boolean) ?? DEFAULT_CONFIG.translation.useTokenBasedChunking,
+      maxTokensPerChunk: (translation?.max_tokens_per_chunk as number) || DEFAULT_CONFIG.translation.maxTokensPerChunk,
+      fallbackToEntryBased: (translation?.fallback_to_entry_based as boolean) ?? DEFAULT_CONFIG.translation.fallbackToEntryBased
     },
     ui: {
       theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme

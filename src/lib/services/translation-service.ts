@@ -133,6 +133,15 @@ export class TranslationService {
     this.useTokenBasedChunking = options.useTokenBasedChunking ?? false;
     this.maxTokensPerChunk = options.maxTokensPerChunk ?? this.adapter.getMaxTokensPerChunk();
     this.fallbackToEntryBased = options.fallbackToEntryBased ?? true;
+    
+    // Debug logging for token-based chunking
+    console.log('TranslationService Configuration:', {
+      useTokenBasedChunking: this.useTokenBasedChunking,
+      maxTokensPerChunk: this.maxTokensPerChunk,
+      fallbackToEntryBased: this.fallbackToEntryBased,
+      provider: this.adapter.id,
+      adapterMaxTokens: this.adapter.getMaxTokensPerChunk()
+    });
   }
 
   /**
@@ -633,19 +642,29 @@ export class TranslationService {
     const entries = Object.entries(content);
     const chunks: TranslationChunk[] = [];
     
+    console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
+    
     if (this.useTokenBasedChunking) {
       try {
-        return this.splitIntoTokenBasedChunks(entries, jobId);
+        console.log('Using token-based chunking with max tokens:', this.maxTokensPerChunk);
+        const tokenChunks = this.splitIntoTokenBasedChunks(entries, jobId);
+        console.log(`Token-based chunking created ${tokenChunks.length} chunks`);
+        return tokenChunks;
       } catch (error) {
         // Log error and fall back to entry-based chunking if enabled
         console.warn('Token-based chunking failed, falling back to entry-based:', error);
         if (this.fallbackToEntryBased) {
-          return this.splitIntoEntryBasedChunks(entries, jobId);
+          const fallbackChunks = this.splitIntoEntryBasedChunks(entries, jobId);
+          console.log(`Fallback chunking created ${fallbackChunks.length} chunks`);
+          return fallbackChunks;
         }
         throw error;
       }
     } else {
-      return this.splitIntoEntryBasedChunks(entries, jobId);
+      console.log('Using entry-based chunking with chunk size:', this.chunkSize);
+      const entryChunks = this.splitIntoEntryBasedChunks(entries, jobId);
+      console.log(`Entry-based chunking created ${entryChunks.length} chunks`);
+      return entryChunks;
     }
   }
 
@@ -662,11 +681,17 @@ export class TranslationService {
     
     // Get token estimation config based on provider
     const tokenConfig = this.getTokenConfigForProvider();
+    console.log('Token config for provider:', this.adapter.id, tokenConfig);
     
     for (const [key, value] of entries) {
       // Create a test chunk with the current entry added
       const testChunk = { ...currentChunk, [key]: value };
       const estimation = estimateTokens(testChunk, tokenConfig);
+      
+      // Log token estimation for first few entries
+      if (chunks.length < 2 && Object.keys(currentChunk).length < 3) {
+        console.log(`Entry "${key}": estimated ${estimation.totalTokens} tokens (content: ${estimation.contentTokens}, overhead: ${estimation.promptOverhead})`);
+      }
       
       // If adding this entry would exceed the limit, finalize current chunk
       if (estimation.totalTokens > this.maxTokensPerChunk && Object.keys(currentChunk).length > 0) {

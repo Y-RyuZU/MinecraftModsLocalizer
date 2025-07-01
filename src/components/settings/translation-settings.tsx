@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { AppConfig } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
 import { SupportedLanguage } from "@/lib/types/llm";
@@ -54,6 +55,81 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               >
                 {t('settings.manageTargetLanguage')}
               </Button>
+            </div>
+          </div>
+
+          {/* Token-Based Chunking Settings */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            <h3 className="text-sm font-semibold">Token-Based Chunking (Recommended)</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">Enable Token-Based Chunking</label>
+                  <p className="text-xs text-muted-foreground">
+                    Prevents "maximum context length exceeded" errors by intelligently sizing chunks
+                  </p>
+                </div>
+                <Switch
+                  checked={config.translation.useTokenBasedChunking ?? true}
+                  onCheckedChange={(checked) => {
+                    setConfig({
+                      ...config,
+                      translation: {
+                        ...config.translation,
+                        useTokenBasedChunking: checked
+                      }
+                    });
+                  }}
+                />
+              </div>
+              
+              {config.translation.useTokenBasedChunking && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Max Tokens Per Chunk</label>
+                    <Input 
+                      type="number"
+                      value={config.translation.maxTokensPerChunk || 3000}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          translation: {
+                            ...config.translation,
+                            maxTokensPerChunk: parseInt(e.target.value) || 3000
+                          }
+                        });
+                      }}
+                      placeholder="3000"
+                      min="1000"
+                      max="10000"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Conservative limit to prevent token overflow (1000-10000)
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-medium">Fallback to Entry-Based</label>
+                      <p className="text-xs text-muted-foreground">
+                        Use entry-based chunking if token estimation fails
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.translation.fallbackToEntryBased ?? true}
+                      onCheckedChange={(checked) => {
+                        setConfig({
+                          ...config,
+                          translation: {
+                            ...config.translation,
+                            fallbackToEntryBased: checked
+                          }
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
