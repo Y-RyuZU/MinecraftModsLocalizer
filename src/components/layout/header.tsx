@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bug, Download } from 'lucide-react';
+import { Bug } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageSwitcher } from '@/components/theme/language-switcher';
 import { SettingsDialog } from '@/components/settings/settings-dialog';
@@ -72,18 +72,6 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
     }
   };
   
-  const handleDownloadClick = async () => {
-    const releaseUrl = 'https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases';
-    try {
-      await UpdateService.openReleaseUrl(releaseUrl);
-    } catch (error) {
-      console.error("Failed to open release page:", error);
-      // Fallback to window.open if Tauri command fails
-      if (typeof window !== 'undefined') {
-        window.open(releaseUrl, '_blank');
-      }
-    }
-  };
   
   return (
     <>
@@ -98,15 +86,8 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
             <UpdateNotificationButton
               hasUpdate={updateInfo?.updateAvailable || false}
               onClick={handleUpdateClick}
+              title={mounted ? (updateInfo?.updateAvailable ? t('update.newVersionAvailable', 'New version available') : t('update.checkForUpdates', 'Check for updates')) : 'Check for updates'}
             />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownloadClick}
-              title={t('header.downloadReleases', 'Download releases')}
-            >
-              <Download className="h-5 w-5" />
-            </Button>
             {isDebugMode && (
               <Button
                 variant="ghost"

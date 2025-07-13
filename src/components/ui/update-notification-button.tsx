@@ -1,22 +1,20 @@
 import React from 'react';
 import { Button } from './button';
 import { Bell, BellDot } from 'lucide-react';
-import { useAppTranslation } from '@/lib/i18n';
 
 interface UpdateNotificationButtonProps {
   hasUpdate: boolean;
   onClick: () => void;
+  title?: string;
 }
 
-export function UpdateNotificationButton({ hasUpdate, onClick }: UpdateNotificationButtonProps) {
-  const { t } = useAppTranslation();
-  
+export function UpdateNotificationButton({ hasUpdate, onClick, title = 'Check for updates' }: UpdateNotificationButtonProps) {
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={onClick}
-      title={hasUpdate ? t('update.newVersionAvailable', 'New version available') : t('update.checkForUpdates', 'Check for updates')}
+      title={title}
       className="relative"
     >
       {hasUpdate ? (
