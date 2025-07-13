@@ -5,6 +5,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 use std::collections::HashMap;
 use tauri_plugin_shell::ShellExt;
+use regex::Regex;
 
 /// File system errors
 #[derive(Error, Debug)]
@@ -121,8 +122,20 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
                     Ok(entry) => {
                         let entry_path = entry.path();
                         
-                        // Check if the file is a JSON file
+                        // Check if the file is a JSON file and not already translated
                         if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
+                            // Skip files that already have language suffixes
+                            if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str()) {
+                                if file_name.contains(".ja_jp.") || file_name.contains(".zh_cn.") || 
+                                   file_name.contains(".ko_kr.") || file_name.contains(".de_de.") ||
+                                   file_name.contains(".fr_fr.") || file_name.contains(".es_es.") ||
+                                   file_name.contains(".it_it.") || file_name.contains(".pt_br.") ||
+                                   file_name.contains(".ru_ru.") {
+                                    debug!("Skipping already translated file: {}", file_name);
+                                    continue;
+                                }
+                            }
+                            
                             match entry_path.to_str() {
                                 Some(path_str) => quest_files.push(path_str.to_string()),
                                 None => {
@@ -156,8 +169,21 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
                     Ok(entry) => {
                         let entry_path = entry.path();
                         
-                        // Check if the file is an SNBT file
+                        // Check if the file is an SNBT file and not already translated
                         if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "snbt") {
+                            // Skip files that already have language suffixes (e.g., filename.ja_jp.snbt)
+                            if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str()) {
+                                // Pattern to match language suffixes like .ja_jp.snbt, .zh_cn.snbt, etc.
+                                if file_name.contains(".ja_jp.") || file_name.contains(".zh_cn.") || 
+                                   file_name.contains(".ko_kr.") || file_name.contains(".de_de.") ||
+                                   file_name.contains(".fr_fr.") || file_name.contains(".es_es.") ||
+                                   file_name.contains(".it_it.") || file_name.contains(".pt_br.") ||
+                                   file_name.contains(".ru_ru.") {
+                                    debug!("Skipping already translated file: {}", file_name);
+                                    continue;
+                                }
+                            }
+                            
                             match entry_path.to_str() {
                                 Some(path_str) => quest_files.push(path_str.to_string()),
                                 None => {
@@ -204,8 +230,20 @@ pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) ->
         for entry in WalkDir::new(better_quests_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
             let entry_path = entry.path();
             
-            // Check if the file is a JSON file
+            // Check if the file is a JSON file and not already translated
             if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
+                // Skip files that already have language suffixes
+                if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str()) {
+                    if file_name.contains(".ja_jp.") || file_name.contains(".zh_cn.") || 
+                       file_name.contains(".ko_kr.") || file_name.contains(".de_de.") ||
+                       file_name.contains(".fr_fr.") || file_name.contains(".es_es.") ||
+                       file_name.contains(".it_it.") || file_name.contains(".pt_br.") ||
+                       file_name.contains(".ru_ru.") {
+                        debug!("Skipping already translated file: {}", file_name);
+                        continue;
+                    }
+                }
+                
                 if let Some(path_str) = entry_path.to_str() {
                     quest_files.push(path_str.to_string());
                 }

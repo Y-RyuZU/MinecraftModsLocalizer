@@ -31,6 +31,28 @@
     "maxRetriesPlaceholder": "最大リトライ数を入力",
     "prompt": "プロンプト",
     "promptPlaceholder": "プロンプトテンプレートを入力",
+    "systemPrompt": "システムプロンプト",
+    "systemPromptPlaceholder": "AIの振る舞いを定義するシステムプロンプトを入力",
+    "userPrompt": "ユーザープロンプト",
+    "userPromptPlaceholder": "{language}, {line_count}, {content} 変数を含むユーザープロンプトテンプレートを入力",
+    "availableVariables": "利用可能な変数: {language}, {line_count}, {content}",
+    "temperature": "温度",
+    "temperatureHint": "ランダム性を制御します (0.0-2.0)。値が高いほど出力がよりクリエイティブになります。",
+    "providers": {
+      "openai": "OpenAI",
+      "anthropic": "Anthropic",
+      "google": "Google"
+    },
+    "tokenBasedChunking": {
+      "title": "トークンベースのチャンク分割 (推奨)",
+      "enable": "トークンベースのチャンク分割を有効化",
+      "enableHint": "チャンクを知的にサイジングすることで「最大コンテキスト長を超えました」エラーを防ぎます",
+      "maxTokens": "チャンクあたりの最大トークン数",
+      "maxTokensPlaceholder": "3000",
+      "maxTokensHint": "トークンオーバーフローを防ぐための保守的な制限 (1000-10000)",
+      "fallback": "エントリベースへのフォールバック",
+      "fallbackHint": "トークン推定が失敗した場合、エントリベースのチャンク分割を使用"
+    },
     "typicalLocation": "一般的な場所",
     "pathSettings": "パス設定",
     "minecraftDirectory": "Minecraftディレクトリ",
@@ -50,7 +72,11 @@
     "resetToDefaults": "デフォルトにリセット",
     "saveSettings": "設定を保存",
     "saving": "保存中...",
-    "discard": "破棄"
+    "discard": "破棄",
+    "saveSuccess": "設定を保存しました",
+    "saveSuccessDescription": "設定が正常に保存されました",
+    "saveError": "設定の保存に失敗しました",
+    "saveErrorDescription": "設定の保存中にエラーが発生しました"
   },
   "tabs": {
     "mods": "Mod",
