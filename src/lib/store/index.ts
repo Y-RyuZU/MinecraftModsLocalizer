@@ -135,8 +135,24 @@ export const useAppStore = create<AppState>((set) => ({
   completedMods: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
-  setProgress: (progress) => set({ progress: Math.max(0, Math.min(100, progress || 0)) }),
-  setWholeProgress: (progress) => set({ wholeProgress: Math.max(0, Math.min(100, progress || 0)) }),
+  setProgress: (progress) => set((state) => {
+    const newProgress = Math.max(0, Math.min(100, progress || 0));
+    // Prevent backwards progress
+    if (newProgress < state.progress) {
+      console.warn(`Attempted to set progress backwards: ${state.progress}% -> ${newProgress}%`);
+      return state;
+    }
+    return { progress: newProgress };
+  }),
+  setWholeProgress: (progress) => set((state) => {
+    const newProgress = Math.max(0, Math.min(100, progress || 0));
+    // Prevent backwards progress
+    if (newProgress < state.wholeProgress) {
+      console.warn(`Attempted to set whole progress backwards: ${state.wholeProgress}% -> ${newProgress}%`);
+      return state;
+    }
+    return { wholeProgress: newProgress };
+  }),
   setTotalChunks: (totalChunks) => {
     console.log(`Setting totalChunks to: ${totalChunks}`);
     return set({ totalChunks: Math.max(0, totalChunks || 0) });
