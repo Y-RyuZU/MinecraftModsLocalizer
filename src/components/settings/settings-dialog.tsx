@@ -13,6 +13,7 @@ import { UISettings } from "@/components/settings/ui-settings";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from "@/lib/services/file-service";
+import { toast } from "sonner";
 
 export function SettingsDialog() {
   const { t } = useAppTranslation();
@@ -27,9 +28,22 @@ export function SettingsDialog() {
     
     try {
       await ConfigService.save(config);
+      
+      // Update the store with the latest config to ensure all components get updated
+      const updatedConfig = await ConfigService.getConfig();
+      setConfig(updatedConfig);
+      
+      // Show success feedback
+      toast.success(t('settings.saveSuccess'), {
+        description: t('settings.saveSuccessDescription'),
+      });
+      
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Failed to save settings:", error);
+      toast.error(t('settings.saveError'), {
+        description: t('settings.saveErrorDescription'),
+      });
     } finally {
       setIsSaving(false);
     }

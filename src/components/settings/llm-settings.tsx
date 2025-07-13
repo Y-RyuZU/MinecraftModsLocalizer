@@ -61,9 +61,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
                 <SelectValue placeholder={t('settings.selectProvider')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic</SelectItem>
-                <SelectItem value="google">Google</SelectItem>
+                <SelectItem value="openai">{t('settings.providers.openai')}</SelectItem>
+                <SelectItem value="anthropic">{t('settings.providers.anthropic')}</SelectItem>
+                <SelectItem value="google">{t('settings.providers.google')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -121,7 +121,7 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium">{t('settings.temperature') || 'Temperature'}</label>
+            <label className="text-sm font-medium">{t('settings.temperature')}</label>
             <Input 
               type="number"
               value={config.llm.temperature ?? DEFAULT_API_CONFIG.temperature}
@@ -135,38 +135,38 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
               step="0.1"
             />
             <p className="text-xs text-muted-foreground">
-              {t('settings.temperatureHint') || 'Controls randomness (0.0-2.0). Higher values make output more creative.'}
+              {t('settings.temperatureHint')}
             </p>
           </div>
           
           <div className="space-y-2 col-span-2">
-            <label className="text-sm font-medium">{t('settings.systemPrompt') || 'System Prompt'}</label>
+            <label className="text-sm font-medium">{t('settings.systemPrompt')}</label>
             <Textarea 
               value={config.llm.systemPrompt || DEFAULT_SYSTEM_PROMPT}
               onChange={(e) => {
                 config.llm.systemPrompt = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.systemPromptPlaceholder') || 'Enter system prompt...'}
+              placeholder={t('settings.systemPromptPlaceholder')}
               rows={6}
               className="resize-vertical"
             />
           </div>
           
           <div className="space-y-2 col-span-2">
-            <label className="text-sm font-medium">{t('settings.userPrompt') || 'User Prompt Template'}</label>
+            <label className="text-sm font-medium">{t('settings.userPrompt')}</label>
             <Textarea 
               value={config.llm.userPrompt || DEFAULT_USER_PROMPT}
               onChange={(e) => {
                 config.llm.userPrompt = e.target.value;
                 setConfig({ ...config });
               }}
-              placeholder={t('settings.userPromptPlaceholder') || 'Enter user prompt template...'}
+              placeholder={t('settings.userPromptPlaceholder')}
               rows={4}
               className="resize-vertical"
             />
             <p className="text-xs text-muted-foreground">
-              Available variables: {'{language}'}, {'{line_count}'}, {'{content}'}
+              {t('settings.availableVariables')}
             </p>
           </div>
         </div>

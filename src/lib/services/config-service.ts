@@ -177,8 +177,17 @@ export class ConfigService {
         // Save to localStorage for development
         localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(config));
       }
+      
+      // Clear the loaded flag to force reload on next access
+      // This ensures that any components using getConfig() will get the updated values
+      this.loaded = false;
+      
+      // Immediately reload the config to ensure consistency
+      await this.load();
+      
     } catch (error) {
       console.error("Failed to save configuration:", error);
+      throw error; // Re-throw to let caller handle the error
     }
   }
 
