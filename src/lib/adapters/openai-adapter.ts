@@ -3,6 +3,7 @@ import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import OpenAI from "openai";
+import { MODEL_TOKEN_LIMITS, API_DEFAULTS } from "../constants/defaults";
 
 /**
  * OpenAI API Adapter
@@ -61,18 +62,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const model = this.config.model?.toLowerCase() || '';
     
     // Model-specific conservative limits (leaving room for system/user prompts)
-    if (model.includes('gpt-4o') || model.includes('o1') || model.includes('o4')) {
-      return 8000; // These models have 128K context, so we can be less conservative
-    }
-    if (model.includes('gpt-4')) {
-      return 6000; // GPT-4 models typically have 8K-32K context
-    }
-    if (model.includes('gpt-3.5')) {
-      return 2000; // GPT-3.5 has 4K-16K context
+    for (const [modelPrefix, limit] of Object.entries(MODEL_TOKEN_LIMITS.openai)) {
+      if (modelPrefix !== 'default' && model.includes(modelPrefix)) {
+        return limit;
+      }
     }
     
     // Default conservative limit for unknown models
-    return 3000;
+    return MODEL_TOKEN_LIMITS.openai.default;
   }
 
   /**
@@ -84,10 +81,31 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const startTime = Date.now();
     
     // Check if API key is defined and not empty
-    if (!this.config.apiKey) {
-      await this.logError("OpenAI API key is not configured");
-      throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
+    if (!this.config.apiKey || this.config.apiKey.trim() === "") {
+      console.log('[OpenAIAdapter] No API key provided:', { 
+        apiKey: this.config.apiKey, 
+        isEmpty: !this.config.apiKey,
+        isEmptyString: this.config.apiKey === "",
+        length: this.config.apiKey?.length 
+      });
+      await this.logError("OpenAI API key is not configured. Please set your API key in the settings.");
+      // Return empty translation result to mark as failed
+      return {
+        content: {},
+        metadata: {
+          tokensUsed: 0,
+          timeTaken: 0,
+          model: this.config.model || 'unknown'
+        }
+      };
     }
+    
+    console.log('[OpenAIAdapter] translate() called with:', {
+      apiKeyProvided: !!this.config.apiKey,
+      apiKeyLength: this.config.apiKey.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl
+    });
     
     // Get system and user prompts
     const systemPrompt = this.getSystemPrompt();

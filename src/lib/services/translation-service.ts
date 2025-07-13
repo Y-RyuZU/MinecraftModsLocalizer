@@ -2,6 +2,8 @@ import { LLMAdapterFactory } from "../adapters/llm-adapter-factory";
 import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { invoke } from "@tauri-apps/api/core";
 import { estimateTokens, exceedsTokenLimit, DEFAULT_TOKEN_CONFIG, TokenEstimationConfig } from "../utils/token-counter";
+import { ErrorLogger } from "../utils/error-logger";
+import { API_DEFAULTS, TRANSLATION_DEFAULTS } from "../constants/defaults";
 
 /**
  * Translation chunk
@@ -124,14 +126,14 @@ export class TranslationService {
     this.adapter = LLMAdapterFactory.getAdapter(options.llmConfig);
     this.chunkSize = options.chunkSize ?? this.adapter.getMaxChunkSize();
     this.promptTemplate = options.promptTemplate;
-    this.maxRetries = options.maxRetries ?? 5;
+    this.maxRetries = options.maxRetries ?? API_DEFAULTS.maxRetries;
     this.onProgress = options.onProgress;
     this.onComplete = options.onComplete;
     this.onError = options.onError;
     
     // Token-based chunking configuration
     this.useTokenBasedChunking = options.useTokenBasedChunking ?? false;
-    this.maxTokensPerChunk = options.maxTokensPerChunk ?? this.adapter.getMaxTokensPerChunk();
+    this.maxTokensPerChunk = options.maxTokensPerChunk ?? TRANSLATION_DEFAULTS.maxTokensPerChunk;
     this.fallbackToEntryBased = options.fallbackToEntryBased ?? true;
     
     // Debug logging for token-based chunking
@@ -139,8 +141,7 @@ export class TranslationService {
       useTokenBasedChunking: this.useTokenBasedChunking,
       maxTokensPerChunk: this.maxTokensPerChunk,
       fallbackToEntryBased: this.fallbackToEntryBased,
-      provider: this.adapter.id,
-      adapterMaxTokens: this.adapter.getMaxTokensPerChunk()
+      provider: this.adapter.id
     });
   }
 
@@ -188,7 +189,7 @@ export class TranslationService {
     try {
       await invoke('log_translation_process', { message });
     } catch (error) {
-      console.error('Failed to log translation message:', error);
+      await ErrorLogger.logError('TranslationService.logTranslation', error, 'TRANSLATION');
     }
   }
 
@@ -200,7 +201,7 @@ export class TranslationService {
     try {
       await invoke('log_api_request', { message });
     } catch (error) {
-      console.error('Failed to log API request message:', error);
+      await ErrorLogger.logError('TranslationService.logApiRequest', error, 'API_REQUEST');
     }
   }
 
@@ -212,7 +213,7 @@ export class TranslationService {
     try {
       await invoke('log_file_operation', { message });
     } catch (error) {
-      console.error('Failed to log file operation message:', error);
+      await ErrorLogger.logError('TranslationService.logFileOperation', error, 'FILE_OPERATION');
     }
   }
 
@@ -225,7 +226,9 @@ export class TranslationService {
     try {
       await invoke('log_error', { message, processType: processType });
     } catch (error) {
-      console.error('Failed to log error message:', error);
+      // Use console.error directly here to avoid infinite recursion
+      console.error('[TranslationService.logError] Failed to log error message:', error);
+      console.error('[TranslationService.logError] Original error message was:', message);
     }
   }
 
@@ -464,12 +467,31 @@ export class TranslationService {
             jobId
           );
           
-          // Update chunk with translated content
-          chunk.translatedContent = translatedContent;
-          chunk.status = "completed";
-          
-          // Log chunk completion
-          await this.logTranslation(`Completed chunk ${i+1}/${job.chunks.length} successfully`);
+          // Check if translation actually produced content
+          if (!translatedContent || Object.keys(translatedContent).length === 0) {
+            // Handle empty content as a failure without throwing
+            chunk.status = "failed";
+            chunk.error = "Translation returned empty content - possible API key issue";
+            chunk.translatedContent = {};
+            
+            // Log chunk failure
+            await this.logError(`Chunk ${i+1}/${job.chunks.length} failed: empty translation content`, "TRANSLATION");
+            
+            // If it's likely an API key issue, mark the entire job as failed
+            if (chunk.error.includes("API key")) {
+              job.status = "failed";
+              job.error = chunk.error;
+              await this.logError(`Job ${jobId} failed due to API key issue`, "TRANSLATION");
+              break;
+            }
+          } else {
+            // Update chunk with translated content
+            chunk.translatedContent = translatedContent;
+            chunk.status = "completed";
+            
+            // Log chunk completion
+            await this.logTranslation(`Completed chunk ${i+1}/${job.chunks.length} successfully`);
+          }
         } catch (error) {
           // Handle chunk error
           chunk.status = "failed";
@@ -818,7 +840,7 @@ export class TranslationService {
    */
   private trySplitLongContent(key: string, value: string): [string, string][] {
     // For very long values, try to split at sentence boundaries
-    if (value.length > 1000) {
+    if (value.length > TRANSLATION_DEFAULTS.contentSplitThreshold) {
       const sentences = value.split(/[.!?]+/).filter(s => s.trim().length > 0);
       if (sentences.length > 1) {
         const result: [string, string][] = [];
@@ -829,7 +851,7 @@ export class TranslationService {
           const testPart = currentPart + (currentPart ? '. ' : '') + sentence;
           
           // If adding this sentence would make the part too long, finalize current part
-          if (testPart.length > 800 && currentPart.length > 0) {
+          if (testPart.length > TRANSLATION_DEFAULTS.splitPartMaxLength && currentPart.length > 0) {
             result.push([`${key}_part_${result.length + 1}`, currentPart]);
             currentPart = sentence;
           } else {
@@ -921,9 +943,9 @@ export class TranslationService {
         if (error instanceof Error && 
             (error.message.includes("API key is not configured") || 
              error.message.includes("Incorrect API key provided: undefined"))) {
-          await this.logError(`Translation failed: ${error.message}`, "TRANSLATION");
-          // For API key configuration errors, don't retry
-          throw new Error("API key is not configured or is invalid. Please set your API key in the settings.");
+          await this.logError("API key is not configured or is invalid. Please set your API key in the settings.", "TRANSLATION");
+          // For API key configuration errors, return empty result to mark as failed
+          return {};
         }
         
         // Log retry attempt
