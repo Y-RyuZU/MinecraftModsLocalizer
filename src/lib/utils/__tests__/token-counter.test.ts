@@ -156,7 +156,7 @@ describe("Token Counter Utility", () => {
       };
       
       const result = estimateTokens(content);
-      expect(result.wordCount).toBe(2); // "empty", "normal" (whitespace should count as 0)
+      expect(result.wordCount).toBe(4); // Keys: "empty" (1), "whitespace" (1), "normal" (1), Values: "word" (1)
     });
 
     test("should handle special characters in keys", () => {

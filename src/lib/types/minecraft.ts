@@ -3,6 +3,11 @@
  */
 
 /**
+ * Common translation target type
+ */
+export type TranslationTargetType = "mod" | "quest" | "patchouli" | "custom";
+
+/**
  * Mod information
  */
 export interface ModInfo {
@@ -52,8 +57,8 @@ export interface PatchouliBook {
  * Quest file
  */
 export interface QuestFile {
-  /** Quest file type */
-  type: "ftb" | "better";
+  /** Quest format */
+  format: "ftb" | "better";
   /** Path to the file */
   path: string;
   /** Content of the file */
@@ -95,7 +100,7 @@ export interface BetterQuest {
  */
 export interface TranslationTarget {
   /** Target type */
-  type: "mod" | "ftb" | "better" | "patchouli" | "custom";
+  type: TranslationTargetType;
   /** Target ID */
   id: string;
   /** Target name */
@@ -106,6 +111,8 @@ export interface TranslationTarget {
   relativePath?: string;
   /** Whether the target is selected for translation */
   selected: boolean;
+  /** Quest format (only for quest type) */
+  questFormat?: "ftb" | "better";
 }
 
 /**
@@ -130,7 +137,7 @@ export interface ModTranslationJob extends TranslationJob {
  */
 export interface TranslationResult {
   /** Target type */
-  type: "mod" | "ftb" | "better" | "patchouli" | "custom";
+  type: TranslationTargetType;
   /** Target ID */
   id: string;
   /** Display name (optional, used for guidebooks and other items where name differs from ID) */

@@ -1,31 +1,26 @@
-import { SupportedLanguage, DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "./llm";
+import { SupportedLanguage } from "./llm";
+import { 
+  DEFAULT_MODELS as IMPORTED_DEFAULT_MODELS,
+  DEFAULT_API_URLS as IMPORTED_DEFAULT_API_URLS,
+  DEFAULT_PROVIDER,
+  API_DEFAULTS,
+  TRANSLATION_DEFAULTS,
+  UI_DEFAULTS,
+  UPDATE_DEFAULTS,
+  STORAGE_KEYS as IMPORTED_STORAGE_KEYS,
+  DEFAULT_PROMPT_TEMPLATE,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_USER_PROMPT
+} from "../constants/defaults";
 
-/**
- * Default model configurations for each provider
- */
-export const DEFAULT_MODELS = {
-  openai: "o4-mini-2025-04-16",
-  anthropic: "claude-3-5-haiku-20241022",
-  google: "gemini-1.5-flash"
-} as const;
-
-/**
- * Default API URLs for each provider
- */
-export const DEFAULT_API_URLS = {
-  openai: "https://api.openai.com/v1/chat/completions",
-  anthropic: "https://api.anthropic.com",
-  google: undefined // Google uses SDK default
-} as const;
+// Re-export from defaults for backward compatibility
+export const DEFAULT_MODELS = IMPORTED_DEFAULT_MODELS;
+export const DEFAULT_API_URLS = IMPORTED_DEFAULT_API_URLS;
 
 // Removed DEFAULT_API_CONFIG - values moved to DEFAULT_CONFIG for unified configuration
 
-/**
- * Storage keys
- */
-export const STORAGE_KEYS = {
-  config: "minecraft-mods-localizer-config"
-} as const;
+// Re-export storage keys
+export const STORAGE_KEYS = IMPORTED_STORAGE_KEYS;
 
 /**
  * Application configuration
@@ -131,27 +126,27 @@ export interface UpdateConfig {
  */
 export const DEFAULT_CONFIG: AppConfig = {
   llm: {
-    provider: "openai",
+    provider: DEFAULT_PROVIDER,
     apiKey: "",
     model: DEFAULT_MODELS.openai,
-    maxRetries: 3,
+    maxRetries: API_DEFAULTS.maxRetries,
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     userPrompt: DEFAULT_USER_PROMPT,
-    temperature: 1.0
+    temperature: API_DEFAULTS.temperature
   },
   translation: {
-    modChunkSize: 50,
-    questChunkSize: 1,
-    guidebookChunkSize: 1,
+    modChunkSize: TRANSLATION_DEFAULTS.modChunkSize,
+    questChunkSize: TRANSLATION_DEFAULTS.questChunkSize,
+    guidebookChunkSize: TRANSLATION_DEFAULTS.guidebookChunkSize,
     additionalLanguages: [],
-    resourcePackName: "MinecraftModsLocalizer",
-    useTokenBasedChunking: true,
-    maxTokensPerChunk: 3000,
-    fallbackToEntryBased: true
+    resourcePackName: TRANSLATION_DEFAULTS.resourcePackName,
+    useTokenBasedChunking: TRANSLATION_DEFAULTS.useTokenBasedChunking,
+    maxTokensPerChunk: TRANSLATION_DEFAULTS.maxTokensPerChunk,
+    fallbackToEntryBased: TRANSLATION_DEFAULTS.fallbackToEntryBased
   },
   ui: {
-    theme: "system"
+    theme: UI_DEFAULTS.theme
   },
   paths: {
     minecraftDir: "",
@@ -161,7 +156,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     logsDir: ""
   },
   update: {
-    checkOnStartup: true
+    checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
   }
 };
 
@@ -170,7 +165,7 @@ export const DEFAULT_CONFIG: AppConfig = {
  * This maintains existing API while using the unified configuration as source
  */
 export const DEFAULT_API_CONFIG = {
-  temperature: DEFAULT_CONFIG.llm.temperature!,
-  maxRetries: DEFAULT_CONFIG.llm.maxRetries,
-  chunkSize: DEFAULT_CONFIG.translation.modChunkSize
+  temperature: API_DEFAULTS.temperature,
+  maxRetries: API_DEFAULTS.maxRetries,
+  chunkSize: TRANSLATION_DEFAULTS.modChunkSize
 } as const;

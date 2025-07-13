@@ -31,14 +31,10 @@ export interface TokenEstimationResult {
   entryCount: number;
 }
 
+import { TOKEN_ESTIMATION_DEFAULTS } from '../constants/defaults';
+
 /** Default configuration for token estimation */
-export const DEFAULT_TOKEN_CONFIG: TokenEstimationConfig = {
-  wordToTokenRatio: 1.5, // More conservative estimate: 1 word ≈ 1.5 tokens
-  jsonOverhead: 50,
-  systemPromptOverhead: 300, // Increased for longer system prompts
-  userPromptOverhead: 200, // Increased for formatting overhead
-  responseOverhead: 100, // Increased for response space
-};
+export const DEFAULT_TOKEN_CONFIG: TokenEstimationConfig = TOKEN_ESTIMATION_DEFAULTS.default;
 
 /**
  * Estimate token count for translation content
