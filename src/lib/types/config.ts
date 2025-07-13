@@ -36,6 +36,8 @@ export interface AppConfig {
   paths: PathsConfig;
   /** Update configuration */
   update?: UpdateConfig;
+  /** Backup configuration */
+  backup?: BackupConfig;
 }
 
 /**
@@ -121,6 +123,20 @@ export interface UpdateConfig {
 }
 
 /**
+ * Backup configuration
+ */
+export interface BackupConfig {
+  /** Whether automatic backup is enabled */
+  enabled: boolean;
+  /** Retention period in days (0 means keep forever) */
+  retentionDays: number;
+  /** Maximum number of backups to keep per translation type (0 means unlimited) */
+  maxBackupsPerType: number;
+  /** Whether to automatically prune old backups on startup */
+  autoPruneOnStartup: boolean;
+}
+
+/**
  * Default application configuration
  * Unified configuration with all default values in one place
  */
@@ -157,6 +173,12 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   update: {
     checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
+  },
+  backup: {
+    enabled: true,
+    retentionDays: 30,
+    maxBackupsPerType: 10,
+    autoPruneOnStartup: false
   }
 };
 

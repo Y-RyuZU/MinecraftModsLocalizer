@@ -4,6 +4,7 @@ pub mod minecraft;
 pub mod filesystem;
 pub mod config;
 pub mod logging;
+pub mod backup;
 
 use minecraft::{analyze_mod_jar, extract_lang_files, extract_patchouli_books, write_patchouli_book};
 use filesystem::{
@@ -13,6 +14,7 @@ use filesystem::{
 };
 use config::{load_config, save_config};
 use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory, create_temp_directory, create_logs_directory_with_session, create_temp_directory_with_session, generate_session_id, log_translation_start, log_translation_statistics, log_file_progress, log_translation_completion, log_performance_metrics};
+use backup::{create_backup, list_backups, restore_backup, delete_backup, prune_old_backups, get_backup_info, get_backup_storage_size};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -103,7 +105,16 @@ pub fn run() {
       log_translation_statistics,
       log_file_progress,
       log_translation_completion,
-      log_performance_metrics
+      log_performance_metrics,
+      
+      // Backup operations
+      create_backup,
+      list_backups,
+      restore_backup,
+      delete_backup,
+      prune_old_backups,
+      get_backup_info,
+      get_backup_storage_size
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

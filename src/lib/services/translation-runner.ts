@@ -3,6 +3,7 @@ import {TranslationResult, TranslationTargetType} from "../types/minecraft";
 import {invoke} from "@tauri-apps/api/core";
 import {ErrorLogger} from "../utils/error-logger";
 import { TRANSLATION_DEFAULTS } from "../constants/defaults";
+import { backupService, type CreateBackupOptions } from "./backup-service";
 
 /**
  * Shared translation runner for all tabs.
@@ -25,6 +26,8 @@ export interface RunTranslationJobsOptions<T extends TranslationJob = Translatio
     writeOutput: (job: T, outputPath: string, content: Record<string, string>) => Promise<void>;
     targetLanguage: string;
     type: TranslationTargetType;
+    sessionId?: string; // Optional session ID for backup integration
+    enableBackup?: boolean; // Whether to create backups (default: true)
 }
 
 /**
@@ -47,7 +50,9 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         getResultContent,
         writeOutput,
         targetLanguage,
-        type
+        type,
+        sessionId,
+        enableBackup = true
     } = options;
 
     for (let i = 0; i < jobs.length; i++) {
@@ -204,6 +209,39 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         let writeSuccess = true;
 
         try {
+            // Create backup before writing output (if enabled and session ID provided)
+            if (enableBackup && sessionId) {
+                try {
+                    // Determine source name for backup
+                    const sourceName = job.currentFileName || job.id || `${type}_${i + 1}`;
+                    
+                    // Calculate file size estimate
+                    const contentSize = JSON.stringify(content).length;
+                    
+                    // Create backup options
+                    const backupOptions: CreateBackupOptions = {
+                        type,
+                        sourceName,
+                        targetLanguage,
+                        sessionId,
+                        filePaths: [outputPath], // Path where the output will be written
+                        statistics: {
+                            totalKeys: getTotalKeysInJob(job),
+                            successfulTranslations: job.chunks.filter(c => c.status === "completed").length,
+                            fileSize: contentSize
+                        }
+                    };
+                    
+                    // Create the backup
+                    const backupInfo = await backupService.createBackup(backupOptions);
+                    console.log(`[TranslationRunner] Backup created for ${sourceName}: ${backupInfo.metadata.id}`);
+                } catch (backupError) {
+                    // Log backup error but don't fail the translation
+                    console.warn(`[TranslationRunner] Failed to create backup for job ${job.id}:`, backupError);
+                    await ErrorLogger.logError(`Backup creation failed for job ${job.id}`, backupError, type);
+                }
+            }
+            
             await writeOutput(job, outputPath, content);
         } catch (error) {
             await ErrorLogger.logError(`Failed to write output for job ${job.id}`, error, type);
