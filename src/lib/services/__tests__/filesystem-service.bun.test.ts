@@ -1,15 +1,19 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { FileService } from '../file-service';
 
-// Mock Tauri invoke
+// Mock invoke function
 const mockInvoke = mock(() => Promise.resolve([]));
-mock.module('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke
-}));
 
 describe('FileService - FTB Quest File Discovery (Bun)', () => {
   beforeEach(() => {
     mockInvoke.mockClear();
+    // Set the test override for FileService
+    FileService.setTestInvokeOverride(mockInvoke);
+  });
+
+  afterEach(() => {
+    // Reset the test override
+    FileService.setTestInvokeOverride(null);
   });
 
   describe('get_ftb_quest_files conditional logic', () => {

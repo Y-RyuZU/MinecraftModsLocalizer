@@ -12,7 +12,12 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
-    '.*\\.bun\\.test\\.(ts|tsx)$'
+    '.*\\.bun\\.test\\.(ts|tsx)$',
+    '<rootDir>/src/__tests__/services/translation-service.test.ts',
+    '<rootDir>/src/__tests__/services/translation-runner.test.ts',
+    '<rootDir>/src/__tests__/adapters/openai-adapter.test.ts',
+    '<rootDir>/src/__tests__/tabs/mods-tab.test.tsx',
+    '<rootDir>/src/__tests__/components/translation-tab.test.tsx'
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

@@ -2,6 +2,7 @@ import { test, describe, beforeEach, expect, mock } from 'bun:test';
 import { TranslationService } from '../translation-service';
 import { LLMConfig } from '../../types/llm';
 import { mockModData } from '../../test-utils/mock-data';
+import { LLMAdapterFactory } from '../../adapters/llm-adapter-factory';
 
 // Mock the LLM adapter factory
 const mockAdapter = {
@@ -32,6 +33,9 @@ describe('TranslationService', () => {
     mockAdapter.translate.mockClear();
     mockAdapter.validateApiKey.mockClear();
     mockAdapter.getMaxChunkSize.mockClear();
+    
+    // Mock LLMAdapterFactory to return our mock adapter
+    LLMAdapterFactory.getAdapter = mock(() => mockAdapter);
     
     const config: LLMConfig = {
       provider: 'mock',

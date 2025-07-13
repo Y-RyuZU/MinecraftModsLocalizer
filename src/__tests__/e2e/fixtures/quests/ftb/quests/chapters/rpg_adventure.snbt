@@ -1,0 +1,190 @@
+{
+	id: "7A6B8C9D0E1F2G3H"
+	group: "0A520B482648497B"
+	order_index: 0
+	filename: "rpg_adventure"
+	title: "RPG Adventure"
+	icon: "minecraft:diamond_sword"
+	default_quest_shape: ""
+	default_hide_dependency_lines: false
+	quests: [
+		{
+			title: "The Journey Begins"
+			icon: "minecraft:wooden_sword"
+			x: 0.0d
+			y: 0.0d
+			description: [
+				"Welcome to your RPG adventure!"
+				""
+				"This modpack enhances Minecraft with RPG elements including:"
+				"• Character classes and levels"
+				"• Skills and abilities"
+				"• Epic boss battles"
+				"• Legendary equipment"
+				""
+				"Start by crafting a wooden training sword to begin your journey."
+			]
+			size: 1.5d
+			id: "0123456789ABCDEF"
+			tasks: [{
+				id: "FEDCBA9876543210"
+				type: "item"
+				item: "rpgmod:wooden_training_sword"
+			}]
+			rewards: [
+				{
+					id: "1A2B3C4D5E6F7890"
+					type: "xp_levels"
+					xp_levels: 5
+				}
+				{
+					id: "0987654321FEDCBA"
+					type: "item"
+					item: "minecraft:bread"
+					count: 16
+				}
+			]
+		}
+		{
+			title: "Choose Your Path"
+			icon: "rpgmod:class_change_pedestal"
+			x: 2.0d
+			y: 0.0d
+			description: [
+				"It's time to choose your class!"
+				""
+				"Visit a Class Change Pedestal and select one of the following:"
+				"• §cWarrior§r - Tank and melee damage"
+				"• §9Mage§r - Powerful spells and crowd control"
+				"• §8Rogue§r - Stealth and burst damage"
+				""
+				"Each class has unique abilities and playstyles."
+			]
+			dependencies: ["0123456789ABCDEF"]
+			id: "2B3C4D5E6F708912"
+			tasks: [{
+				id: "3C4D5E6F70891234"
+				type: "advancement"
+				advancement: "rpgmod:choose_class"
+				criterion: ""
+			}]
+			rewards: [{
+				id: "4D5E6F7089123456"
+				type: "item"
+				item: {
+					id: "rpgmod:skill_book_fireball"
+					Count: 1b
+					tag: {
+						display: {
+							Lore: [
+								'{"text":"A gift for new adventurers","color":"gray","italic":true}'
+							]
+						}
+					}
+				}
+			}]
+		}
+		{
+			title: "Power Leveling"
+			icon: "minecraft:experience_bottle"
+			x: 4.0d
+			y: 0.0d
+			subtitle: "Reach Level 10"
+			description: [
+				"Experience is gained by:"
+				"• Defeating monsters"
+				"• Completing quests"
+				"• Crafting items"
+				"• Mining rare ores"
+				""
+				"Higher level enemies give more experience!"
+			]
+			dependencies: ["2B3C4D5E6F708912"]
+			hide: true
+			id: "5E6F708912345678"
+			tasks: [{
+				id: "6F70891234567890"
+				type: "stat"
+				stat: "rpgmod:player_level"
+				value: 10
+			}]
+			rewards: [
+				{
+					id: "7089123456789ABC"
+					type: "item"
+					item: "rpgmod:steel_longsword"
+					count: 1
+				}
+				{
+					id: "89123456789ABCDE"
+					type: "loot"
+					table: "rpgmod:level_10_reward"
+				}
+			]
+		}
+		{
+			title: "Boss Hunter"
+			icon: {
+				id: "minecraft:player_head"
+				Count: 1b
+				tag: {
+					SkullOwner: {
+						Properties: {
+							textures: [{
+								Value: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2I5ZTg5YjBhOGFhNzNlNDM0OGI5ZjI2NWRlNjk5ZDNjNmJhNGFjMzMzNDY3NDYzNmI5OTNjNzZlYmQ4ZmYzZSJ9fX0="
+							}]
+						}
+					}
+				}
+			}
+			x: 4.0d
+			y: 2.0d
+			shape: "hexagon"
+			subtitle: "Defeat the Ancient Golem"
+			description: [
+				"The Ancient Golem is a formidable foe that guards ancient treasures."
+				""
+				"§cWarning:§r This boss is designed for players level 15+"
+				""
+				"Recommended equipment:"
+				"• Enchanted armor"
+				"• Health potions"
+				"• A party of friends!"
+			]
+			dependencies: ["5E6F708912345678"]
+			size: 1.5d
+			id: "9ABCDEF012345678"
+			tasks: [{
+				id: "ABCDEF0123456789"
+				type: "kill"
+				entity: "rpgmod:ancient_golem"
+				value: 1L
+			}]
+			rewards: [
+				{
+					id: "BCDEF0123456789A"
+					type: "item"
+					item: {
+						id: "rpgmod:enchanted_blade"
+						Count: 1b
+						tag: {
+							Enchantments: [{
+								id: "minecraft:sharpness"
+								lvl: 5s
+							}]
+							display: {
+								Name: '{"text":"Golem Slayer","color":"gold","bold":true}'
+							}
+						}
+					}
+				}
+				{
+					id: "CDEF0123456789AB"
+					type: "xp"
+					xp: 1000
+				}
+			]
+		}
+	]
+	quest_links: [ ]
+}
