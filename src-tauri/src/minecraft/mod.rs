@@ -342,10 +342,15 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         
-        // Try to convert to UTF-8, handling invalid sequences
-        let content = String::from_utf8_lossy(&buffer).to_string();
+        // First, remove any null bytes and other problematic bytes
+        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+            .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+            .collect();
         
-        // Clean the JSON content
+        // Try to convert to UTF-8, handling invalid sequences
+        let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
+        
+        // Clean the JSON content further
         let cleaned_content = clean_json_string(&content);
         
         debug!(
@@ -358,6 +363,10 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
             Ok(value) => value,
             Err(e) => {
                 error!("Failed to parse fabric.mod.json: {}", e);
+                // Log more details about the error
+                if let Some(line) = cleaned_content.lines().nth(e.line().saturating_sub(1)) {
+                    error!("Error at line {}: {}", e.line(), line);
+                }
                 return Err(MinecraftError::Json(e));
             }
         };
@@ -376,8 +385,13 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         
+        // First, remove any null bytes and other problematic bytes
+        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+            .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+            .collect();
+        
         // Try to convert to UTF-8, handling invalid sequences
-        let content = String::from_utf8_lossy(&buffer).to_string();
+        let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
         // Parse TOML using the toml crate
         let parsed_toml = content
@@ -423,8 +437,13 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
         
+        // First, remove any null bytes and other problematic bytes
+        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+            .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+            .collect();
+        
         // Try to convert to UTF-8, handling invalid sequences
-        let content = String::from_utf8_lossy(&buffer).to_string();
+        let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
         // Use a default mod ID
         let jar_name = "unknown".to_string();
@@ -470,8 +489,13 @@ fn extract_lang_files_from_archive(
                 let mut buffer = Vec::new();
                 file.read_to_end(&mut buffer)?;
                 
+                // First, remove any null bytes and other problematic bytes
+                let cleaned_buffer: Vec<u8> = buffer.into_iter()
+                    .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+                    .collect();
+                
                 // Try to convert to UTF-8, handling invalid sequences
-                let content_str = String::from_utf8_lossy(&buffer).to_string();
+                let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
                 debug!(
                     "Attempting to parse lang file: {}. Content snippet: {}",
                     name,
@@ -685,8 +709,13 @@ fn extract_patchouli_books_from_archive(
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer)?;
             
+            // First, remove any null bytes and other problematic bytes
+            let cleaned_buffer: Vec<u8> = buffer.into_iter()
+                .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+                .collect();
+            
             // Try to convert to UTF-8, handling invalid sequences
-            let content_str = String::from_utf8_lossy(&buffer).to_string();
+            let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
             // Extract translation strings using regex
             let mut extracted: HashMap<String, String> = HashMap::new();

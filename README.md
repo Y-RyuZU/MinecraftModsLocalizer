@@ -108,6 +108,9 @@ bun run test:coverage
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Code Rabbit
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/Y-RyuZU/MinecraftModsLocalizer?utm_source=oss&utm_medium=github&utm_campaign=Y-RyuZU%2FMinecraftModsLocalizer&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

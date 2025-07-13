@@ -66,6 +66,9 @@ const getTauriInvokeFunction = () => {
 // Define a function to safely invoke Tauri commands
 const tauriInvokeFunction = !isSSR ? getTauriInvokeFunction() : null;
 
+// Allow tests to override the invoke function
+let testInvokeOverride: (<T>(command: string, args?: Record<string, unknown>) => Promise<T>) | null = null;
+
 // Log Tauri availability
 if (!isSSR) {
   console.log(`Tauri API available: ${isTauri ? 'yes' : 'no'}`);
@@ -151,6 +154,11 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
  * In SSR, always use mock
  */
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
+  // If test override is set, use it
+  if (testInvokeOverride) {
+    return testInvokeOverride<T>(command, args);
+  }
+  
   // In SSR, always use mock
   if (isSSR) {
     console.log(`[SSR] Using mock for command: ${command}`);
@@ -177,6 +185,13 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
  * File service
  */
 export class FileService {
+  /**
+   * Set a custom invoke function for testing
+   * @param invokeFunc Custom invoke function or null to reset
+   */
+  static setTestInvokeOverride(invokeFunc: (<T>(command: string, args?: Record<string, unknown>) => Promise<T>) | null): void {
+    testInvokeOverride = invokeFunc;
+  }
   /**
    * Invoke a Tauri command
    * @param command Command to invoke

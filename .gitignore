@@ -53,3 +53,4 @@ next-env.d.ts
 src-tauri/target/
 src-tauri/gen/
 src-tauri/logs/
+mod_analysis/
