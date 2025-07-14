@@ -8,7 +8,7 @@ if (typeof global.window === 'undefined') {
 
 // Mock Tauri internals
 global.window.__TAURI_INTERNALS__ = {
-  invoke: async (cmd: string, args?: any) => {
+  invoke: async <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
     // Mock implementation for Tauri commands used in tests
     console.log(`[Mock Tauri] ${cmd}:`, args);
     
@@ -23,26 +23,24 @@ global.window.__TAURI_INTERNALS__ = {
       case 'log_translation_start':
       case 'log_translation_statistics':
       case 'log_translation_completion':
-        return; // Logging commands don't return anything
+      case 'clear_logs':
+        return undefined as T; // Logging commands don't return anything
         
       case 'generate_session_id':
-        return `test_session_${Date.now()}`;
+        return `test_session_${Date.now()}` as T;
         
       case 'create_logs_directory_with_session':
-        return `/test/logs/localizer/${args.sessionId}`;
+        return `/test/logs/localizer/${args?.sessionId}` as T;
         
       case 'create_temp_directory_with_session':
-        return `/test/logs/localizer/${args.sessionId}/tmp`;
-        
-      case 'clear_logs':
-        return;
+        return `/test/logs/localizer/${args?.sessionId}/tmp` as T;
         
       case 'get_logs':
-        return [];
+        return [] as T;
         
       default:
         console.warn(`Unmocked Tauri command: ${cmd}`);
-        return;
+        return undefined as T;
     }
   }
 };

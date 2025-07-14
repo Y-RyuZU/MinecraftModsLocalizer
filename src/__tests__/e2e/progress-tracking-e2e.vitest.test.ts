@@ -55,6 +55,15 @@ describe('Progress Tracking E2E Tests', () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
+    // Mock translation to avoid actual API calls
+    service.translateChunk = async (content: Record<string, string>, targetLang: string) => {
+      const translated: Record<string, string> = {};
+      for (const [key, value] of Object.entries(content)) {
+        translated[key] = `[${targetLang.toUpperCase()}] ${value}`;
+      }
+      return translated;
+    };
+
     // Reset progress tracking
     progressUpdates = [];
     chunkProgressUpdates = 0;
@@ -113,7 +122,7 @@ describe('Progress Tracking E2E Tests', () => {
     expect(modProgressUpdates).toBe(1);
   });
 
-  it('should handle progress tracking with multiple mods', { timeout: 10000 }, async () => {
+  it('should handle progress tracking with multiple mods', async () => {
     // Create multiple small mods
     const mod1Content: Record<string, string> = {
       'item.mod1.sword': 'Sword',
@@ -227,7 +236,7 @@ describe('Progress Tracking E2E Tests', () => {
     expect(progressTimestamps[2]).toBeGreaterThan(progressTimestamps[1]);
   });
 
-  it('should handle missing incrementCompletedChunks gracefully', { timeout: 10000 }, async () => {
+  it('should handle missing incrementCompletedChunks gracefully', async () => {
     const content = {
       'item.test.sword': 'Test Sword'
     };
@@ -235,7 +244,7 @@ describe('Progress Tracking E2E Tests', () => {
     const job = service.createJob(content, 'ja_jp', 'test.jar');
 
     // Run without incrementCompletedChunks
-    await expect(runTranslationJobs({
+    await runTranslationJobs({
       jobs: [job],
       translationService: service,
       setCurrentJobId: vi.fn(),
@@ -246,7 +255,7 @@ describe('Progress Tracking E2E Tests', () => {
       getResultContent: (job) => service.getCombinedTranslatedContent(job.id),
       writeOutput: async () => {},
       onResult: vi.fn()
-    })).resolves.not.toThrow();
+    });
 
     // Job should still complete successfully
     expect(job.status).toBe('completed');
