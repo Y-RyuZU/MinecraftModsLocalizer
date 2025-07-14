@@ -3,7 +3,7 @@
 import {useAppStore} from "@/lib/store";
 import {TranslationResult, TranslationTarget} from "@/lib/types/minecraft";
 import {FileService} from "@/lib/services/file-service";
-import {TranslationService} from "@/lib/services/translation-service";
+import {TranslationService, TranslationJob} from "@/lib/services/translation-service";
 import {TranslationTab} from "@/components/tabs/common/translation-tab";
 import {invoke} from "@tauri-apps/api/core";
 import {runTranslationJobs} from "@/lib/services/translation-runner";
@@ -137,7 +137,7 @@ export function QuestsTab() {
             // Create jobs for all quests
             const jobs: Array<{
                 target: TranslationTarget;
-                job: any;
+                job: TranslationJob;
                 content: string;
             }> = [];
             
@@ -267,7 +267,7 @@ export function QuestsTab() {
                     await FileService.writeTextFile(outputFilePath, translatedText);
                 },
                 onResult: addTranslationResult,
-                onJobStart: async (job, i) => {
+                onJobStart: async (job) => {
                     const questData = jobs.find(j => j.job.id === job.id);
                     if (!questData) return;
                     try {
@@ -276,7 +276,7 @@ export function QuestsTab() {
                         });
                     } catch {}
                 },
-                onJobComplete: async (job, i) => {
+                onJobComplete: async (job) => {
                     const questData = jobs.find(j => j.job.id === job.id);
                     if (!questData) return;
                     try {
@@ -285,7 +285,7 @@ export function QuestsTab() {
                         });
                     } catch {}
                 },
-                onJobInterrupted: async (job, i) => {
+                onJobInterrupted: async (job) => {
                     const questData = jobs.find(j => j.job.id === job.id);
                     if (!questData) return;
                     try {
