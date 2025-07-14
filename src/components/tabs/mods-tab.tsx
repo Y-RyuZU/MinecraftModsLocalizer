@@ -64,7 +64,8 @@ export function ModsTab() {
             name: modInfo.name,
             path: modFile, // Keep the full path for internal use
             relativePath: relativePath, // Add relative path for display
-            selected: true
+            selected: true,
+            langFormat: modInfo.langFormat || "json" // Store the language file format
           });
         }
       } catch (error) {
@@ -214,11 +215,16 @@ export function ModsTab() {
         getOutputPath: () => resourcePackDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
+          // Find the target to get the langFormat
+          const target = sortedTargets.find(t => t.id === job.modId);
+          const format = target?.langFormat || 'json';
+          
           await FileService.writeLangFile(
             job.modId,
             targetLanguage,
             content,
-            outputPath
+            outputPath,
+            format
           );
         },
         onResult: addTranslationResult,
@@ -264,6 +270,20 @@ export function ModsTab() {
           label: "tables.path", 
           className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "langFormat",
+          label: "Format",
+          className: "w-20",
+          render: (target) => (
+            <span className={`px-2 py-1 text-xs rounded ${
+              target.langFormat === 'lang' 
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {target.langFormat?.toUpperCase() || 'JSON'}
+            </span>
+          )
         }
       ]}
       config={config}

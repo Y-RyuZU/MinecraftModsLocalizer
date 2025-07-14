@@ -21,7 +21,7 @@ const isTauriEnvironment = (): boolean => {
     // Use type assertions with unknown first to avoid direct any usage
     const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
     const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
-    const hasTauriClass = document.documentElement.classList.contains('tauri');
+    const hasTauriClass = typeof document !== 'undefined' && document.documentElement?.classList?.contains('tauri');
     
     console.log('Tauri detection:', {
       hasTauriInternals,
@@ -142,6 +142,7 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
       return `${args?.dir}/${args?.name}` as unknown as T;
       
     case "write_lang_file":
+      console.log(`[MOCK] Writing lang file with format: ${args?.format || 'json'}`);
       return true as unknown as T;
       
     default:
@@ -278,20 +279,23 @@ export class FileService {
    * @param language Target language
    * @param content File content
    * @param dir Resource pack directory
+   * @param format File format ('json' or 'lang'), defaults to 'json'
    * @returns Success status
    */
   static async writeLangFile(
     modId: string,
     language: string,
     content: Record<string, string>,
-    dir: string
+    dir: string,
+    format?: 'json' | 'lang'
   ): Promise<boolean> {
     try {
       return await tauriInvoke<boolean>("write_lang_file", { 
         modId, 
         language, 
         content: JSON.stringify(content), 
-        dir 
+        dir,
+        format: format || 'json'
       });
     } catch (error) {
       console.error("Failed to write language file:", error);

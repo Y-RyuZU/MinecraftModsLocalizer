@@ -438,8 +438,8 @@ pub async fn create_resource_pack(_app_handle: tauri::AppHandle, name: &str, lan
 
 /// Write a language file to a resource pack
 #[tauri::command]
-pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, language: &str, content: &str, dir: &str) -> std::result::Result<bool, String> {
-    info!("Writing lang file for {} in {} to {}", mod_id, language, dir);
+pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, language: &str, content: &str, dir: &str, format: Option<&str>) -> std::result::Result<bool, String> {
+    info!("Writing lang file for {} in {} to {} with format {:?}", mod_id, language, dir, format);
     
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {
@@ -460,18 +460,44 @@ pub async fn write_lang_file(_app_handle: tauri::AppHandle, mod_id: &str, langua
         Err(e) => return Err(format!("Failed to parse content JSON: {}", e)),
     };
     
-    // Serialize content
-    let content_json = match serde_json::to_string_pretty(&content_map) {
-        Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize content: {}", e)),
-    };
+    // Determine file format based on optional parameter, defaulting to json
+    let file_format = format.unwrap_or("json");
     
-    // Write language file
-    let lang_file_path = mod_assets_dir.join(format!("{}.json", language));
-    let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
-    
-    if let Err(e) = std::fs::write(&lang_file_path, content_json) {
-        return Err(format!("Failed to write language file: {}", e));
+    match file_format {
+        "lang" => {
+            // Legacy .lang format: key=value per line
+            let mut lines: Vec<String> = content_map
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect();
+            // Sort lines for consistent output
+            lines.sort();
+            let lang_content = lines.join("\n");
+            
+            // Write language file with .lang extension
+            let lang_file_path = mod_assets_dir.join(format!("{}.lang", language));
+            let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
+            
+            if let Err(e) = std::fs::write(&lang_file_path, lang_content) {
+                return Err(format!("Failed to write language file: {}", e));
+            }
+        }
+        _ => {
+            // Default to JSON format
+            // Serialize content
+            let content_json = match serde_json::to_string_pretty(&content_map) {
+                Ok(json) => json,
+                Err(e) => return Err(format!("Failed to serialize content: {}", e)),
+            };
+            
+            // Write language file with .json extension
+            let lang_file_path = mod_assets_dir.join(format!("{}.json", language));
+            let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
+            
+            if let Err(e) = std::fs::write(&lang_file_path, content_json) {
+                return Err(format!("Failed to write language file: {}", e));
+            }
+        }
     }
     
     Ok(true)

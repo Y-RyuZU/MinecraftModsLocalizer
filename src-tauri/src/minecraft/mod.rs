@@ -57,6 +57,9 @@ pub struct ModInfo {
 
     /// Patchouli books in the mod
     pub patchouli_books: Vec<PatchouliBook>,
+    
+    /// Source language file format ('json' or 'lang')
+    pub lang_format: String,
 }
 
 /// Language file
@@ -116,8 +119,8 @@ pub fn analyze_mod_jar(jar_path: &str) -> std::result::Result<ModInfo, String> {
     };
 
     // Extract language files (defaulting to en_us)
-    let lang_files = match extract_lang_files_from_archive(&mut archive, &mod_id, "en_us") {
-        Ok(files) => files,
+    let (lang_files, lang_format) = match extract_lang_files_from_archive_with_format(&mut archive, &mod_id, "en_us") {
+        Ok((files, format)) => (files, format),
         Err(e) => return Err(e.to_string()),
     };
 
@@ -135,6 +138,7 @@ pub fn analyze_mod_jar(jar_path: &str) -> std::result::Result<ModInfo, String> {
         jar_path: jar_path.to_string_lossy().to_string(),
         lang_files,
         patchouli_books,
+        lang_format,
     };
 
     Ok(mod_info)
@@ -540,6 +544,101 @@ fn extract_lang_files_from_archive(
     }
 
     Ok(lang_files)
+}
+
+/// Extract language files from an archive with format detection
+fn extract_lang_files_from_archive_with_format(
+    archive: &mut ZipArchive<File>,
+    _mod_id: &str,
+    target_language: &str,
+) -> Result<(Vec<LangFile>, String)> {
+    let mut lang_files = Vec::new();
+    let mut detected_format = "json".to_string(); // Default to json
+
+    // Find all language files
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let name = file.name().to_string();
+
+        // Check if the file is a language file (.json or .lang)
+        if name.contains("/lang/") && (name.ends_with(".json") || name.ends_with(".lang")) {
+            // Extract language code from the file name
+            let parts: Vec<&str> = name.split('/').collect();
+            let filename = parts.last().unwrap_or(&"unknown.json");
+            let language = if filename.ends_with(".json") {
+                filename.trim_end_matches(".json").to_lowercase()
+            } else if filename.ends_with(".lang") {
+                filename.trim_end_matches(".lang").to_lowercase()
+            } else {
+                filename.to_lowercase()
+            };
+
+            // Detect format from en_us file
+            if language == "en_us" {
+                if name.ends_with(".lang") {
+                    detected_format = "lang".to_string();
+                } else {
+                    detected_format = "json".to_string();
+                }
+            }
+
+            // Only process the target language file (case-insensitive)
+            if language == target_language.to_lowercase() {
+                // Read the file content
+                let mut buffer = Vec::new();
+                file.read_to_end(&mut buffer)?;
+                
+                // First, remove any null bytes and other problematic bytes
+                let cleaned_buffer: Vec<u8> = buffer.into_iter()
+                    .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
+                    .collect();
+                
+                // Try to convert to UTF-8, handling invalid sequences
+                let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
+                debug!(
+                    "Attempting to parse lang file: {}. Content snippet: {}",
+                    name,
+                    content_str.chars().take(100).collect::<String>()
+                ); // Log file path and content snippet
+
+                // Parse content based on extension
+                let content: HashMap<String, String> = if name.ends_with(".json") {
+                    // Strip _comment lines before parsing
+                    let clean_content_str = strip_json_comments(&content_str);
+                    match serde_json::from_str(&clean_content_str) {
+                        Ok(content) => content,
+                        Err(e) => {
+                            error!("Failed to parse lang file '{}': {}. Skipping this file.", name, e);
+                            // Skip this file instead of failing the entire mod
+                            continue;
+                        }
+                    }
+                } else {
+                    // .lang legacy format: key=value per line
+                    let mut map = HashMap::new();
+                    for line in content_str.lines() {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() || trimmed.starts_with('#') {
+                            continue;
+                        }
+                        if let Some((key, value)) = trimmed.split_once('=') {
+                            map.insert(key.trim().to_string(), value.trim().to_string());
+                        }
+                    }
+                    map
+                };
+
+                // Create LangFile
+                lang_files.push(LangFile {
+                    language,
+                    path: name,
+                    content,
+                });
+            }
+        }
+    }
+
+    Ok((lang_files, detected_format))
 }
 
 /// Clean a JSON string by removing control characters and other problematic content

@@ -23,6 +23,8 @@ export interface ModInfo {
   langFiles: LangFile[];
   /** Patchouli books in the mod */
   patchouliBooks: PatchouliBook[];
+  /** Source language file format ('json' or 'lang') */
+  langFormat: 'json' | 'lang';
 }
 
 /**
@@ -113,6 +115,8 @@ export interface TranslationTarget {
   selected: boolean;
   /** Quest format (only for quest type) */
   questFormat?: "ftb" | "better";
+  /** Language file format (only for mod type) */
+  langFormat?: "json" | "lang";
 }
 
 /**

@@ -6,6 +6,9 @@ pub mod config;
 pub mod logging;
 pub mod backup;
 
+#[cfg(test)]
+mod tests;
+
 use minecraft::{analyze_mod_jar, extract_lang_files, extract_patchouli_books, write_patchouli_book};
 use filesystem::{
     get_mod_files, get_ftb_quest_files, get_better_quest_files, get_files_with_extension,
