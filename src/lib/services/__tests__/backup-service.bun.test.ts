@@ -315,7 +315,10 @@ describe('BackupService', () => {
   });
 
   describe('error handling', () => {
-    test('should throw error when not in Tauri environment', () => {
+    test('should throw error when not in Tauri environment', async () => {
+      // Store original window
+      const originalWindow = global.window;
+      
       // Mock non-Tauri environment
       Object.defineProperty(global, 'window', {
         value: {},
@@ -324,8 +327,14 @@ describe('BackupService', () => {
 
       const nonTauriService = new BackupService();
 
-      expect(() => nonTauriService.createBackup({} as CreateBackupOptions))
+      await expect(nonTauriService.createBackup({} as CreateBackupOptions))
         .rejects.toThrow('Backup service requires Tauri environment');
+        
+      // Restore original window
+      Object.defineProperty(global, 'window', {
+        value: originalWindow,
+        writable: true,
+      });
     });
   });
 
@@ -346,7 +355,7 @@ describe('BackupService', () => {
       const result = await backupService.createBackup(options);
 
       // Check ID format: type_cleanSourceName_targetLanguage_timestamp
-      expect(result.metadata.id).toMatch(/^custom_my-custom-file_ko_kr_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/);
+      expect(result.metadata.id).toMatch(/^custom_my_custom_file_ko_kr_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z$/);
     });
 
     test('should clean source name for backup ID', async () => {

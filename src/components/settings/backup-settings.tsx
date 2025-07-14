@@ -46,7 +46,7 @@ export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
     setConfig({
       ...config,
       backup: {
-        ...config.backup,
+        ...backupConfig,
         enabled
       }
     });
@@ -57,7 +57,7 @@ export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
     setConfig({
       ...config,
       backup: {
-        ...config.backup,
+        ...backupConfig,
         retentionDays
       }
     });
@@ -68,7 +68,7 @@ export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
     setConfig({
       ...config,
       backup: {
-        ...config.backup,
+        ...backupConfig,
         maxBackupsPerType
       }
     });
@@ -78,7 +78,7 @@ export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
     setConfig({
       ...config,
       backup: {
-        ...config.backup,
+        ...backupConfig,
         autoPruneOnStartup
       }
     });

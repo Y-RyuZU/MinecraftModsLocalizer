@@ -15,7 +15,7 @@ const isTauriEnvironment = (): boolean => {
   try {
     const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
     const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
-    const hasTauriClass = document.documentElement.classList.contains('tauri');
+    const hasTauriClass = typeof document !== 'undefined' && document.documentElement?.classList?.contains('tauri');
     
     return hasTauriInternals || hasIsTauri || hasTauriClass;
   } catch (error) {
