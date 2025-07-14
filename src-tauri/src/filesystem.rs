@@ -157,14 +157,22 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
     } else {
         info!("No KubeJS en_us.json found - falling back to SNBT file translation method");
         
-        // Look for FTB quests in the config/ftbquests directory
+        // Look for FTB quests in multiple possible directories
         let config_dir = path.join("config");
-        let ftb_quests_dir = config_dir.join("ftbquests");
+        let quest_roots = vec![
+            config_dir.join("ftbquests").join("quests"),  // Standard path
+            config_dir.join("ftbquests").join("normal"),  // FTB Interactions Remastered path
+            config_dir.join("ftbquests"),                 // Fallback to root directory
+        ];
         
-        if ftb_quests_dir.exists() && ftb_quests_dir.is_dir() {
-            info!("Scanning FTB quests directory: {}", ftb_quests_dir.display());
-            // Walk through the directory and find all SNBT files
-            for entry in WalkDir::new(ftb_quests_dir).into_iter() {
+        let mut quest_dir_found = false;
+        for quest_root in quest_roots {
+            if quest_root.exists() && quest_root.is_dir() {
+                info!("Scanning FTB quests directory: {}", quest_root.display());
+                quest_dir_found = true;
+                
+                // Walk through the directory and find all SNBT files
+                for entry in WalkDir::new(&quest_root).into_iter() {
                 match entry {
                     Ok(entry) => {
                         let entry_path = entry.path();
@@ -199,8 +207,12 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
                     }
                 }
             }
-        } else {
-            info!("No FTB quests directory found at {}", ftb_quests_dir.display());
+            }
+        }
+        
+        if !quest_dir_found {
+            info!("No FTB quests directory found in standard locations");
+            return Err(format!("No FTB quests directory found. Checked: config/ftbquests/quests/, config/ftbquests/normal/, and config/ftbquests/"));
         }
     }
     

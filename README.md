@@ -10,6 +10,10 @@ A desktop application that automates the translation of Minecraft Mods and Quest
 
 - **Mod Translation**: Translates mod language files and outputs them as resource packs
 - **Quest Translation**: Supports FTB Quests and Better Quests translation
+  - Supports multiple FTB Quest directory structures:
+    - Standard: `config/ftbquests/quests/`
+    - FTB Interactions Remastered: `config/ftbquests/normal/`
+    - Nested categories and deeply nested quest structures
 - **Patchouli Guidebook Translation**: Translates Patchouli guidebooks within mod JAR files
 - **Multi-Language Support**: Supports Japanese, Chinese, Korean, German, French, Spanish, and custom languages
 - **AI-Powered**: Uses advanced language models for high-quality translations
