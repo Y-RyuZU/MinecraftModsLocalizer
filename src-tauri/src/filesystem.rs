@@ -232,12 +232,13 @@ pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) ->
     
     let mut quest_files = Vec::new();
     
-    // Look for Better Quests in the resources/betterquesting directory
+    // Check both standard and direct locations for BetterQuesting files
+    // 1. Standard location: resources/betterquesting/lang/*.json
     let resources_dir = path.join("resources");
     let better_quests_dir = resources_dir.join("betterquesting").join("lang");
     
     if better_quests_dir.exists() && better_quests_dir.is_dir() {
-        info!("Found Better Quests directory: {}", better_quests_dir.display());
+        info!("Found Better Quests directory (standard): {}", better_quests_dir.display());
         // Walk through the directory and find all JSON files
         for entry in WalkDir::new(better_quests_dir).max_depth(1).into_iter().filter_map(|e| e.ok()) {
             let entry_path = entry.path();
@@ -262,10 +263,24 @@ pub async fn get_better_quest_files(_app_handle: tauri::AppHandle, dir: &str) ->
             }
         }
     } else {
-        info!("No Better Quests directory found at {}", better_quests_dir.display());
+        info!("No Better Quests directory found at standard location: {}", better_quests_dir.display());
     }
     
-    debug!("Found {} Better Quests files", quest_files.len());
+    // 2. Direct location: config/betterquesting/DefaultQuests.lang
+    let config_dir = path.join("config");
+    let better_questing_config_dir = config_dir.join("betterquesting");
+    let default_quests_file = better_questing_config_dir.join("DefaultQuests.lang");
+    
+    if default_quests_file.exists() && default_quests_file.is_file() {
+        info!("Found DefaultQuests.lang file (direct): {}", default_quests_file.display());
+        if let Some(path_str) = default_quests_file.to_str() {
+            quest_files.push(path_str.to_string());
+        }
+    } else {
+        info!("No DefaultQuests.lang found at direct location: {}", default_quests_file.display());
+    }
+    
+    debug!("Found {} Better Quests files (standard + direct)", quest_files.len());
     Ok(quest_files)
 }
 

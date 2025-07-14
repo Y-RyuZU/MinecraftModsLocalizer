@@ -87,11 +87,17 @@ export function QuestsTab() {
                     ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
                     : questFile;
 
+                // Determine if it's a DefaultQuests.lang file (direct mode)
+                const isDirectMode = fileName === "DefaultQuests.lang";
+                const questName = isDirectMode 
+                    ? `Better Quest (Direct): ${fileName}` 
+                    : `Better Quest ${questNumber}: ${fileName}`;
+
                 targets.push({
                     type: "quest",
                     questFormat: "better",
                     id: `better-quest-${questNumber}`,
-                    name: `Better Quest ${questNumber}: ${fileName}`,
+                    name: questName,
                     path: questFile,
                     relativePath: relativePath,
                     selected: true
@@ -140,14 +146,38 @@ export function QuestsTab() {
                     // Read quest file
                     const content = await FileService.readTextFile(target.path);
                     
+                    let processedContent = content;
+                    
+                    // If it's a .lang file, convert to JSON format for translation
+                    if (target.path.endsWith('.lang')) {
+                        const langMap: Record<string, string> = {};
+                        const lines = content.split('\n');
+                        
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            // Skip empty lines and comments
+                            if (trimmed && !trimmed.startsWith('#')) {
+                                const separatorIndex = trimmed.indexOf('=');
+                                if (separatorIndex > -1) {
+                                    const key = trimmed.substring(0, separatorIndex).trim();
+                                    const value = trimmed.substring(separatorIndex + 1).trim();
+                                    langMap[key] = value;
+                                }
+                            }
+                        }
+                        
+                        // Convert to JSON string for translation
+                        processedContent = JSON.stringify(langMap, null, 2);
+                    }
+                    
                     // Create a translation job
                     const job = translationService.createJob(
-                        {content},
+                        {content: processedContent},
                         targetLanguage,
                         target.name
                     );
                     
-                    jobs.push({ target, job, content });
+                    jobs.push({ target, job, content: processedContent });
                 } catch (error) {
                     console.error(`Failed to prepare quest: ${target.name}`, error);
                     // Add failed result immediately
@@ -179,25 +209,60 @@ export function QuestsTab() {
                     const questData = jobs.find(j => j.job.id === job.id);
                     if (!questData) return;
                     
-                    const translatedText = content.content || `[${targetLanguage}] ${questData.content}`;
+                    let translatedText = content.content || `[${targetLanguage}] ${questData.content}`;
                     
                     // Write translated file with language suffix
-                    const fileExtension = questData.target.questFormat === "ftb" ? "snbt" : "json";
+                    let fileExtension: string;
+                    let outputFilePath: string;
                     
-                    // Check if the file already has a language suffix and remove it
-                    const languagePattern = /\.[a-z]{2}_[a-z]{2}\.(snbt|json)$/;
-                    let basePath = questData.target.path;
-                    
-                    // Remove existing language suffix if present
-                    if (languagePattern.test(basePath)) {
-                        basePath = basePath.replace(languagePattern, `.${fileExtension}`);
+                    if (questData.target.questFormat === "ftb") {
+                        fileExtension = "snbt";
+                    } else {
+                        // For BetterQuest, check if it's a .lang file
+                        fileExtension = questData.target.path.endsWith('.lang') ? "lang" : "json";
                     }
                     
-                    // Now add the new language suffix
-                    const outputFilePath = basePath.replace(
-                        `.${fileExtension}`,
-                        `.${targetLanguage}.${fileExtension}`
-                    );
+                    // If it's a .lang file, format the output properly
+                    if (fileExtension === "lang") {
+                        try {
+                            // Parse the translated JSON content
+                            const translatedMap = JSON.parse(translatedText);
+                            
+                            // Convert to .lang format
+                            const langLines: string[] = [];
+                            const sortedKeys = Object.keys(translatedMap).sort();
+                            
+                            for (const key of sortedKeys) {
+                                langLines.push(`${key}=${translatedMap[key]}`);
+                            }
+                            
+                            translatedText = langLines.join('\n');
+                        } catch (error) {
+                            console.error('Failed to format .lang file output:', error);
+                            // Keep original format if parsing fails
+                        }
+                    }
+                    
+                    // Special handling for DefaultQuests.lang files
+                    if (questData.target.path.endsWith('DefaultQuests.lang')) {
+                        // For direct DefaultQuests.lang, create a copy with language suffix
+                        outputFilePath = questData.target.path.replace('.lang', `.${targetLanguage}.lang`);
+                    } else {
+                        // Check if the file already has a language suffix and remove it
+                        const languagePattern = /\.[a-z]{2}_[a-z]{2}\.(snbt|json|lang)$/;
+                        let basePath = questData.target.path;
+                        
+                        // Remove existing language suffix if present
+                        if (languagePattern.test(basePath)) {
+                            basePath = basePath.replace(languagePattern, `.${fileExtension}`);
+                        }
+                        
+                        // Now add the new language suffix
+                        outputFilePath = basePath.replace(
+                            `.${fileExtension}`,
+                            `.${targetLanguage}.${fileExtension}`
+                        );
+                    }
                     
                     await FileService.writeTextFile(outputFilePath, translatedText);
                 },
@@ -237,7 +302,13 @@ export function QuestsTab() {
 
     // Custom render function for the type column
     const renderQuestType = (target: TranslationTarget) => {
-        return target.questFormat === "ftb" ? "FTB Quest" : "Better Quest";
+        if (target.questFormat === "ftb") {
+            return "FTB Quest";
+        } else {
+            // For BetterQuest, show if it's direct mode
+            const isDirectMode = target.path.endsWith('DefaultQuests.lang');
+            return isDirectMode ? "Better Quest (Direct)" : "Better Quest";
+        }
     };
 
     return (

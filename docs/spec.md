@@ -414,7 +414,10 @@ for _, inner_match in title_and_subtitle_matches:
 
 **For BetterQuests:**
 
-- Create new `{language name}.json` based on the contents of `recourses/betterquesting/lang/en_us.json`
+- Check both standard and direct locations for quest files:
+    - Standard: Create new `{language name}.json` based on the contents of `resources/betterquesting/lang/en_us.json`
+    - Direct: Create new `DefaultQuests.{language name}.lang` based on the contents of `config/betterquesting/DefaultQuests.lang`
+- Support both JSON and .lang file formats
 
 #### 7.3.3 Patchouli Translation
 
@@ -444,7 +447,7 @@ def get_mod_name_from_jar(jar_path):
 
 - **Mod Translation**: Output as resource pack to `resourcepacks/{target language}`
 - **FTBQuests Translation**: Output as SNBT or JSON file matching the original directory structure
-- **BetterQuests Translation**: Output as JSON file matching the original directory structure
+- **BetterQuests Translation**: Output as JSON or .lang file matching the original directory structure and format
 - **Patchouli Translation**: Output as JSON file matching the original directory structure
 
 #### 7.9.2 Detailed Processing for Each Type
@@ -465,7 +468,8 @@ def get_mod_name_from_jar(jar_path):
 
 **For BetterQuests:**
 
-- Create `{target language}.json` in the same directory based on the contents of `recourses/betterquesting/lang/en_us.json`
+- Standard location: Create `{target language}.json` in the same directory based on the contents of `resources/betterquesting/lang/en_us.json`
+- Direct location: Create `DefaultQuests.{target language}.lang` in the same directory based on the contents of `config/betterquesting/DefaultQuests.lang`
 
 **For Patchouli Translation:**
 
