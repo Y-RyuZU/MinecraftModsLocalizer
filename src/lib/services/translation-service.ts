@@ -1,7 +1,7 @@
 import { LLMAdapterFactory } from "../adapters/llm-adapter-factory";
 import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { invoke } from "@tauri-apps/api/core";
-import { estimateTokens, exceedsTokenLimit, DEFAULT_TOKEN_CONFIG, TokenEstimationConfig } from "../utils/token-counter";
+import { estimateTokens, DEFAULT_TOKEN_CONFIG, TokenEstimationConfig } from "../utils/token-counter";
 import { ErrorLogger } from "../utils/error-logger";
 import { API_DEFAULTS, TRANSLATION_DEFAULTS } from "../constants/defaults";
 
@@ -205,17 +205,6 @@ export class TranslationService {
     }
   }
 
-  /**
-   * Log a file operation message to the backend
-   * @param message Message to log
-   */
-  private async logFileOperation(message: string): Promise<void> {
-    try {
-      await invoke('log_file_operation', { message });
-    } catch (error) {
-      await ErrorLogger.logError('TranslationService.logFileOperation', error, 'FILE_OPERATION');
-    }
-  }
 
   /**
    * Log an error message to the backend
@@ -293,39 +282,6 @@ export class TranslationService {
     }
   }
 
-  /**
-   * Log file progress with detailed status
-   * @param fileName Name of the file
-   * @param fileIndex Current file index (1-based)
-   * @param totalFiles Total number of files
-   * @param chunksCompleted Chunks completed for this file
-   * @param totalChunks Total chunks for this file
-   * @param keysCompleted Keys completed for this file
-   * @param totalKeys Total keys for this file
-   */
-  private async logFileProgress(
-    fileName: string,
-    fileIndex: number,
-    totalFiles: number,
-    chunksCompleted: number,
-    totalChunks: number,
-    keysCompleted: number,
-    totalKeys: number
-  ): Promise<void> {
-    try {
-      await invoke('log_file_progress', {
-        fileName: fileName,
-        fileIndex: fileIndex,
-        totalFiles: totalFiles,
-        chunksCompleted: chunksCompleted,
-        totalChunks: totalChunks,
-        keysCompleted: keysCompleted,
-        totalKeys: totalKeys
-      });
-    } catch (error) {
-      console.error('Failed to log file progress:', error);
-    }
-  }
 
   /**
    * Log translation completion with comprehensive summary
@@ -361,30 +317,6 @@ export class TranslationService {
     }
   }
 
-  /**
-   * Log performance metrics for debugging
-   * @param operation Operation name
-   * @param durationMs Duration in milliseconds
-   * @param memoryUsageMb Optional memory usage in MB
-   * @param additionalInfo Optional additional information
-   */
-  private async logPerformanceMetrics(
-    operation: string,
-    durationMs: number,
-    memoryUsageMb?: number,
-    additionalInfo?: string
-  ): Promise<void> {
-    try {
-      await invoke('log_performance_metrics', {
-        operation,
-        durationMs: durationMs,
-        memoryUsageMb: memoryUsageMb,
-        additionalInfo: additionalInfo
-      });
-    } catch (error) {
-      console.error('Failed to log performance metrics:', error);
-    }
-  }
 
   /**
    * Start a translation job
@@ -525,8 +457,6 @@ export class TranslationService {
       const duration = (job.endTime - job.startTime) / 1000; // in seconds
       
       // Calculate completion statistics
-      const successfulChunks = job.chunks.filter(chunk => chunk.status === "completed").length;
-      const failedChunks = job.chunks.filter(chunk => chunk.status === "failed").length;
       const totalKeysTranslated = job.chunks
         .filter(chunk => chunk.status === "completed")
         .reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
@@ -662,7 +592,6 @@ export class TranslationService {
    */
   private splitIntoChunks(content: Record<string, string>, jobId: string): TranslationChunk[] {
     const entries = Object.entries(content);
-    const chunks: TranslationChunk[] = [];
     
     console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
     

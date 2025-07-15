@@ -57,7 +57,7 @@ pub struct ModInfo {
 
     /// Patchouli books in the mod
     pub patchouli_books: Vec<PatchouliBook>,
-    
+
     /// Source language file format ('json' or 'lang')
     pub lang_format: String,
 }
@@ -119,10 +119,11 @@ pub fn analyze_mod_jar(jar_path: &str) -> std::result::Result<ModInfo, String> {
     };
 
     // Extract language files (defaulting to en_us)
-    let (lang_files, lang_format) = match extract_lang_files_from_archive_with_format(&mut archive, &mod_id, "en_us") {
-        Ok((files, format)) => (files, format),
-        Err(e) => return Err(e.to_string()),
-    };
+    let (lang_files, lang_format) =
+        match extract_lang_files_from_archive_with_format(&mut archive, &mod_id, "en_us") {
+            Ok((files, format)) => (files, format),
+            Err(e) => return Err(e.to_string()),
+        };
 
     // Extract Patchouli books
     let patchouli_books = match extract_patchouli_books_from_archive(&mut archive, &mod_id) {
@@ -185,7 +186,10 @@ pub fn extract_patchouli_books(
     _temp_dir: &str,
     logger: tauri::State<std::sync::Arc<crate::logging::AppLogger>>,
 ) -> std::result::Result<Vec<PatchouliBook>, String> {
-    logger.info(&format!("Starting Patchouli book extraction from: {}", jar_path), Some("GUIDEBOOK_SCAN"));
+    logger.info(
+        &format!("Starting Patchouli book extraction from: {}", jar_path),
+        Some("GUIDEBOOK_SCAN"),
+    );
 
     let jar_path = PathBuf::from(jar_path);
 
@@ -193,7 +197,10 @@ pub fn extract_patchouli_books(
     let file = match File::open(&jar_path) {
         Ok(f) => f,
         Err(e) => {
-            logger.error(&format!("Failed to open JAR file {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
+            logger.error(
+                &format!("Failed to open JAR file {}: {}", jar_path.display(), e),
+                Some("GUIDEBOOK_SCAN"),
+            );
             return Err(format!("Failed to open JAR file: {}", e));
         }
     };
@@ -201,7 +208,10 @@ pub fn extract_patchouli_books(
     let mut archive = match ZipArchive::new(file) {
         Ok(a) => a,
         Err(e) => {
-            logger.error(&format!("Failed to read JAR {} as ZIP: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
+            logger.error(
+                &format!("Failed to read JAR {} as ZIP: {}", jar_path.display(), e),
+                Some("GUIDEBOOK_SCAN"),
+            );
             return Err(format!("Failed to read JAR as ZIP: {}", e));
         }
     };
@@ -209,11 +219,21 @@ pub fn extract_patchouli_books(
     // Extract mod ID from fabric.mod.json or mods.toml
     let (mod_id, _mod_name, _) = match extract_mod_info(&mut archive) {
         Ok(info) => {
-            logger.debug(&format!("Extracted mod info: id={}, name={}", info.0, info.1), Some("GUIDEBOOK_SCAN"));
+            logger.debug(
+                &format!("Extracted mod info: id={}, name={}", info.0, info.1),
+                Some("GUIDEBOOK_SCAN"),
+            );
             info
         }
         Err(e) => {
-            logger.error(&format!("Failed to extract mod info from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
+            logger.error(
+                &format!(
+                    "Failed to extract mod info from {}: {}",
+                    jar_path.display(),
+                    e
+                ),
+                Some("GUIDEBOOK_SCAN"),
+            );
             return Err(format!("Failed to extract mod info: {}", e));
         }
     };
@@ -221,11 +241,25 @@ pub fn extract_patchouli_books(
     // Extract Patchouli books
     let patchouli_books = match extract_patchouli_books_from_archive(&mut archive, &mod_id) {
         Ok(books) => {
-            logger.info(&format!("Found {} Patchouli books in {}", books.len(), jar_path.display()), Some("GUIDEBOOK_SCAN"));
+            logger.info(
+                &format!(
+                    "Found {} Patchouli books in {}",
+                    books.len(),
+                    jar_path.display()
+                ),
+                Some("GUIDEBOOK_SCAN"),
+            );
             books
         }
         Err(e) => {
-            logger.error(&format!("Failed to extract Patchouli books from {}: {}", jar_path.display(), e), Some("GUIDEBOOK_SCAN"));
+            logger.error(
+                &format!(
+                    "Failed to extract Patchouli books from {}: {}",
+                    jar_path.display(),
+                    e
+                ),
+                Some("GUIDEBOOK_SCAN"),
+            );
             return Err(format!("Failed to extract Patchouli books: {}", e));
         }
     };
@@ -340,23 +374,23 @@ pub fn write_patchouli_book(
 
 /// Extract mod information from a JAR archive
 fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, String)> {
-    
     // Try to extract from fabric.mod.json
     if let Ok(mut file) = archive.by_name("fabric.mod.json") {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
-        
+
         // First, remove any null bytes and other problematic bytes
-        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+        let cleaned_buffer: Vec<u8> = buffer
+            .into_iter()
             .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
             .collect();
-        
+
         // Try to convert to UTF-8, handling invalid sequences
         let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
-        
+
         // Clean the JSON content further
         let cleaned_content = clean_json_string(&content);
-        
+
         debug!(
             "Attempting to parse fabric.mod.json. Content snippet: {}",
             cleaned_content.chars().take(100).collect::<String>()
@@ -388,12 +422,13 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
     if let Ok(mut file) = archive.by_name("META-INF/mods.toml") {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
-        
+
         // First, remove any null bytes and other problematic bytes
-        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+        let cleaned_buffer: Vec<u8> = buffer
+            .into_iter()
             .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
             .collect();
-        
+
         // Try to convert to UTF-8, handling invalid sequences
         let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
@@ -440,12 +475,13 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
     if let Ok(mut file) = archive.by_name("META-INF/MANIFEST.MF") {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
-        
+
         // First, remove any null bytes and other problematic bytes
-        let cleaned_buffer: Vec<u8> = buffer.into_iter()
+        let cleaned_buffer: Vec<u8> = buffer
+            .into_iter()
             .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
             .collect();
-        
+
         // Try to convert to UTF-8, handling invalid sequences
         let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
@@ -492,12 +528,13 @@ fn extract_lang_files_from_archive(
                 // Read the file content
                 let mut buffer = Vec::new();
                 file.read_to_end(&mut buffer)?;
-                
+
                 // First, remove any null bytes and other problematic bytes
-                let cleaned_buffer: Vec<u8> = buffer.into_iter()
+                let cleaned_buffer: Vec<u8> = buffer
+                    .into_iter()
                     .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
                     .collect();
-                
+
                 // Try to convert to UTF-8, handling invalid sequences
                 let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
                 debug!(
@@ -513,7 +550,10 @@ fn extract_lang_files_from_archive(
                     match serde_json::from_str(&clean_content_str) {
                         Ok(content) => content,
                         Err(e) => {
-                            error!("Failed to parse lang file '{}': {}. Skipping this file.", name, e);
+                            error!(
+                                "Failed to parse lang file '{}': {}. Skipping this file.",
+                                name, e
+                            );
                             // Skip this file instead of failing the entire mod
                             continue;
                         }
@@ -587,12 +627,13 @@ fn extract_lang_files_from_archive_with_format(
                 // Read the file content
                 let mut buffer = Vec::new();
                 file.read_to_end(&mut buffer)?;
-                
+
                 // First, remove any null bytes and other problematic bytes
-                let cleaned_buffer: Vec<u8> = buffer.into_iter()
+                let cleaned_buffer: Vec<u8> = buffer
+                    .into_iter()
                     .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
                     .collect();
-                
+
                 // Try to convert to UTF-8, handling invalid sequences
                 let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
                 debug!(
@@ -608,7 +649,10 @@ fn extract_lang_files_from_archive_with_format(
                     match serde_json::from_str(&clean_content_str) {
                         Ok(content) => content,
                         Err(e) => {
-                            error!("Failed to parse lang file '{}': {}. Skipping this file.", name, e);
+                            error!(
+                                "Failed to parse lang file '{}': {}. Skipping this file.",
+                                name, e
+                            );
                             // Skip this file instead of failing the entire mod
                             continue;
                         }
@@ -645,7 +689,7 @@ fn extract_lang_files_from_archive_with_format(
 fn clean_json_string(json: &str) -> String {
     // Remove BOM if present
     let json = json.trim_start_matches('\u{feff}');
-    
+
     // Remove control characters but preserve structure
     json.chars()
         .map(|c| {
@@ -665,12 +709,12 @@ fn clean_json_string(json: &str) -> String {
 fn strip_json_comments(json: &str) -> String {
     // Clean the JSON first (removes BOM and control characters)
     let cleaned_json = clean_json_string(json);
-    
+
     // First, try to parse as-is to check if it's valid JSON
     if serde_json::from_str::<serde_json::Value>(&cleaned_json).is_ok() {
         return cleaned_json;
     }
-    
+
     // If not valid, try to fix it
     // Try to parse as serde_json::Value to get more lenient parsing
     match relaxed_json_parse(&cleaned_json) {
@@ -683,7 +727,7 @@ fn strip_json_comments(json: &str) -> String {
         }
         Err(_) => {} // Fall back to line-by-line processing
     }
-    
+
     // If relaxed parsing failed, try line-by-line cleanup
     // Remove lines with "_comment" keys and blank lines
     let mut lines: Vec<&str> = cleaned_json
@@ -708,7 +752,7 @@ fn strip_json_comments(json: &str) -> String {
     }
 
     let result = lines.join("\n");
-    
+
     // Try to parse the result and provide more detailed error info if it fails
     if let Err(e) = serde_json::from_str::<serde_json::Value>(&result) {
         debug!("JSON still invalid after cleanup. Error: {}", e);
@@ -720,7 +764,7 @@ fn strip_json_comments(json: &str) -> String {
             debug!("Problematic line: {}", problematic_line);
         }
     }
-    
+
     result
 }
 
@@ -731,7 +775,7 @@ fn relaxed_json_parse(json: &str) -> Result<serde_json::Value, serde_json::Error
     let mut in_string = false;
     let mut escape_next = false;
     let mut chars = json.chars().peekable();
-    
+
     while let Some(ch) = chars.next() {
         if escape_next {
             // Handle escape sequences
@@ -772,7 +816,7 @@ fn relaxed_json_parse(json: &str) -> Result<serde_json::Value, serde_json::Error
             }
         }
     }
-    
+
     serde_json::from_str(&fixed)
 }
 
@@ -786,7 +830,8 @@ fn extract_patchouli_books_from_archive(
     // Regex to find Patchouli book root directories
     let patchouli_book_root_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/").unwrap();
     // Regex to match en_us/**/*.json files (サブディレクトリも含む)
-    let en_us_json_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/en_us/(.+\.json)$").unwrap();
+    let en_us_json_re =
+        Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/en_us/(.+\.json)$").unwrap();
     // Regex to extract translation strings (Rust regex does not support look-behind)
     // We'll post-process to skip escaped quotes
     let extract_re = Regex::new(r#""(name|description|title|text)"\s*:\s*"(.*?)""#).unwrap();
@@ -807,12 +852,13 @@ fn extract_patchouli_books_from_archive(
             // Read file content as string
             let mut buffer = Vec::new();
             file.read_to_end(&mut buffer)?;
-            
+
             // First, remove any null bytes and other problematic bytes
-            let cleaned_buffer: Vec<u8> = buffer.into_iter()
+            let cleaned_buffer: Vec<u8> = buffer
+                .into_iter()
                 .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
                 .collect();
-            
+
             // Try to convert to UTF-8, handling invalid sequences
             let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
 

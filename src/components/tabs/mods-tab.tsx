@@ -25,7 +25,6 @@ export function ModsTab() {
     // Mod-level progress tracking
     setTotalMods,
     setCompletedMods,
-    incrementCompletedMods,
     addTranslationResult,
     error,
     setError,

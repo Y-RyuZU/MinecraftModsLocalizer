@@ -6,7 +6,7 @@ import { ScrollArea } from './scroll-area';
 import { Badge } from './badge';
 import { Trash2, Download, Calendar, Package, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAppTranslation } from '@/lib/i18n';
-import { backupService, type BackupInfo, type BackupMetadata } from '@/lib/services/backup-service';
+import { backupService, type BackupInfo } from '@/lib/services/backup-service';
 import { type TranslationTargetType } from '@/lib/types/minecraft';
 
 interface BackupDialogProps {

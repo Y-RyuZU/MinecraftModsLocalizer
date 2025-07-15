@@ -80,7 +80,7 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    selectedDirectory: string
+    _selectedDirectory: string // eslint-disable-line @typescript-eslint/no-unused-vars
   ) => {
     try {
       setTranslating(true);
@@ -110,7 +110,7 @@ export function CustomFilesTab() {
         job: TranslationJob;
         fileType: 'json' | 'snbt' | 'unsupported';
         content: string;
-        jsonData?: any;
+        jsonData?: unknown;
       }> = [];
       
       for (const target of sortedTargets) {
@@ -216,7 +216,7 @@ export function CustomFilesTab() {
           }
         },
         onResult: addTranslationResult,
-        onJobStart: async (job, i) => {
+        onJobStart: async (job) => {
           const fileData = jobs.find(j => j.job.id === job.id);
           if (!fileData) return;
           try {
@@ -225,7 +225,7 @@ export function CustomFilesTab() {
             });
           } catch {}
         },
-        onJobComplete: async (job, i) => {
+        onJobComplete: async (job) => {
           const fileData = jobs.find(j => j.job.id === job.id);
           if (!fileData) return;
           try {
@@ -234,7 +234,7 @@ export function CustomFilesTab() {
             });
           } catch {}
         },
-        onJobInterrupted: async (job, i) => {
+        onJobInterrupted: async (job) => {
           const fileData = jobs.find(j => j.job.id === job.id);
           if (!fileData) return;
           try {
@@ -250,10 +250,10 @@ export function CustomFilesTab() {
   };
   
   // Flatten JSON to key-value pairs
-  const flattenJson = (json: any, prefix = ''): Record<string, string> => {
+  const flattenJson = (json: unknown, prefix = ''): Record<string, string> => {
     const result: Record<string, string> = {};
     
-    const flatten = (obj: any, currentPrefix: string) => {
+    const flatten = (obj: unknown, currentPrefix: string) => {
       if (typeof obj === 'string') {
         result[currentPrefix] = obj;
       } else if (Array.isArray(obj)) {
@@ -273,8 +273,8 @@ export function CustomFilesTab() {
   };
   
   // Reconstruct JSON from flattened content
-  const reconstructJson = (originalJson: any, translatedContent: Record<string, string>): any => {
-    const reconstruct = (obj: any, prefix = ''): any => {
+  const reconstructJson = (originalJson: unknown, translatedContent: Record<string, string>): unknown => {
+    const reconstruct = (obj: unknown, prefix = ''): unknown => {
       if (typeof obj === 'string') {
         return translatedContent[prefix] || obj;
       } else if (Array.isArray(obj)) {
@@ -282,7 +282,7 @@ export function CustomFilesTab() {
           reconstruct(item, `${prefix}[${index}]`)
         );
       } else if (obj && typeof obj === 'object') {
-        const result: any = {};
+        const result: Record<string, unknown> = {};
         Object.entries(obj).forEach(([key, value]) => {
           const newPrefix = prefix ? `${prefix}.${key}` : key;
           result[key] = reconstruct(value, newPrefix);

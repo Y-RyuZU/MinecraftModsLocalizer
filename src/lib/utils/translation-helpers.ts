@@ -80,7 +80,7 @@ export function createTranslationTarget(
     name: string,
     path: string,
     baseDirectory: string,
-    additionalProps?: Record<string, any>
+    additionalProps?: Record<string, unknown>
 ): TranslationTarget {
     return {
         type,

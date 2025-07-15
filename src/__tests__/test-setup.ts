@@ -3,7 +3,7 @@
 
 // Define global window object if it doesn't exist
 if (typeof global.window === 'undefined') {
-  global.window = {} as any;
+  global.window = {} as Window;
 }
 
 // Mock Tauri internals

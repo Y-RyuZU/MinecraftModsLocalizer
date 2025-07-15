@@ -44,7 +44,7 @@ export class ErrorLogger {
   /**
    * Log a warning with context
    */
-  static async logWarning(context: string, message: string, processType: string = 'SYSTEM'): Promise<void> {
+  static async logWarning(context: string, message: string): Promise<void> {
     console.warn(`[${context}] ${message}`);
 
     try {
@@ -59,7 +59,7 @@ export class ErrorLogger {
   /**
    * Log info message with context
    */
-  static async logInfo(context: string, message: string, processType: string = 'SYSTEM'): Promise<void> {
+  static async logInfo(context: string, message: string): Promise<void> {
     try {
       await invoke('log_translation_process', {
         message: `[${context}] ${message}`

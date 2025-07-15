@@ -3,7 +3,7 @@ import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import OpenAI from "openai";
-import { MODEL_TOKEN_LIMITS, API_DEFAULTS } from "../constants/defaults";
+import { MODEL_TOKEN_LIMITS } from "../constants/defaults";
 
 /**
  * OpenAI API Adapter
