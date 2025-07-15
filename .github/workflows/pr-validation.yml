@@ -56,7 +56,7 @@ jobs:
         run: bun run typecheck
       
       - name: Run tests
-        run: bun test
+        run: npm test
       
       - name: Build check
         run: |
