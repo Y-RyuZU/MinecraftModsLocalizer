@@ -1,6 +1,10 @@
+# Hidden files (except specific directories)
 .*
 !.github/
 !.devcontainer/
+
+# Cargo.lock should be committed for applications
+!Cargo.lock
 *.zip
 *.tar.gz
 
