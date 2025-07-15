@@ -189,6 +189,15 @@ export function TranslationTab({
         try {
             setIsScanning(true);
             setError(null);
+            
+            // Clear existing results before scanning
+            setTranslationTargets([]);
+            setFilterText("");
+            
+            // Reset translation state if exists
+            if (translationResults.length > 0) {
+                setTranslationResults([]);
+            }
 
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")

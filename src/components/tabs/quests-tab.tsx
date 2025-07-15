@@ -37,6 +37,9 @@ export function QuestsTab() {
 
     // Scan for quests
     const handleScan = async (directory: string) => {
+        // Clear existing targets before scanning
+        setQuestTranslationTargets([]);
+        
         // Get FTB quest files
         const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
 
@@ -287,13 +290,28 @@ export function QuestsTab() {
 
     // Custom render function for the type column
     const renderQuestType = (target: TranslationTarget) => {
-        if (target.questFormat === "ftb") {
-            return "FTB Quest";
+        const isFTB = target.questFormat === "ftb";
+        const isDirectMode = !isFTB && target.path.endsWith('DefaultQuests.lang');
+        
+        let type: string;
+        let className: string;
+        
+        if (isFTB) {
+            type = "FTB Quest";
+            className = "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        } else if (isDirectMode) {
+            type = "Better Quest (Direct)";
+            className = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         } else {
-            // For BetterQuest, show if it's direct mode
-            const isDirectMode = target.path.endsWith('DefaultQuests.lang');
-            return isDirectMode ? "Better Quest (Direct)" : "Better Quest";
+            type = "Better Quest";
+            className = "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200";
         }
+        
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+                {type}
+            </span>
+        );
     };
 
     return (
