@@ -297,7 +297,17 @@ export function CustomFilesTab() {
 
   // Custom render function for the file type column
   const renderFileType = (target: TranslationTarget) => {
-    return target.path.toLowerCase().endsWith('.json') ? "JSON" : "SNBT";
+    const isJson = target.path.toLowerCase().endsWith('.json');
+    const type = isJson ? "JSON" : "SNBT";
+    const className = isJson 
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+      : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+        {type}
+      </span>
+    );
   };
 
   return (
