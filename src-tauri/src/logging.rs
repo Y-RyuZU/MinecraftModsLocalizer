@@ -461,10 +461,7 @@ pub struct FileProgressInfo {
 
 /// Log individual file progress with detailed status
 #[tauri::command]
-pub fn log_file_progress(
-    info: FileProgressInfo,
-    logger: tauri::State<Arc<AppLogger>>,
-) {
+pub fn log_file_progress(info: FileProgressInfo, logger: tauri::State<Arc<AppLogger>>) {
     let FileProgressInfo {
         file_name,
         file_index,

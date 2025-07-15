@@ -383,9 +383,9 @@ pub async fn get_files_with_extension(
 
         // Check if the file has the specified extension
         if entry_path.is_file()
-            && entry_path.extension().is_some_and(|ext| {
-                ext.to_string_lossy() == extension.trim_start_matches('.')
-            })
+            && entry_path
+                .extension()
+                .is_some_and(|ext| ext.to_string_lossy() == extension.trim_start_matches('.'))
         {
             if let Some(path_str) = entry_path.to_str() {
                 files.push(path_str.to_string());
