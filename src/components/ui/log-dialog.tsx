@@ -7,6 +7,7 @@ import { useAppTranslation } from '@/lib/i18n';
 import { useAppStore } from '@/lib/store';
 import { FileService } from '@/lib/services/file-service';
 import { listen } from '@tauri-apps/api/event';
+import { UI_DEFAULTS } from '@/lib/constants/defaults';
 
 // Log entry type
 interface LogEntry {
@@ -108,7 +109,45 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         return true;
       }
       
-      // 2. Translation process logs (progress, completion, etc.)
+      // 1.5. Show ErrorLogger messages (they contain important context)
+      if (log.message.includes('[ErrorLogger]') || log.message.includes('TranslationService.logError')) {
+        return true;
+      }
+      
+      // During active translation, show more logs
+      if (isTranslating) {
+        // Show all translation-related logs during translation
+        if (log.process_type === 'TRANSLATION' || 
+            log.process_type === 'TRANSLATION_START' ||
+            log.process_type === 'TRANSLATION_STATS' ||
+            log.process_type === 'TRANSLATION_PROGRESS' ||
+            log.process_type === 'TRANSLATION_COMPLETE') {
+          return true;
+        }
+        
+        // Show all API request logs during translation
+        if (log.process_type === 'API_REQUEST') {
+          return true;
+        }
+        
+        // Show file operations during translation
+        if (log.process_type === 'FILE_OPERATION') {
+          return true;
+        }
+        
+        // Show warnings during translation
+        if (levelStr === 'warning' || levelStr === 'warn') {
+          return true;
+        }
+        
+        // Show info logs during translation
+        if (levelStr === 'info') {
+          return true;
+        }
+      }
+      
+      // When not translating, only show critical logs
+      // 2. Enhanced translation process logs
       if (log.process_type === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
@@ -119,17 +158,52 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         return true;
       }
       
-      // 3. API request logs
+      // 3. New enhanced translation logging categories
+      if (log.process_type === 'TRANSLATION_START') {
+        return true; // Always show translation start logs
+      }
+      
+      if (log.process_type === 'TRANSLATION_STATS') {
+        return true; // Show pre-translation statistics
+      }
+      
+      if (log.process_type === 'TRANSLATION_PROGRESS') {
+        // Show file progress but limit frequency to avoid spam
+        const message = log.message.toLowerCase();
+        // Only show progress at certain milestones or completion
+        if (message.includes('100%') || message.includes('completed') || 
+            message.includes('50%') || message.includes('75%')) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (log.process_type === 'TRANSLATION_COMPLETE') {
+        return true; // Always show completion summaries
+      }
+      
+      // 4. Performance logs - only show for errors or important milestones
+      if (log.process_type === 'PERFORMANCE') {
+        // Only show performance logs for debug purposes (can be filtered out in production)
+        return levelStr === 'error' || levelStr === 'warning';
+      }
+      
+      // 5. API request logs
       if (log.process_type === 'API_REQUEST') {
         return true;
       }
       
-      // 4. File operation logs
+      // 6. File operation logs
       if (log.process_type === 'FILE_OPERATION') {
         return true;
       }
       
-      // 5. Warnings that might be important
+      // 7. System logs
+      if (log.process_type === 'SYSTEM') {
+        return true;
+      }
+      
+      // 8. Warnings that might be important
       if (levelStr === 'warning' || levelStr === 'warn') {
         return true;
       }
@@ -159,6 +233,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
           // Use FileService to invoke the get_logs command
           const initialLogs = await FileService.invoke<LogEntry[]>('get_logs');
+          console.log('[LogDialog] Initial logs loaded:', initialLogs);
           setLogs(initialLogs || []);
         }
       } catch (error) {
@@ -173,6 +248,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
           // Listen for log events using Tauri v2 API
           const unlistenFn = await listen<LogEntry>('log', (event) => {
+            console.log('[LogDialog] Received log event:', event.payload);
             setLogs(prevLogs => [...prevLogs, event.payload]);
           });
           
@@ -211,7 +287,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     // Set a timeout to mark interaction as finished after 2 seconds
     interactionTimeoutRef.current = setTimeout(() => {
       setUserInteracting(false);
-    }, 2000);
+    }, UI_DEFAULTS.autoScroll.interactionDelay);
   };
 
   // Effect to auto-scroll to bottom (only when not actively interacting)
@@ -240,7 +316,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
         if (!useAppStore.getState().error) {
           onOpenChange(false);
         }
-      }, 5000);
+      }, UI_DEFAULTS.dialog.autoCloseDelay);
       
       return () => clearTimeout(timer);
     }
@@ -260,7 +336,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
           <ScrollArea 
             ref={scrollAreaCallbackRef}
             className="border rounded-md"
-            style={{ height: '400px' }}
+            style={{ height: UI_DEFAULTS.scrollArea.defaultHeight }}
             onScroll={handleUserScroll}
             onWheel={handleUserScroll}
             onMouseDown={handleUserScroll}
@@ -299,9 +375,25 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
             </label>
           </div>
           
-          <Button onClick={() => onOpenChange(false)}>
-            {t('common.close')}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await FileService.invoke('clear_logs');
+                  setLogs([]);
+                  console.log('[LogDialog] Logs cleared');
+                } catch (error) {
+                  console.error('[LogDialog] Failed to clear logs:', error);
+                }
+              }}
+            >
+              Clear Logs
+            </Button>
+            <Button onClick={() => onOpenChange(false)}>
+              {t('common.close')}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -322,7 +414,7 @@ interface LogViewerProps {
 }
 
 export function LogViewer({
-  height = '300px',
+  height = UI_DEFAULTS.scrollArea.logViewerHeight,
   autoScroll = true,
   showTimestamp = true,
   showLevel = true,
@@ -430,7 +522,7 @@ export function LogViewer({
         return true;
       }
       
-      // 2. Translation process logs (progress, completion, etc.)
+      // 2. Enhanced translation process logs
       if (log.process_type === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
@@ -441,17 +533,52 @@ export function LogViewer({
         return true;
       }
       
-      // 3. API request logs
+      // 3. New enhanced translation logging categories
+      if (log.process_type === 'TRANSLATION_START') {
+        return true; // Always show translation start logs
+      }
+      
+      if (log.process_type === 'TRANSLATION_STATS') {
+        return true; // Show pre-translation statistics
+      }
+      
+      if (log.process_type === 'TRANSLATION_PROGRESS') {
+        // Show file progress but limit frequency to avoid spam
+        const message = log.message.toLowerCase();
+        // Only show progress at certain milestones or completion
+        if (message.includes('100%') || message.includes('completed') || 
+            message.includes('50%') || message.includes('75%')) {
+          return true;
+        }
+        return false;
+      }
+      
+      if (log.process_type === 'TRANSLATION_COMPLETE') {
+        return true; // Always show completion summaries
+      }
+      
+      // 4. Performance logs - only show for errors or important milestones
+      if (log.process_type === 'PERFORMANCE') {
+        // Only show performance logs for debug purposes (can be filtered out in production)
+        return levelStr === 'error' || levelStr === 'warning';
+      }
+      
+      // 5. API request logs
       if (log.process_type === 'API_REQUEST') {
         return true;
       }
       
-      // 4. File operation logs
+      // 6. File operation logs
       if (log.process_type === 'FILE_OPERATION') {
         return true;
       }
       
-      // 5. Warnings that might be important
+      // 7. System logs
+      if (log.process_type === 'SYSTEM') {
+        return true;
+      }
+      
+      // 8. Warnings that might be important
       if (levelStr === 'warning' || levelStr === 'warn') {
         return true;
       }
@@ -473,6 +600,7 @@ export function LogViewer({
         if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
           // Use FileService to invoke the get_logs command
           const initialLogs = await FileService.invoke<LogEntry[]>('get_logs');
+          console.log('[LogDialog] Initial logs loaded:', initialLogs);
           setLogs(initialLogs || []);
         }
       } catch (error) {
@@ -487,6 +615,7 @@ export function LogViewer({
         if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
           // Listen for log events using Tauri v2 API
           const unlistenFn = await listen<LogEntry>('log', (event) => {
+            console.log('[LogDialog] Received log event:', event.payload);
             setLogs(prevLogs => [...prevLogs, event.payload]);
           });
           
@@ -525,7 +654,7 @@ export function LogViewer({
     // Set a timeout to mark interaction as finished after 2 seconds
     interactionTimeoutRef.current = setTimeout(() => {
       setUserInteracting(false);
-    }, 2000);
+    }, UI_DEFAULTS.autoScroll.interactionDelay);
   };
 
   // Effect to auto-scroll to bottom (only when not actively interacting)

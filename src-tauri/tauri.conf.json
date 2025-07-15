@@ -2,12 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "minecraft-mods-localizer",
   "version": "3.0.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "dev.ryuzu.minecraftmodslocalizer",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "bun dev",
-    "beforeBuildCommand": "bun build"
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build"
   },
   "app": {
     "windows": [
@@ -43,7 +43,7 @@
       "endpoints": [
         "https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5NUIyNEQ5NzQyRDFGMzIKUldTNEU4VlVEUUF1ckNBNG4rOVdNNEYyMW1BVUIyamg1K3RvbVdWQkg4VFJtWGR4WFhVWkhCaHkK"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdFODEwMDIyRUU1NjQ4MzIKUldReVNGYnVJZ0NCZmwzam1ROCtrd1EwMVJTOTFEYVdmMllISmEzMXJteGpDdzF5YThKVDFrc2YK"
     }
   }
 }

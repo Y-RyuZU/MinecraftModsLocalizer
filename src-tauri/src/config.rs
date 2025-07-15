@@ -1,8 +1,8 @@
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use log::{error, info};
 use thiserror::Error;
 
 /// Configuration errors
@@ -10,10 +10,10 @@ use thiserror::Error;
 pub enum ConfigError {
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
-    
+
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
-    
+
     #[error("Config error: {0}")]
     Config(String),
 }
@@ -136,12 +136,12 @@ fn get_config_path() -> Result<PathBuf> {
     let app_dir = dirs::config_dir()
         .ok_or_else(|| ConfigError::Config("Failed to get config directory".to_string()))?
         .join("MinecraftModsLocalizer");
-    
+
     // Create the directory if it doesn't exist
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir)?;
     }
-    
+
     Ok(app_dir.join("config.json"))
 }
 
@@ -149,64 +149,64 @@ fn get_config_path() -> Result<PathBuf> {
 #[tauri::command]
 pub fn load_config() -> std::result::Result<String, String> {
     info!("Loading configuration");
-    
+
     // Get the config file path
     let config_path = match get_config_path() {
         Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {}", e)),
+        Err(e) => return Err(format!("Failed to get config path: {e}")),
     };
-    
+
     // Check if the config file exists
     if !config_path.exists() {
         // Create a default config
         let default_config = default_config();
-        
+
         // Serialize the default config
         let config_json = match serde_json::to_string_pretty(&default_config) {
             Ok(json) => json,
-            Err(e) => return Err(format!("Failed to serialize default config: {}", e)),
+            Err(e) => return Err(format!("Failed to serialize default config: {e}")),
         };
-        
+
         // Create the config file
         let mut config_file = match File::create(&config_path) {
             Ok(file) => file,
-            Err(e) => return Err(format!("Failed to create config file: {}", e)),
+            Err(e) => return Err(format!("Failed to create config file: {e}")),
         };
-        
+
         // Write the default config
         if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-            return Err(format!("Failed to write default config: {}", e));
+            return Err(format!("Failed to write default config: {e}"));
         }
-        
+
         return Ok(config_json);
     }
-    
+
     // Open the config file
     let mut config_file = match File::open(&config_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to open config file: {}", e)),
+        Err(e) => return Err(format!("Failed to open config file: {e}")),
     };
-    
+
     // Read the config file
     let mut config_json = String::new();
     if let Err(e) = config_file.read_to_string(&mut config_json) {
-        return Err(format!("Failed to read config file: {}", e));
+        return Err(format!("Failed to read config file: {e}"));
     }
-    
+
     // Parse the config
     let config: AppConfig = match serde_json::from_str(&config_json) {
         Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {}", e)),
+        Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
-    
+
     // TODO: Update the config with any missing fields from default_config()
-    
+
     // Serialize the updated config
     let updated_config_json = match serde_json::to_string_pretty(&config) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize updated config: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize updated config: {e}")),
     };
-    
+
     Ok(updated_config_json)
 }
 
@@ -214,35 +214,35 @@ pub fn load_config() -> std::result::Result<String, String> {
 #[tauri::command]
 pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     info!("Saving configuration");
-    
+
     // Parse the config
     let config: AppConfig = match serde_json::from_str(config_json) {
         Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {}", e)),
+        Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
-    
+
     // Get the config file path
     let config_path = match get_config_path() {
         Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {}", e)),
+        Err(e) => return Err(format!("Failed to get config path: {e}")),
     };
-    
+
     // Create the config file
     let mut config_file = match File::create(&config_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create config file: {}", e)),
+        Err(e) => return Err(format!("Failed to create config file: {e}")),
     };
-    
+
     // Serialize the config
     let config_json = match serde_json::to_string_pretty(&config) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize config: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize config: {e}")),
     };
-    
+
     // Write the config
     if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-        return Err(format!("Failed to write config: {}", e));
+        return Err(format!("Failed to write config: {e}"));
     }
-    
+
     Ok(true)
 }

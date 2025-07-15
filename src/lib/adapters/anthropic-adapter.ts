@@ -3,6 +3,7 @@ import { DEFAULT_MODELS, DEFAULT_API_URLS, DEFAULT_API_CONFIG } from "../types/c
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import Anthropic from "@anthropic-ai/sdk";
+import { MODEL_TOKEN_LIMITS } from "../constants/defaults";
 
 /**
  * Anthropic API Adapter
@@ -47,7 +48,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
    */
   private async logError(message: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: "API_REQUEST" });
+      await invoke('log_error', { message, processType: "API_REQUEST" });
     } catch (error) {
       console.error('Failed to log error message:', error);
     }
@@ -64,8 +65,16 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     
     // Check if API key is defined and not empty
     if (!this.config.apiKey) {
-      await this.logError("Anthropic API key is not configured");
-      throw new Error("Anthropic API key is not configured. Please set your API key in the settings.");
+      await this.logError("Anthropic API key is not configured. Please set your API key in the settings.");
+      // Return empty translation result to mark as failed
+      return {
+        content: {},
+        metadata: {
+          tokensUsed: 0,
+          timeTaken: 0,
+          model: this.config.model || 'unknown'
+        }
+      };
     }
     
     // Get system prompt and user prompt
@@ -96,8 +105,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         
         const completion = await anthropic.messages.create({
           model,
-          max_tokens: DEFAULT_API_CONFIG.maxTokens,
-          temperature: DEFAULT_API_CONFIG.temperature,
+          max_tokens: MODEL_TOKEN_LIMITS.anthropic.maxOutputTokens,
+          temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
           system: [
             {
               type: "text",
@@ -140,7 +149,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         const timeTaken = Date.now() - startTime;
         
         // Log cache usage information if available
-        const usage = completion.usage as Record<string, unknown>;
+        const usage = completion.usage as unknown as Record<string, unknown>;
         const cacheCreationTokens = (usage?.cache_creation_input_tokens as number) || 0;
         const cacheReadTokens = (usage?.cache_read_input_tokens as number) || 0;
         let cacheInfo = '';
@@ -215,7 +224,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       // Try to create a simple message as a validation check
       await anthropic.messages.create({
         model: "claude-3-5-haiku-20241022",
-        max_tokens: 10,
+        max_tokens: MODEL_TOKEN_LIMITS.anthropic.validationTokens,
         messages: [{ role: "user", content: "Hi" }]
       });
       

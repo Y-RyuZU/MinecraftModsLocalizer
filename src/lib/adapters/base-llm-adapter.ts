@@ -49,6 +49,28 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   }
 
   /**
+   * Get the maximum token limit for this LLM provider
+   * @returns Maximum tokens per chunk
+   */
+  public getMaxTokensPerChunk(): number {
+    // Very conservative limit to prevent token overflow across all models
+    // Individual adapters can override this for model-specific limits
+    return 3000;
+  }
+
+  /**
+   * Get provider-specific token overhead estimation
+   * @returns Token overhead for prompts and formatting
+   */
+  public getTokenOverhead(): { system: number; user: number; response: number } {
+    return {
+      system: 100,
+      user: 50,
+      response: 30
+    };
+  }
+
+  /**
    * Get the maximum number of retries
    * @returns Maximum number of retries
    */

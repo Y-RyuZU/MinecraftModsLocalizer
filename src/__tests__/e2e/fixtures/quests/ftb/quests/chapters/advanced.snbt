@@ -1,0 +1,53 @@
+{
+	title: "Advanced Technology"
+	icon: "minecraft:redstone"
+	default_quest_shape: "diamond"
+	quests: [
+		{
+			title: "Power Generation"
+			x: 0.0d
+			y: 0.0d
+			shape: "gear"
+			description: [
+				"It's time to start generating power!"
+				"This chapter will guide you through various power generation methods."
+			]
+			size: 1.5d
+			id: "1000000000000001"
+			tasks: [{
+				id: "1000000000000002"
+				type: "checkmark"
+				title: "Read the Introduction"
+			}]
+		}
+		{
+			title: "Solar Power"
+			x: -2.0d
+			y: 2.0d
+			description: [
+				"Solar panels are a great way to start generating power."
+				"They work during the day and require no fuel."
+			]
+			dependencies: ["1000000000000001"]
+			id: "1000000000000003"
+			tasks: [{
+				id: "1000000000000004"
+				type: "item"
+				item: "solarflux:sp_1"
+			}]
+			rewards: [
+				{
+					id: "1000000000000005"
+					type: "item"
+					item: "minecraft:iron_ingot"
+					count: 10
+				}
+				{
+					id: "1000000000000006"
+					type: "xp"
+					xp: 100
+				}
+			]
+		}
+	]
+}

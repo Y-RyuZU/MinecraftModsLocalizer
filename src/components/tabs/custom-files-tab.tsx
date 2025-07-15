@@ -3,8 +3,10 @@
 import { useAppStore } from "@/lib/store";
 import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
-import { TranslationService } from "@/lib/services/translation-service";
+import { TranslationService, TranslationJob } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
+import { runTranslationJobs } from "@/lib/services/translation-runner";
+import { invoke } from "@tauri-apps/api/core";
 
 export function CustomFilesTab() {
   const { 
@@ -20,6 +22,7 @@ export function CustomFilesTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
+    incrementCompletedChunks,
     addTranslationResult,
     error,
     setError,
@@ -77,106 +80,87 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-    selectedDirectory: string // for API compatibility, not used
+    _selectedDirectory: string // eslint-disable-line @typescript-eslint/no-unused-vars
   ) => {
-    // Get the directory from the first target
-    const directory = selectedTargets[0]?.path.split('/').slice(0, -1).join('/');
-    
-    // Create output directory
-    const outputDir = `${directory}/translated`;
-    await FileService.createDirectory(outputDir);
-    
-    // Reset whole progress tracking
-    setCompletedChunks(0);
-    setWholeProgress(0);
-    
-    // Count total chunks across all files to track whole progress
-    let totalChunksCount = 0;
-    
-    // First pass: count total chunks for all files
-    for (const target of selectedTargets) {
-      try {
-        // Read file content
-        const content = await FileService.readTextFile(target.path);
-        
-        // Determine file type
-        const isJson = target.path.toLowerCase().endsWith('.json');
-        const isSnbt = target.path.toLowerCase().endsWith('.snbt');
-        
-        if (isJson) {
-          try {
-            const jsonData = JSON.parse(content);
-            // Count chunks in JSON recursively
-            const jsonChunksCount = countJsonChunks(jsonData, config.translation.modChunkSize);
-            totalChunksCount += jsonChunksCount;
-          } catch (error) {
-            console.error(`Failed to parse JSON: ${target.path}`, error);
-          }
-        } else if (isSnbt) {
-          // For SNBT files, we just have one chunk per file
-          totalChunksCount += 1;
-        }
-      } catch (error) {
-        console.error(`Failed to read file: ${target.path}`, error);
-      }
-    }
-    
-    // Set total chunks for whole progress tracking
-    setTotalChunks(totalChunksCount);
-    
-    // Translate each file
-    for (let i = 0; i < selectedTargets.length; i++) {
-      const target = selectedTargets[i];
-      setProgress(Math.round((i / selectedTargets.length) * 100));
+    try {
+      setTranslating(true);
       
-      try {
-        // Read file content
-        const content = await FileService.readTextFile(target.path);
-        
-        // Determine file type
-        const isJson = target.path.toLowerCase().endsWith('.json');
-        const isSnbt = target.path.toLowerCase().endsWith('.snbt');
-        
-        // Get file name
-        const fileName = target.path.split('/').pop() || "unknown";
-        
-        // Create output path
-        const outputPath = `${outputDir}/${targetLanguage}_${fileName}`;
-        
-        if (isJson) {
-          // Parse JSON
-          try {
-            const jsonData = JSON.parse(content);
-            
-            // Create a translation job for the JSON content
-            const translatedJson = await translateJsonRecursively(
-              jsonData, 
-              translationService, 
-              targetLanguage, 
-              target.name,
-              setCurrentJobId,
-              () => {} // No-op since we handle progress differently
+      // Get the directory from the first target
+      const directory = selectedTargets[0]?.path.split('/').slice(0, -1).join('/');
+      
+      // Create output directory
+      const outputDir = `${directory}/translated`;
+      await FileService.createDirectory(outputDir);
+      
+      // Sort targets alphabetically for consistent processing
+      const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Reset progress tracking
+      setCompletedChunks(0);
+      setWholeProgress(0);
+      setProgress(0);
+      
+      // Set total files for progress tracking
+      const totalFiles = sortedTargets.length;
+      setTotalChunks(totalFiles); // Track at file level
+      
+      // Create jobs for all files
+      const jobs: Array<{
+        target: TranslationTarget;
+        job: TranslationJob;
+        fileType: 'json' | 'snbt' | 'unsupported';
+        content: string;
+        jsonData?: unknown;
+      }> = [];
+      
+      for (const target of sortedTargets) {
+        try {
+          // Read file content
+          const content = await FileService.readTextFile(target.path);
+          
+          // Determine file type
+          const isJson = target.path.toLowerCase().endsWith('.json');
+          const isSnbt = target.path.toLowerCase().endsWith('.snbt');
+          
+          if (isJson) {
+            try {
+              const jsonData = JSON.parse(content);
+              // Flatten JSON to key-value pairs for translation
+              const flattenedContent = flattenJson(jsonData);
+              
+              // Create a translation job
+              const job = translationService.createJob(
+                flattenedContent,
+                targetLanguage,
+                target.name
+              );
+              
+              jobs.push({ target, job, fileType: 'json', content, jsonData });
+            } catch (error) {
+              console.error(`Failed to parse JSON: ${target.path}`, error);
+              // Add failed result immediately
+              addTranslationResult({
+                type: "custom",
+                id: target.id,
+                targetLanguage: targetLanguage,
+                content: {},
+                outputPath: "",
+                success: false
+              });
+              incrementCompletedChunks();
+            }
+          } else if (isSnbt) {
+            // Create a translation job for SNBT content
+            const job = translationService.createJob(
+              { content },
+              targetLanguage,
+              target.name
             );
             
-            // Stringify JSON
-            const translatedContent = JSON.stringify(translatedJson, null, 2);
-            
-            // Write translated file
-            await FileService.writeTextFile(outputPath, translatedContent);
-            
-            // Add translation result
-            addTranslationResult({
-              type: "custom",
-              id: target.id,
-              targetLanguage: targetLanguage,
-              content: { [target.id]: translatedContent } as Record<string, string>,
-              outputPath,
-              success: true
-            });
-          } catch (error) {
-            console.error(`Failed to parse JSON: ${target.path}`, error);
-            // Add failed translation result
+            jobs.push({ target, job, fileType: 'snbt', content });
+          } else {
+            console.warn(`Unsupported file type: ${target.path}`);
+            // Add failed result immediately
             addTranslationResult({
               type: "custom",
               id: target.id,
@@ -185,48 +169,11 @@ export function CustomFilesTab() {
               outputPath: "",
               success: false
             });
+            incrementCompletedChunks();
           }
-        } else if (isSnbt) {
-          // Create a key for the content
-          const contentKey = "content";
-          
-          // Create a translation job for SNBT content
-          const job = translationService.createJob(
-            { [contentKey]: content },
-            targetLanguage,
-            target.name
-          );
-          
-          // Store the job ID
-          setCurrentJobId(job.id);
-          
-          // Start the translation job
-          await translationService.startJob(job.id);
-          
-          // Progress is handled by the translation runner
-          
-          // Get the translated content
-          const translatedContent = translationService.getCombinedTranslatedContent(job.id);
-          // Access the content using the same key, with a fallback if the key doesn't exist
-          const translatedText = translatedContent && typeof translatedContent === 'object' && contentKey in translatedContent 
-            ? (translatedContent as Record<string, string>)[contentKey] 
-            : `[${targetLanguage}] ${content}`;
-          
-          // Write translated file
-          await FileService.writeTextFile(outputPath, translatedText);
-          
-          // Add translation result
-          addTranslationResult({
-            type: "custom",
-            id: target.id,
-            targetLanguage: targetLanguage,
-            content: { [target.id]: translatedText } as Record<string, string>,
-            outputPath,
-            success: true
-          });
-        } else {
-          console.warn(`Unsupported file type: ${target.path}`);
-          // Add failed translation result for unsupported file type
+        } catch (error) {
+          console.error(`Failed to read file: ${target.path}`, error);
+          // Add failed result immediately
           addTranslationResult({
             type: "custom",
             id: target.id,
@@ -235,112 +182,117 @@ export function CustomFilesTab() {
             outputPath: "",
             success: false
           });
+          incrementCompletedChunks();
         }
-      } catch (error) {
-        console.error(`Failed to translate file: ${target.name}`, error);
-        // Add failed translation result for general error
-        addTranslationResult({
-          type: "custom",
-          id: target.id,
-          targetLanguage: targetLanguage,
-          content: {},
-          outputPath: "",
-          success: false
+      }
+      
+      // Use runTranslationJobs for consistent processing
+      await runTranslationJobs({
+        jobs: jobs.map(({ job }) => job),
+        translationService,
+        setCurrentJobId,
+        incrementCompletedChunks, // Track at chunk level for real-time progress
+        incrementWholeProgress: incrementCompletedChunks, // Track at file level
+        targetLanguage,
+        type: "custom",
+        getOutputPath: () => outputDir,
+        getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
+        writeOutput: async (job, outputPath, content) => {
+          // Find the corresponding file data
+          const fileData = jobs.find(j => j.job.id === job.id);
+          if (!fileData) return;
+          
+          const fileName = fileData.target.path.split('/').pop() || "unknown";
+          const outputFilePath = `${outputPath}/${targetLanguage}_${fileName}`;
+          
+          if (fileData.fileType === 'json' && fileData.jsonData) {
+            // Reconstruct JSON from flattened content
+            const reconstructedJson = reconstructJson(fileData.jsonData, content);
+            const translatedContent = JSON.stringify(reconstructedJson, null, 2);
+            await FileService.writeTextFile(outputFilePath, translatedContent);
+          } else if (fileData.fileType === 'snbt') {
+            const translatedText = content.content || `[${targetLanguage}] ${fileData.content}`;
+            await FileService.writeTextFile(outputFilePath, translatedText);
+          }
+        },
+        onResult: addTranslationResult,
+        onJobStart: async (job) => {
+          const fileData = jobs.find(j => j.job.id === job.id);
+          if (!fileData) return;
+          try {
+            await invoke('log_translation_process', {
+              message: `Starting translation for custom file: ${fileData.target.name} (${fileData.target.id})`
+            });
+          } catch {}
+        },
+        onJobComplete: async (job) => {
+          const fileData = jobs.find(j => j.job.id === job.id);
+          if (!fileData) return;
+          try {
+            await invoke('log_translation_process', {
+              message: `Completed translation for custom file: ${fileData.target.name} (${fileData.target.id})`
+            });
+          } catch {}
+        },
+        onJobInterrupted: async (job) => {
+          const fileData = jobs.find(j => j.job.id === job.id);
+          if (!fileData) return;
+          try {
+            await invoke('log_translation_process', {
+              message: `Translation cancelled by user during custom file: ${fileData.target.name} (${fileData.target.id})`
+            });
+          } catch {}
+        }
+      });
+    } finally {
+      setTranslating(false);
+    }
+  };
+  
+  // Flatten JSON to key-value pairs
+  const flattenJson = (json: unknown, prefix = ''): Record<string, string> => {
+    const result: Record<string, string> = {};
+    
+    const flatten = (obj: unknown, currentPrefix: string) => {
+      if (typeof obj === 'string') {
+        result[currentPrefix] = obj;
+      } else if (Array.isArray(obj)) {
+        obj.forEach((item, index) => {
+          flatten(item, `${currentPrefix}[${index}]`);
+        });
+      } else if (obj && typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, value]) => {
+          const newPrefix = currentPrefix ? `${currentPrefix}.${key}` : key;
+          flatten(value, newPrefix);
         });
       }
-    }
+    };
     
-    // Clear the job ID
-    setCurrentJobId(null);
+    flatten(json, prefix);
+    return result;
   };
-
-  // Count chunks in JSON recursively
-  const countJsonChunks = (
-    json: unknown,
-    chunkSize: number
-  ): number => {
-    if (typeof json === 'string') {
-      // Each string is one chunk
-      return 1;
-    } else if (Array.isArray(json)) {
-      // Count chunks in array items
-      return json.reduce((count, item) => count + countJsonChunks(item, chunkSize), 0);
-    } else if (typeof json === 'object' && json !== null) {
-      // Count chunks in object properties
-      return Object.values(json).reduce((count, value) => count + countJsonChunks(value, chunkSize), 0);
-    } else {
-      return 0;
-    }
-  };
-
-  // Translate JSON recursively
-  const translateJsonRecursively = async (
-    json: unknown,
-    translationService: TranslationService,
-    targetLanguage: string,
-    currentFileName?: string,
-    setCurrentJobId?: (jobId: string | null) => void,
-    incrementCompletedChunks?: () => void
-  ): Promise<unknown> => {
-    if (typeof json === 'string') {
-      // Create a key for the text
-      const textKey = "text";
-      
-      // Create a translation job with a simple key-value structure
-      const job = translationService.createJob(
-        { [textKey]: json },
-        targetLanguage,
-        currentFileName
-      );
-      
-      // Store the job ID
-      if (setCurrentJobId) {
-        setCurrentJobId(job.id);
-      }
-      
-      // Start the translation job
-      await translationService.startJob(job.id);
-      
-      // Increment completed chunks for whole progress
-      if (incrementCompletedChunks) {
-        incrementCompletedChunks();
-      }
-      
-      // Get the translated content
-      const translatedContent = translationService.getCombinedTranslatedContent(job.id);
-      // Access the content using the same key, with a fallback if the key doesn't exist
-      return translatedContent && typeof translatedContent === 'object' && textKey in translatedContent 
-        ? (translatedContent as Record<string, string>)[textKey] 
-        : `[${targetLanguage}] ${json}`;
-    } else if (Array.isArray(json)) {
-      const translatedArray = [];
-      for (const item of json) {
-        translatedArray.push(await translateJsonRecursively(
-          item, 
-          translationService, 
-          targetLanguage, 
-          currentFileName,
-          setCurrentJobId,
-          incrementCompletedChunks
-        ));
-      }
-      return translatedArray;
-    } else if (typeof json === 'object' && json !== null) {
-      const result: Record<string, unknown> = {};
-      for (const key in json) {
-        result[key] = await translateJsonRecursively(
-          (json as Record<string, unknown>)[key], 
-          translationService, 
-          targetLanguage, 
-          currentFileName,
-          setCurrentJobId,
-          incrementCompletedChunks
+  
+  // Reconstruct JSON from flattened content
+  const reconstructJson = (originalJson: unknown, translatedContent: Record<string, string>): unknown => {
+    const reconstruct = (obj: unknown, prefix = ''): unknown => {
+      if (typeof obj === 'string') {
+        return translatedContent[prefix] || obj;
+      } else if (Array.isArray(obj)) {
+        return obj.map((item, index) => 
+          reconstruct(item, `${prefix}[${index}]`)
         );
+      } else if (obj && typeof obj === 'object') {
+        const result: Record<string, unknown> = {};
+        Object.entries(obj).forEach(([key, value]) => {
+          const newPrefix = prefix ? `${prefix}.${key}` : key;
+          result[key] = reconstruct(value, newPrefix);
+        });
+        return result;
       }
-      return result;
-    } else {
-      return json;
-    }
+      return obj;
+    };
+    
+    return reconstruct(originalJson);
   };
 
   // Custom render function for the file type column

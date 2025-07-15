@@ -135,8 +135,24 @@ export const useAppStore = create<AppState>((set) => ({
   completedMods: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
-  setProgress: (progress) => set({ progress: Math.max(0, Math.min(100, progress || 0)) }),
-  setWholeProgress: (progress) => set({ wholeProgress: Math.max(0, Math.min(100, progress || 0)) }),
+  setProgress: (progress) => set((state) => {
+    const newProgress = Math.max(0, Math.min(100, progress || 0));
+    // Prevent backwards progress
+    if (newProgress < state.progress) {
+      console.warn(`Attempted to set progress backwards: ${state.progress}% -> ${newProgress}%`);
+      return state;
+    }
+    return { progress: newProgress };
+  }),
+  setWholeProgress: (progress) => set((state) => {
+    const newProgress = Math.max(0, Math.min(100, progress || 0));
+    // Prevent backwards progress
+    if (newProgress < state.wholeProgress) {
+      console.warn(`Attempted to set whole progress backwards: ${state.wholeProgress}% -> ${newProgress}%`);
+      return state;
+    }
+    return { wholeProgress: newProgress };
+  }),
   setTotalChunks: (totalChunks) => {
     console.log(`Setting totalChunks to: ${totalChunks}`);
     return set({ totalChunks: Math.max(0, totalChunks || 0) });
@@ -150,6 +166,20 @@ export const useAppStore = create<AppState>((set) => ({
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
     
     console.log(`Progress tracking: ${newCompletedChunks}/${state.totalChunks} chunks (${boundedProgress}%)`);
+    
+    // Log progress milestones (every 25%)
+    const prevProgress = state.totalChunks > 0 ? Math.round((state.completedChunks / state.totalChunks) * 100) : 0;
+    const currentMilestone = Math.floor(boundedProgress / 25) * 25;
+    const prevMilestone = Math.floor(prevProgress / 25) * 25;
+    
+    if (currentMilestone > prevMilestone && boundedProgress > 0) {
+      // Log milestone reached (async operation, don't await to avoid blocking state update)
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke('log_translation_process', { 
+          message: `Translation progress milestone: ${currentMilestone}% (${newCompletedChunks}/${state.totalChunks} chunks)` 
+        }).catch(error => console.error('Failed to log progress milestone:', error));
+      });
+    }
     
     return {
       completedChunks: newCompletedChunks,
@@ -187,6 +217,20 @@ export const useAppStore = create<AppState>((set) => ({
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
     
     console.log(`Mod progress tracking: ${newCompletedMods}/${state.totalMods} mods (${boundedProgress}%)`);
+    
+    // Log mod completion milestones
+    const prevProgress = state.totalMods > 0 ? Math.round((state.completedMods / state.totalMods) * 100) : 0;
+    const currentMilestone = Math.floor(boundedProgress / 25) * 25;
+    const prevMilestone = Math.floor(prevProgress / 25) * 25;
+    
+    if (currentMilestone > prevMilestone && boundedProgress > 0) {
+      // Log milestone reached (async operation, don't await to avoid blocking state update)
+      import("@tauri-apps/api/core").then(({ invoke }) => {
+        invoke('log_translation_process', { 
+          message: `File processing milestone: ${currentMilestone}% (${newCompletedMods}/${state.totalMods} files)` 
+        }).catch(error => console.error('Failed to log mod milestone:', error));
+      });
+    }
     
     return {
       completedMods: newCompletedMods,

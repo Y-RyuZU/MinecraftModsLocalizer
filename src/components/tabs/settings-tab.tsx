@@ -10,9 +10,12 @@ import { UISettings } from "@/components/settings/ui-settings";
 import { SettingsActions } from "@/components/settings/settings-actions";
 
 import { FileService } from "@/lib/services/file-service";
+import { useAppTranslation } from "@/lib/i18n";
+import { toast } from "sonner";
 
 export function SettingsTab() {
   const { config, setConfig } = useAppStore();
+  const { t } = useAppTranslation();
   const [isSaving, setIsSaving] = useState(false);
   
   // Save settings
@@ -21,8 +24,20 @@ export function SettingsTab() {
     
     try {
       await ConfigService.save(config);
+      
+      // Update the store with the latest config to ensure all components get updated
+      const updatedConfig = await ConfigService.getConfig();
+      setConfig(updatedConfig);
+      
+      // Show success feedback
+      toast.success(t('settings.saveSuccess'), {
+        description: t('settings.saveSuccessDescription'),
+      });
     } catch (error) {
       console.error("Failed to save settings:", error);
+      toast.error(t('settings.saveError'), {
+        description: t('settings.saveErrorDescription'),
+      });
     } finally {
       setIsSaving(false);
     }

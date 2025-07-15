@@ -1,6 +1,9 @@
 import { LLMAdapterFactory } from "../adapters/llm-adapter-factory";
 import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
 import { invoke } from "@tauri-apps/api/core";
+import { estimateTokens, DEFAULT_TOKEN_CONFIG, TokenEstimationConfig } from "../utils/token-counter";
+import { ErrorLogger } from "../utils/error-logger";
+import { API_DEFAULTS, TRANSLATION_DEFAULTS } from "../constants/defaults";
 
 /**
  * Translation chunk
@@ -24,6 +27,8 @@ export interface TranslationChunk {
 export interface TranslationJob {
   /** Unique identifier for the job */
   id: string;
+  /** Session identifier for logging */
+  sessionId?: string;
   /** Target language */
   targetLanguage: string;
   /** Chunks to translate */
@@ -40,6 +45,12 @@ export interface TranslationJob {
   error?: string;
   /** Current file name being processed */
   currentFileName?: string;
+  /** Total files being processed in this session */
+  totalFiles?: number;
+  /** Current file index in the session */
+  currentFileIndex?: number;
+  /** Total API calls made */
+  totalApiCalls?: number;
 }
 
 /**
@@ -62,6 +73,12 @@ export interface TranslationServiceOptions {
   onError?: (job: TranslationJob, error: Error) => void;
   /** Current file name being processed */
   currentFileName?: string;
+  /** Enable token-based chunking */
+  useTokenBasedChunking?: boolean;
+  /** Maximum tokens per chunk */
+  maxTokensPerChunk?: number;
+  /** Fallback to entry-based chunking if token estimation fails */
+  fallbackToEntryBased?: boolean;
 }
 
 /**
@@ -96,6 +113,11 @@ export class TranslationService {
   /** Error callback */
   private onError?: (job: TranslationJob, error: Error) => void;
 
+  /** Token-based chunking options */
+  private useTokenBasedChunking: boolean;
+  private maxTokensPerChunk: number;
+  private fallbackToEntryBased: boolean;
+
   /**
    * Constructor
    * @param options Translation service options
@@ -104,10 +126,23 @@ export class TranslationService {
     this.adapter = LLMAdapterFactory.getAdapter(options.llmConfig);
     this.chunkSize = options.chunkSize ?? this.adapter.getMaxChunkSize();
     this.promptTemplate = options.promptTemplate;
-    this.maxRetries = options.maxRetries ?? 5;
+    this.maxRetries = options.maxRetries ?? API_DEFAULTS.maxRetries;
     this.onProgress = options.onProgress;
     this.onComplete = options.onComplete;
     this.onError = options.onError;
+    
+    // Token-based chunking configuration
+    this.useTokenBasedChunking = options.useTokenBasedChunking ?? false;
+    this.maxTokensPerChunk = options.maxTokensPerChunk ?? TRANSLATION_DEFAULTS.maxTokensPerChunk;
+    this.fallbackToEntryBased = options.fallbackToEntryBased ?? true;
+    
+    // Debug logging for token-based chunking
+    console.log('TranslationService Configuration:', {
+      useTokenBasedChunking: this.useTokenBasedChunking,
+      maxTokensPerChunk: this.maxTokensPerChunk,
+      fallbackToEntryBased: this.fallbackToEntryBased,
+      provider: this.adapter.id
+    });
   }
 
   /**
@@ -154,7 +189,7 @@ export class TranslationService {
     try {
       await invoke('log_translation_process', { message });
     } catch (error) {
-      console.error('Failed to log translation message:', error);
+      await ErrorLogger.logError('TranslationService.logTranslation', error, 'TRANSLATION');
     }
   }
 
@@ -166,21 +201,10 @@ export class TranslationService {
     try {
       await invoke('log_api_request', { message });
     } catch (error) {
-      console.error('Failed to log API request message:', error);
+      await ErrorLogger.logError('TranslationService.logApiRequest', error, 'API_REQUEST');
     }
   }
 
-  /**
-   * Log a file operation message to the backend
-   * @param message Message to log
-   */
-  private async logFileOperation(message: string): Promise<void> {
-    try {
-      await invoke('log_file_operation', { message });
-    } catch (error) {
-      console.error('Failed to log file operation message:', error);
-    }
-  }
 
   /**
    * Log an error message to the backend
@@ -189,11 +213,110 @@ export class TranslationService {
    */
   private async logError(message: string, processType?: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: processType });
+      await invoke('log_error', { message, processType: processType });
     } catch (error) {
-      console.error('Failed to log error message:', error);
+      // Use console.error directly here to avoid infinite recursion
+      console.error('[TranslationService.logError] Failed to log error message:', error);
+      console.error('[TranslationService.logError] Original error message was:', message);
     }
   }
+
+  /**
+   * Log translation start with session information
+   * @param sessionId Session ID
+   * @param targetLanguage Target language
+   * @param totalFiles Total number of files
+   * @param totalContentSize Total content size
+   */
+  private async logTranslationStart(
+    sessionId: string, 
+    targetLanguage: string, 
+    totalFiles: number, 
+    totalContentSize: number
+  ): Promise<void> {
+    try {
+      // Ensure sessionId is valid
+      const validSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      
+      // In Tauri v2, snake_case Rust parameters are converted to camelCase for JS
+      await invoke('log_translation_start', { 
+        sessionId: validSessionId,
+        targetLanguage: targetLanguage,
+        totalFiles: totalFiles,
+        totalContentSize: totalContentSize
+      });
+    } catch (error) {
+      console.error('Failed to log translation start:', error);
+    }
+  }
+
+  /**
+   * Log pre-translation statistics
+   * @param totalFiles Total number of files
+   * @param estimatedKeys Estimated number of keys
+   * @param estimatedLines Estimated number of lines
+   * @param contentTypes Array of content types
+   */
+  private async logTranslationStatistics(
+    totalFiles: number,
+    estimatedKeys: number,
+    estimatedLines: number,
+    contentTypes: string[]
+  ): Promise<void> {
+    try {
+      // Ensure all parameters are valid numbers
+      const validTotalFiles = Number.isFinite(totalFiles) ? totalFiles : 1;
+      const validEstimatedKeys = Number.isFinite(estimatedKeys) ? estimatedKeys : 0;
+      const validEstimatedLines = Number.isFinite(estimatedLines) ? estimatedLines : 0;
+      const validContentTypes = Array.isArray(contentTypes) ? contentTypes : [];
+      
+      // In Tauri v2, snake_case Rust parameters are converted to camelCase for JS
+      await invoke('log_translation_statistics', {
+        totalFiles: validTotalFiles,
+        estimatedKeys: validEstimatedKeys,
+        estimatedLines: validEstimatedLines,
+        contentTypes: validContentTypes
+      });
+    } catch (error) {
+      console.error('Failed to log translation statistics:', error);
+    }
+  }
+
+
+  /**
+   * Log translation completion with comprehensive summary
+   * @param sessionId Session ID
+   * @param durationSeconds Duration in seconds
+   * @param totalFilesProcessed Total files processed
+   * @param successfulFiles Number of successful files
+   * @param failedFiles Number of failed files
+   * @param totalKeysTranslated Total keys translated
+   * @param totalApiCalls Total API calls made
+   */
+  private async logTranslationCompletion(
+    sessionId: string,
+    durationSeconds: number,
+    totalFilesProcessed: number,
+    successfulFiles: number,
+    failedFiles: number,
+    totalKeysTranslated: number,
+    totalApiCalls: number
+  ): Promise<void> {
+    try {
+      await invoke('log_translation_completion', {
+        sessionId: sessionId,
+        durationSeconds: durationSeconds,
+        totalFilesProcessed: totalFilesProcessed,
+        successfulFiles: successfulFiles,
+        failedFiles: failedFiles,
+        totalKeysTranslated: totalKeysTranslated,
+        totalApiCalls: totalApiCalls
+      });
+    } catch (error) {
+      console.error('Failed to log translation completion:', error);
+    }
+  }
+
 
   /**
    * Start a translation job
@@ -207,14 +330,45 @@ export class TranslationService {
       throw new Error(`Job not found: ${jobId}`);
     }
     
+    // Initialize session ID if not set
+    if (!job.sessionId) {
+      job.sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    }
+    
+    // Initialize API call counter
+    job.totalApiCalls = job.totalApiCalls || 0;
+    
     // Update job status
     job.status = "processing";
     job.startTime = Date.now();
     this.updateProgress(job);
     
-    // Log job start
+    // Enhanced logging for job start
+    const totalKeys = this.getTotalKeysCount(job);
+    const totalFiles = job.totalFiles ?? 1;
+    
+    // Log translation start with session information
+    await this.logTranslationStart(
+      job.sessionId!,
+      job.targetLanguage,
+      totalFiles,
+      totalKeys
+    );
+    
+    // Log pre-translation statistics
+    const contentTypes = this.determineContentTypes(job);
+    const estimatedLines = Math.ceil(totalKeys * 1.5); // Rough estimate
+    
+    await this.logTranslationStatistics(
+      Number(totalFiles) || 1,
+      totalKeys,
+      estimatedLines,
+      contentTypes
+    );
+    
+    // Log legacy messages for compatibility
     await this.logTranslation(`Starting translation job ${jobId} to ${job.targetLanguage}`);
-    await this.logTranslation(`Job contains ${job.chunks.length} chunks with a total of ${this.getTotalKeysCount(job)} keys`);
+    await this.logTranslation(`Job contains ${job.chunks.length} chunks with a total of ${totalKeys} keys`);
     
     try {
       // Process each chunk
@@ -245,12 +399,31 @@ export class TranslationService {
             jobId
           );
           
-          // Update chunk with translated content
-          chunk.translatedContent = translatedContent;
-          chunk.status = "completed";
-          
-          // Log chunk completion
-          await this.logTranslation(`Completed chunk ${i+1}/${job.chunks.length} successfully`);
+          // Check if translation actually produced content
+          if (!translatedContent || Object.keys(translatedContent).length === 0) {
+            // Handle empty content as a failure without throwing
+            chunk.status = "failed";
+            chunk.error = "Translation returned empty content - possible API key issue";
+            chunk.translatedContent = {};
+            
+            // Log chunk failure
+            await this.logError(`Chunk ${i+1}/${job.chunks.length} failed: empty translation content`, "TRANSLATION");
+            
+            // If it's likely an API key issue, mark the entire job as failed
+            if (chunk.error.includes("API key")) {
+              job.status = "failed";
+              job.error = chunk.error;
+              await this.logError(`Job ${jobId} failed due to API key issue`, "TRANSLATION");
+              break;
+            }
+          } else {
+            // Update chunk with translated content
+            chunk.translatedContent = translatedContent;
+            chunk.status = "completed";
+            
+            // Log chunk completion
+            await this.logTranslation(`Completed chunk ${i+1}/${job.chunks.length} successfully`);
+          }
         } catch (error) {
           // Handle chunk error
           chunk.status = "failed";
@@ -283,7 +456,25 @@ export class TranslationService {
       // Calculate job duration
       const duration = (job.endTime - job.startTime) / 1000; // in seconds
       
-      // Log job completion
+      // Calculate completion statistics
+      const totalKeysTranslated = job.chunks
+        .filter(chunk => chunk.status === "completed")
+        .reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
+      
+      // Enhanced completion logging
+      if (job.sessionId) {
+        await this.logTranslationCompletion(
+          job.sessionId,
+          duration,
+          job.totalFiles || 1,
+          job.status === "completed" ? 1 : 0,
+          job.status === "failed" ? 1 : 0,
+          totalKeysTranslated,
+          job.totalApiCalls || 0
+        );
+      }
+      
+      // Log job completion (legacy)
       if (job.status === "completed") {
         await this.logTranslation(`Job ${jobId} completed successfully in ${duration.toFixed(2)} seconds`);
       } else if (job.status === "failed") {
@@ -401,6 +592,123 @@ export class TranslationService {
    */
   private splitIntoChunks(content: Record<string, string>, jobId: string): TranslationChunk[] {
     const entries = Object.entries(content);
+    
+    console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
+    
+    if (this.useTokenBasedChunking) {
+      try {
+        console.log('Using token-based chunking with max tokens:', this.maxTokensPerChunk);
+        const tokenChunks = this.splitIntoTokenBasedChunks(entries, jobId);
+        console.log(`Token-based chunking created ${tokenChunks.length} chunks`);
+        return tokenChunks;
+      } catch (error) {
+        // Log error and fall back to entry-based chunking if enabled
+        console.warn('Token-based chunking failed, falling back to entry-based:', error);
+        if (this.fallbackToEntryBased) {
+          const fallbackChunks = this.splitIntoEntryBasedChunks(entries, jobId);
+          console.log(`Fallback chunking created ${fallbackChunks.length} chunks`);
+          return fallbackChunks;
+        }
+        throw error;
+      }
+    } else {
+      console.log('Using entry-based chunking with chunk size:', this.chunkSize);
+      const entryChunks = this.splitIntoEntryBasedChunks(entries, jobId);
+      console.log(`Entry-based chunking created ${entryChunks.length} chunks`);
+      return entryChunks;
+    }
+  }
+
+  /**
+   * Split content into chunks based on token estimation
+   * @param entries Content entries to split
+   * @param jobId Job ID
+   * @returns Array of chunks
+   */
+  private splitIntoTokenBasedChunks(entries: [string, string][], jobId: string): TranslationChunk[] {
+    const chunks: TranslationChunk[] = [];
+    let currentChunk: Record<string, string> = {};
+    let currentChunkTokens = 0;
+    
+    // Get token estimation config based on provider
+    const tokenConfig = this.getTokenConfigForProvider();
+    console.log('Token config for provider:', this.adapter.id, tokenConfig);
+    
+    for (const [key, value] of entries) {
+      // Create a test chunk with the current entry added
+      const testChunk = { ...currentChunk, [key]: value };
+      const estimation = estimateTokens(testChunk, tokenConfig);
+      
+      // Log token estimation for first few entries
+      if (chunks.length < 2 && Object.keys(currentChunk).length < 3) {
+        console.log(`Entry "${key}": estimated ${estimation.totalTokens} tokens (content: ${estimation.contentTokens}, overhead: ${estimation.promptOverhead})`);
+      }
+      
+      // If adding this entry would exceed the limit, finalize current chunk
+      if (estimation.totalTokens > this.maxTokensPerChunk && Object.keys(currentChunk).length > 0) {
+        chunks.push({
+          id: `${jobId}_chunk_${chunks.length}`,
+          content: currentChunk,
+          status: "pending"
+        });
+        
+        // Start new chunk with current entry
+        currentChunk = { [key]: value };
+        currentChunkTokens = estimateTokens(currentChunk, tokenConfig).totalTokens;
+      } else {
+        // Add entry to current chunk
+        currentChunk[key] = value;
+        currentChunkTokens = estimation.totalTokens;
+      }
+      
+      // Handle case where single entry exceeds token limit
+      if (currentChunkTokens > this.maxTokensPerChunk && Object.keys(currentChunk).length === 1) {
+        // Try to split the content if it's very long
+        const splitContent = this.trySplitLongContent(key, value);
+        if (splitContent.length > 1) {
+          // Add split content as separate chunks
+          for (const [splitKey, splitValue] of splitContent) {
+            chunks.push({
+              id: `${jobId}_chunk_${chunks.length}`,
+              content: { [splitKey]: splitValue },
+              status: "pending"
+            });
+          }
+          currentChunk = {};
+          currentChunkTokens = 0;
+        } else {
+          // Content can't be split further, add as is with warning
+          console.warn(`Entry "${key}" exceeds token limit but cannot be split further`);
+          chunks.push({
+            id: `${jobId}_chunk_${chunks.length}`,
+            content: currentChunk,
+            status: "pending"
+          });
+          currentChunk = {};
+          currentChunkTokens = 0;
+        }
+      }
+    }
+    
+    // Add final chunk if it has content
+    if (Object.keys(currentChunk).length > 0) {
+      chunks.push({
+        id: `${jobId}_chunk_${chunks.length}`,
+        content: currentChunk,
+        status: "pending"
+      });
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Split content into chunks based on entry count (legacy method)
+   * @param entries Content entries to split
+   * @param jobId Job ID
+   * @returns Array of chunks
+   */
+  private splitIntoEntryBasedChunks(entries: [string, string][], jobId: string): TranslationChunk[] {
     const chunks: TranslationChunk[] = [];
     
     // Split entries into chunks of the specified size
@@ -422,6 +730,75 @@ export class TranslationService {
     }
     
     return chunks;
+  }
+
+  /**
+   * Get token estimation config for current LLM provider
+   * @returns Token estimation config
+   */
+  private getTokenConfigForProvider(): Partial<TokenEstimationConfig> {
+    const provider = this.adapter.id;
+    
+    // Provider-specific configurations with increased overhead estimates
+    const providerConfigs: Record<string, Partial<TokenEstimationConfig>> = {
+      openai: {
+        wordToTokenRatio: 1.5, // More conservative ratio
+        systemPromptOverhead: 300, // Increased for longer system prompts
+        userPromptOverhead: 200, // Increased for formatting overhead
+      },
+      anthropic: {
+        wordToTokenRatio: 1.4,
+        systemPromptOverhead: 250,
+        userPromptOverhead: 150,
+      },
+      gemini: {
+        wordToTokenRatio: 1.6,
+        systemPromptOverhead: 350,
+        userPromptOverhead: 250,
+      },
+    };
+    
+    return providerConfigs[provider] || DEFAULT_TOKEN_CONFIG;
+  }
+
+  /**
+   * Try to split very long content that exceeds token limits
+   * @param key Content key
+   * @param value Content value
+   * @returns Array of split key-value pairs
+   */
+  private trySplitLongContent(key: string, value: string): [string, string][] {
+    // For very long values, try to split at sentence boundaries
+    if (value.length > TRANSLATION_DEFAULTS.contentSplitThreshold) {
+      const sentences = value.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      if (sentences.length > 1) {
+        const result: [string, string][] = [];
+        let currentPart = '';
+        
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i].trim();
+          const testPart = currentPart + (currentPart ? '. ' : '') + sentence;
+          
+          // If adding this sentence would make the part too long, finalize current part
+          if (testPart.length > TRANSLATION_DEFAULTS.splitPartMaxLength && currentPart.length > 0) {
+            result.push([`${key}_part_${result.length + 1}`, currentPart]);
+            currentPart = sentence;
+          } else {
+            currentPart = testPart;
+          }
+        }
+        
+        // Add final part
+        if (currentPart.length > 0) {
+          result.push([`${key}_part_${result.length + 1}`, currentPart]);
+        }
+        
+        return result.length > 1 ? result : [[key, value]];
+      }
+    }
+    
+    // Cannot split or not worth splitting
+    return [[key, value]];
   }
 
   /**
@@ -475,6 +852,12 @@ export class TranslationService {
         // Translate using the adapter
         const response: TranslationResponse = await this.adapter.translate(request);
         
+        // Increment API call counter
+        const job = this.activeJobs.get(jobId);
+        if (job) {
+          job.totalApiCalls = (job.totalApiCalls || 0) + 1;
+        }
+        
         // Validate response
         this.validateTranslationResponse(content, response.content);
         
@@ -489,9 +872,9 @@ export class TranslationService {
         if (error instanceof Error && 
             (error.message.includes("API key is not configured") || 
              error.message.includes("Incorrect API key provided: undefined"))) {
-          await this.logError(`Translation failed: ${error.message}`, "TRANSLATION");
-          // For API key configuration errors, don't retry
-          throw new Error("API key is not configured or is invalid. Please set your API key in the settings.");
+          await this.logError("API key is not configured or is invalid. Please set your API key in the settings.", "TRANSLATION");
+          // For API key configuration errors, return empty result to mark as failed
+          return {};
         }
         
         // Log retry attempt
@@ -556,5 +939,63 @@ export class TranslationService {
     if (this.onProgress) {
       this.onProgress(job);
     }
+  }
+
+  /**
+   * Determine content types from a translation job
+   * @param job Translation job
+   * @returns Array of content types
+   */
+  private determineContentTypes(job: TranslationJob): string[] {
+    const contentTypes: string[] = [];
+    
+    // Check if we have current file name information
+    if (job.currentFileName) {
+      if (job.currentFileName.includes('.jar')) {
+        contentTypes.push('Minecraft Mod');
+      } else if (job.currentFileName.includes('quest')) {
+        contentTypes.push('Quest Files');
+      } else if (job.currentFileName.includes('patchouli') || job.currentFileName.includes('book')) {
+        contentTypes.push('Guidebook');
+      } else if (job.currentFileName.includes('.json')) {
+        contentTypes.push('JSON Data');
+      } else {
+        contentTypes.push('Custom Files');
+      }
+    }
+    
+    // Analyze content structure for additional context
+    const sampleContent = job.chunks[0]?.content;
+    if (sampleContent) {
+      const keys = Object.keys(sampleContent);
+      
+      // Check for common Minecraft mod patterns
+      if (keys.some(key => key.includes('item.') || key.includes('block.') || key.includes('gui.'))) {
+        if (!contentTypes.includes('Minecraft Mod')) {
+          contentTypes.push('Minecraft Mod');
+        }
+      }
+      
+      // Check for quest patterns
+      if (keys.some(key => key.includes('quest') || key.includes('task') || key.includes('reward'))) {
+        if (!contentTypes.includes('Quest Files')) {
+          contentTypes.push('Quest Files');
+        }
+      }
+      
+      // Check for Patchouli patterns
+      if (keys.some(key => key.includes('page') || key.includes('entry') || key.includes('category'))) {
+        if (!contentTypes.includes('Guidebook')) {
+          contentTypes.push('Guidebook');
+        }
+      }
+    }
+    
+    // Default to generic if no specific type identified
+    if (contentTypes.length === 0) {
+      contentTypes.push('Translation Content');
+    }
+    
+    return contentTypes;
   }
 }

@@ -10,6 +10,10 @@ A desktop application that automates the translation of Minecraft Mods and Quest
 
 - **Mod Translation**: Translates mod language files and outputs them as resource packs
 - **Quest Translation**: Supports FTB Quests and Better Quests translation
+  - Supports multiple FTB Quest directory structures:
+    - Standard: `config/ftbquests/quests/`
+    - FTB Interactions Remastered: `config/ftbquests/normal/`
+    - Nested categories and deeply nested quest structures
 - **Patchouli Guidebook Translation**: Translates Patchouli guidebooks within mod JAR files
 - **Multi-Language Support**: Supports Japanese, Chinese, Korean, German, French, Spanish, and custom languages
 - **AI-Powered**: Uses advanced language models for high-quality translations
@@ -107,6 +111,9 @@ bun run test:coverage
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Code Rabbit
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/Y-RyuZU/MinecraftModsLocalizer?utm_source=oss&utm_medium=github&utm_campaign=Y-RyuZU%2FMinecraftModsLocalizer&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
 ## License
 

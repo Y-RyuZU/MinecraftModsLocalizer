@@ -1,0 +1,85 @@
+{
+  "itemGroup.rpgmod": "RPG Adventure",
+  
+  "item.rpgmod.spawn_egg_ancient_golem": "Ancient Golem Spawn Egg",
+  "item.rpgmod.spawn_egg_crystal_guardian": "Crystal Guardian Spawn Egg",
+  "item.rpgmod.spawn_egg_shadow_assassin": "Shadow Assassin Spawn Egg",
+  
+  "item.rpgmod.wooden_training_sword": "Wooden Training Sword",
+  "item.rpgmod.wooden_training_sword.tooltip": "A basic sword for beginners",
+  "item.rpgmod.steel_longsword": "Steel Longsword",
+  "item.rpgmod.steel_longsword.tooltip": "Damage: %d | Durability: %d/%d",
+  "item.rpgmod.enchanted_blade": "Enchanted Blade",
+  "item.rpgmod.enchanted_blade.tooltip": "§b+%d Magic Damage§r\n§eRequires Level %d§r",
+  
+  "item.rpgmod.health_potion_small": "Small Health Potion",
+  "item.rpgmod.health_potion_small.tooltip": "Restores §c%d HP§r instantly",
+  "item.rpgmod.mana_potion_large": "Large Mana Potion",
+  "item.rpgmod.mana_potion_large.tooltip": "Restores §9%d MP§r over %d seconds",
+  
+  "item.rpgmod.skill_book_fireball": "Skill Book: Fireball",
+  "item.rpgmod.skill_book_fireball.tooltip": "§6Right-click to learn§r\n§7Launches a fireball dealing %d damage§r\n§9Mana Cost: %d§r",
+  
+  "block.rpgmod.ancient_altar": "Ancient Altar",
+  "block.rpgmod.ancient_altar.tooltip": "Used for powerful enchantments",
+  "block.rpgmod.mana_crystal_ore": "Mana Crystal Ore",
+  "block.rpgmod.skill_forge": "Skill Forge",
+  "block.rpgmod.class_change_pedestal": "Class Change Pedestal",
+  
+  "entity.rpgmod.ancient_golem": "Ancient Golem",
+  "entity.rpgmod.crystal_guardian": "Crystal Guardian",
+  "entity.rpgmod.shadow_assassin": "Shadow Assassin",
+  
+  "rpgmod.gui.character_stats": "Character Stats",
+  "rpgmod.gui.level": "Level: %d",
+  "rpgmod.gui.experience": "Experience: %d / %d",
+  "rpgmod.gui.health": "Health: %d / %d",
+  "rpgmod.gui.mana": "Mana: %d / %d",
+  "rpgmod.gui.strength": "Strength: %d",
+  "rpgmod.gui.defense": "Defense: %d",
+  "rpgmod.gui.intelligence": "Intelligence: %d",
+  "rpgmod.gui.agility": "Agility: %d",
+  
+  "rpgmod.class.warrior": "Warrior",
+  "rpgmod.class.warrior.description": "Masters of melee combat with high defense",
+  "rpgmod.class.mage": "Mage",
+  "rpgmod.class.mage.description": "Wielders of powerful magic spells",
+  "rpgmod.class.rogue": "Rogue",
+  "rpgmod.class.rogue.description": "Swift and deadly assassins",
+  
+  "rpgmod.skill.fireball": "Fireball",
+  "rpgmod.skill.fireball.description": "Launches a blazing fireball at your target",
+  "rpgmod.skill.heal": "Heal",
+  "rpgmod.skill.heal.description": "Restore %d health to yourself or an ally",
+  "rpgmod.skill.stealth": "Stealth",
+  "rpgmod.skill.stealth.description": "Become invisible for %d seconds",
+  
+  "rpgmod.message.level_up": "§6Level Up! You are now level %d§r",
+  "rpgmod.message.skill_learned": "§aYou have learned %s!§r",
+  "rpgmod.message.not_enough_mana": "§cNot enough mana!§r",
+  "rpgmod.message.cooldown": "§eSkill is on cooldown for %d seconds§r",
+  "rpgmod.message.class_changed": "§bYou are now a %s!§r",
+  
+  "rpgmod.advancement.first_kill": "First Blood",
+  "rpgmod.advancement.first_kill.description": "Defeat your first enemy",
+  "rpgmod.advancement.reach_level_10": "Experienced Adventurer",
+  "rpgmod.advancement.reach_level_10.description": "Reach level 10",
+  "rpgmod.advancement.defeat_boss": "Boss Slayer",
+  "rpgmod.advancement.defeat_boss.description": "Defeat the %s",
+  
+  "rpgmod.config.title": "RPG Mod Configuration",
+  "rpgmod.config.enable_level_scaling": "Enable Level Scaling",
+  "rpgmod.config.enable_level_scaling.tooltip": "Enemies scale with player level",
+  "rpgmod.config.max_level": "Maximum Level",
+  "rpgmod.config.max_level.tooltip": "Maximum level players can reach (default: %d)",
+  "rpgmod.config.exp_multiplier": "Experience Multiplier",
+  "rpgmod.config.exp_multiplier.tooltip": "Multiplies all experience gains by this value",
+  
+  "death.attack.rpgmod.magic": "%1$s was killed by magic",
+  "death.attack.rpgmod.magic.player": "%1$s was killed by %2$s using magic",
+  "death.attack.rpgmod.curse": "%1$s succumbed to a curse",
+  
+  "commands.rpgmod.setlevel.success": "Set %s's level to %d",
+  "commands.rpgmod.setclass.success": "Changed %s's class to %s",
+  "commands.rpgmod.giveskillpoints.success": "Gave %d skill points to %s"
+}

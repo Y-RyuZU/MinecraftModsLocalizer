@@ -1,39 +1,26 @@
-import { SupportedLanguage, DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "./llm";
+import { SupportedLanguage } from "./llm";
+import { 
+  DEFAULT_MODELS as IMPORTED_DEFAULT_MODELS,
+  DEFAULT_API_URLS as IMPORTED_DEFAULT_API_URLS,
+  DEFAULT_PROVIDER,
+  API_DEFAULTS,
+  TRANSLATION_DEFAULTS,
+  UI_DEFAULTS,
+  UPDATE_DEFAULTS,
+  STORAGE_KEYS as IMPORTED_STORAGE_KEYS,
+  DEFAULT_PROMPT_TEMPLATE,
+  DEFAULT_SYSTEM_PROMPT,
+  DEFAULT_USER_PROMPT
+} from "../constants/defaults";
 
-/**
- * Default model configurations for each provider
- */
-export const DEFAULT_MODELS = {
-  openai: "o4-mini-2025-04-16",
-  anthropic: "claude-3-5-haiku-20241022",
-  google: "gemini-1.5-flash"
-} as const;
+// Re-export from defaults for backward compatibility
+export const DEFAULT_MODELS = IMPORTED_DEFAULT_MODELS;
+export const DEFAULT_API_URLS = IMPORTED_DEFAULT_API_URLS;
 
-/**
- * Default API URLs for each provider
- */
-export const DEFAULT_API_URLS = {
-  openai: "https://api.openai.com/v1/chat/completions",
-  anthropic: "https://api.anthropic.com",
-  google: undefined // Google uses SDK default
-} as const;
+// Removed DEFAULT_API_CONFIG - values moved to DEFAULT_CONFIG for unified configuration
 
-/**
- * Default API configuration
- */
-export const DEFAULT_API_CONFIG = {
-  temperature: 0.3,
-  maxTokens: 4096,
-  maxRetries: 5,
-  chunkSize: 50
-} as const;
-
-/**
- * Storage keys
- */
-export const STORAGE_KEYS = {
-  config: "minecraft-mods-localizer-config"
-} as const;
+// Re-export storage keys
+export const STORAGE_KEYS = IMPORTED_STORAGE_KEYS;
 
 /**
  * Application configuration
@@ -49,6 +36,8 @@ export interface AppConfig {
   paths: PathsConfig;
   /** Update configuration */
   update?: UpdateConfig;
+  /** Backup configuration */
+  backup?: BackupConfig;
 }
 
 /**
@@ -71,6 +60,8 @@ export interface LLMProviderConfig {
   systemPrompt?: string;
   /** User prompt template with variables for the specific task */
   userPrompt?: string;
+  /** Temperature setting for the LLM (0.0 to 2.0) */
+  temperature?: number;
 }
 
 /**
@@ -87,6 +78,12 @@ export interface TranslationConfig {
   additionalLanguages: SupportedLanguage[];
   /** Resource pack name */
   resourcePackName: string;
+  /** Enable token-based chunking instead of entry-based */
+  useTokenBasedChunking?: boolean;
+  /** Maximum tokens per chunk (when using token-based chunking) */
+  maxTokensPerChunk?: number;
+  /** Fallback to entry-based chunking if token estimation fails */
+  fallbackToEntryBased?: boolean;
 }
 
 /**
@@ -126,27 +123,46 @@ export interface UpdateConfig {
 }
 
 /**
+ * Backup configuration
+ */
+export interface BackupConfig {
+  /** Whether automatic backup is enabled */
+  enabled: boolean;
+  /** Retention period in days (0 means keep forever) */
+  retentionDays: number;
+  /** Maximum number of backups to keep per translation type (0 means unlimited) */
+  maxBackupsPerType: number;
+  /** Whether to automatically prune old backups on startup */
+  autoPruneOnStartup: boolean;
+}
+
+/**
  * Default application configuration
+ * Unified configuration with all default values in one place
  */
 export const DEFAULT_CONFIG: AppConfig = {
   llm: {
-    provider: "openai",
+    provider: DEFAULT_PROVIDER,
     apiKey: "",
     model: DEFAULT_MODELS.openai,
-    maxRetries: DEFAULT_API_CONFIG.maxRetries,
+    maxRetries: API_DEFAULTS.maxRetries,
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
-    userPrompt: DEFAULT_USER_PROMPT
+    userPrompt: DEFAULT_USER_PROMPT,
+    temperature: API_DEFAULTS.temperature
   },
   translation: {
-    modChunkSize: DEFAULT_API_CONFIG.chunkSize,
-    questChunkSize: 1,
-    guidebookChunkSize: 1,
+    modChunkSize: TRANSLATION_DEFAULTS.modChunkSize,
+    questChunkSize: TRANSLATION_DEFAULTS.questChunkSize,
+    guidebookChunkSize: TRANSLATION_DEFAULTS.guidebookChunkSize,
     additionalLanguages: [],
-    resourcePackName: "MinecraftModsLocalizer"
+    resourcePackName: TRANSLATION_DEFAULTS.resourcePackName,
+    useTokenBasedChunking: TRANSLATION_DEFAULTS.useTokenBasedChunking,
+    maxTokensPerChunk: TRANSLATION_DEFAULTS.maxTokensPerChunk,
+    fallbackToEntryBased: TRANSLATION_DEFAULTS.fallbackToEntryBased
   },
   ui: {
-    theme: "system"
+    theme: UI_DEFAULTS.theme
   },
   paths: {
     minecraftDir: "",
@@ -156,6 +172,22 @@ export const DEFAULT_CONFIG: AppConfig = {
     logsDir: ""
   },
   update: {
-    checkOnStartup: true
+    checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
+  },
+  backup: {
+    enabled: true,
+    retentionDays: 30,
+    maxBackupsPerType: 10,
+    autoPruneOnStartup: false
   }
 };
+
+/**
+ * Backward compatibility: Export individual default values from unified config
+ * This maintains existing API while using the unified configuration as source
+ */
+export const DEFAULT_API_CONFIG = {
+  temperature: API_DEFAULTS.temperature,
+  maxRetries: API_DEFAULTS.maxRetries,
+  chunkSize: TRANSLATION_DEFAULTS.modChunkSize
+} as const;

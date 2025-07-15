@@ -33,16 +33,22 @@ describe('Progress Store', () => {
       state.setProgress(150);
       expect(useAppStore.getState().progress).toBe(100);
 
-      // Test under 0%
+      // Test negative value (should not go backwards from current value)
+      const currentWholeProgress = useAppStore.getState().wholeProgress;
       state.setWholeProgress(-10);
-      expect(useAppStore.getState().wholeProgress).toBe(0);
+      // Should maintain current value due to backward progress prevention
+      expect(useAppStore.getState().wholeProgress).toBe(currentWholeProgress);
 
-      // Test null/undefined
+      // Test null/undefined with backward progress prevention
+      // Progress is already at 100%, so null (treated as 0) won't decrease it
+      const currentProgress = useAppStore.getState().progress;
       state.setProgress(null as any);
-      expect(useAppStore.getState().progress).toBe(0);
+      expect(useAppStore.getState().progress).toBe(currentProgress); // Should stay at 100%
 
+      // Same for wholeProgress
+      const currentWhole = useAppStore.getState().wholeProgress;
       state.setWholeProgress(undefined as any);
-      expect(useAppStore.getState().wholeProgress).toBe(0);
+      expect(useAppStore.getState().wholeProgress).toBe(currentWhole);
     });
 
     it('should manage translation state', () => {

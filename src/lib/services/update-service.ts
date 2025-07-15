@@ -1,13 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import packageJson from '../../../package.json';
+import { UPDATE_DEFAULTS } from "../constants/defaults";
 
 // GitHub repository details
-const GITHUB_USER = 'Y-RyuZU';
-const GITHUB_REPO = 'MinecraftModsLocalizer';
+const [GITHUB_USER, GITHUB_REPO] = UPDATE_DEFAULTS.githubRepo.split('/');
 const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`;
 
-// Cache duration (1 hour)
-const CACHE_DURATION = 60 * 60 * 1000;
+// Cache duration
+const CACHE_DURATION = UPDATE_DEFAULTS.cacheExpiration;
 
 /**
  * Update check result

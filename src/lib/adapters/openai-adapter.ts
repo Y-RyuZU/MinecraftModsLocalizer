@@ -3,6 +3,7 @@ import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import OpenAI from "openai";
+import { MODEL_TOKEN_LIMITS } from "../constants/defaults";
 
 /**
  * OpenAI API Adapter
@@ -47,10 +48,28 @@ export class OpenAIAdapter extends BaseLLMAdapter {
    */
   private async logError(message: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: "API_REQUEST" });
+      await invoke('log_error', { message, processType: "API_REQUEST" });
     } catch (error) {
       console.error('Failed to log error message:', error);
     }
+  }
+
+  /**
+   * Get model-specific token limits for OpenAI models
+   * @returns Maximum tokens per chunk based on model
+   */
+  public getMaxTokensPerChunk(): number {
+    const model = this.config.model?.toLowerCase() || '';
+    
+    // Model-specific conservative limits (leaving room for system/user prompts)
+    for (const [modelPrefix, limit] of Object.entries(MODEL_TOKEN_LIMITS.openai)) {
+      if (modelPrefix !== 'default' && model.includes(modelPrefix)) {
+        return limit;
+      }
+    }
+    
+    // Default conservative limit for unknown models
+    return MODEL_TOKEN_LIMITS.openai.default;
   }
 
   /**
@@ -62,10 +81,31 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const startTime = Date.now();
     
     // Check if API key is defined and not empty
-    if (!this.config.apiKey) {
-      await this.logError("OpenAI API key is not configured");
-      throw new Error("OpenAI API key is not configured. Please set your API key in the settings.");
+    if (!this.config.apiKey || this.config.apiKey.trim() === "") {
+      console.log('[OpenAIAdapter] No API key provided:', { 
+        apiKey: this.config.apiKey, 
+        isEmpty: !this.config.apiKey,
+        isEmptyString: this.config.apiKey === "",
+        length: this.config.apiKey?.length 
+      });
+      await this.logError("OpenAI API key is not configured. Please set your API key in the settings.");
+      // Return empty translation result to mark as failed
+      return {
+        content: {},
+        metadata: {
+          tokensUsed: 0,
+          timeTaken: 0,
+          model: this.config.model || 'unknown'
+        }
+      };
     }
+    
+    console.log('[OpenAIAdapter] translate() called with:', {
+      apiKeyProvided: !!this.config.apiKey,
+      apiKeyLength: this.config.apiKey.length,
+      model: this.config.model,
+      baseUrl: this.config.baseUrl
+    });
     
     // Get system and user prompts
     const systemPrompt = this.getSystemPrompt();
@@ -105,8 +145,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
               content: userPrompt
             }
           ],
-          temperature: DEFAULT_API_CONFIG.temperature,
-          user: "minecraft-mod-localizer" // For better cache routing
+          temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+          user: "minecraft-mod-localizer"
         });
         
         await this.logApiRequest(`API request successful`);

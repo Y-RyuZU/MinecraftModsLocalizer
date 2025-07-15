@@ -1,4 +1,5 @@
 import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS } from "../types/config";
+import { SupportedLanguage } from "../types/llm";
 
 // Flag to indicate if we're in a server-side rendering environment
 const isSSR = typeof window === 'undefined';
@@ -176,8 +177,17 @@ export class ConfigService {
         // Save to localStorage for development
         localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(config));
       }
+      
+      // Clear the loaded flag to force reload on next access
+      // This ensures that any components using getConfig() will get the updated values
+      this.loaded = false;
+      
+      // Immediately reload the config to ensure consistency
+      await this.load();
+      
     } catch (error) {
       console.error("Failed to save configuration:", error);
+      throw error; // Re-throw to let caller handle the error
     }
   }
 
@@ -288,14 +298,18 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       max_retries: config.llm.maxRetries,
       prompt_template: config.llm.promptTemplate,
       system_prompt: config.llm.systemPrompt,
-      user_prompt: config.llm.userPrompt
+      user_prompt: config.llm.userPrompt,
+      temperature: config.llm.temperature
     },
     translation: {
       mod_chunk_size: config.translation.modChunkSize,
       quest_chunk_size: config.translation.questChunkSize,
       guidebook_chunk_size: config.translation.guidebookChunkSize,
       custom_languages: config.translation.additionalLanguages,
-      resource_pack_name: config.translation.resourcePackName
+      resource_pack_name: config.translation.resourcePackName,
+      use_token_based_chunking: config.translation.useTokenBasedChunking,
+      max_tokens_per_chunk: config.translation.maxTokensPerChunk,
+      fallback_to_entry_based: config.translation.fallbackToEntryBased
     },
     ui: {
       theme: config.ui.theme
@@ -327,27 +341,31 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       apiKey: (llm?.api_key as string) || "",
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
-      maxRetries: (llm?.max_retries as number) || 5,
+      maxRetries: (llm?.max_retries as number) || DEFAULT_CONFIG.llm.maxRetries,
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
-      userPrompt: llm?.user_prompt as string | undefined
+      userPrompt: llm?.user_prompt as string | undefined,
+      temperature: (llm?.temperature as number) || DEFAULT_CONFIG.llm.temperature
     },
     translation: {
-      modChunkSize: (translation?.mod_chunk_size as number) || 50,
-      questChunkSize: (translation?.quest_chunk_size as number) || 1,
-      guidebookChunkSize: (translation?.guidebook_chunk_size as number) || 1,
-      additionalLanguages: (translation?.custom_languages as unknown[]) || [],
-      resourcePackName: (translation?.resource_pack_name as string) || "MinecraftModsLocalizer"
+      modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,
+      questChunkSize: (translation?.quest_chunk_size as number) || DEFAULT_CONFIG.translation.questChunkSize,
+      guidebookChunkSize: (translation?.guidebook_chunk_size as number) || DEFAULT_CONFIG.translation.guidebookChunkSize,
+      additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || DEFAULT_CONFIG.translation.additionalLanguages,
+      resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName,
+      useTokenBasedChunking: (translation?.use_token_based_chunking as boolean) ?? DEFAULT_CONFIG.translation.useTokenBasedChunking,
+      maxTokensPerChunk: (translation?.max_tokens_per_chunk as number) || DEFAULT_CONFIG.translation.maxTokensPerChunk,
+      fallbackToEntryBased: (translation?.fallback_to_entry_based as boolean) ?? DEFAULT_CONFIG.translation.fallbackToEntryBased
     },
     ui: {
-      theme: (ui?.theme as string) || "system"
+      theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme
     },
     paths: {
-      minecraftDir: (paths?.minecraft_dir as string) || "",
-      modsDir: (paths?.mods_dir as string) || "",
-      resourcePacksDir: (paths?.resource_packs_dir as string) || "",
-      configDir: (paths?.config_dir as string) || "",
-      logsDir: (paths?.logs_dir as string) || ""
+      minecraftDir: (paths?.minecraft_dir as string) || DEFAULT_CONFIG.paths.minecraftDir,
+      modsDir: (paths?.mods_dir as string) || DEFAULT_CONFIG.paths.modsDir,
+      resourcePacksDir: (paths?.resource_packs_dir as string) || DEFAULT_CONFIG.paths.resourcePacksDir,
+      configDir: (paths?.config_dir as string) || DEFAULT_CONFIG.paths.configDir,
+      logsDir: (paths?.logs_dir as string) || DEFAULT_CONFIG.paths.logsDir
     }
   };
 }

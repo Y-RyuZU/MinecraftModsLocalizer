@@ -83,6 +83,8 @@ export interface LLMConfig {
   systemPrompt?: string;
   /** User prompt template with variables for the specific task */
   userPrompt?: string;
+  /** Temperature setting for the LLM (0.0 to 2.0) */
+  temperature?: number;
 }
 
 /**

@@ -1,15 +1,19 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { FileService } from '../file-service';
 
-// Mock Tauri invoke
+// Mock invoke function
 const mockInvoke = mock(() => Promise.resolve([]));
-mock.module('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke
-}));
 
 describe('FileService - FTB Quest File Discovery (Bun)', () => {
   beforeEach(() => {
     mockInvoke.mockClear();
+    // Set the test override for FileService
+    FileService.setTestInvokeOverride(mockInvoke);
+  });
+
+  afterEach(() => {
+    // Reset the test override
+    FileService.setTestInvokeOverride(null);
   });
 
   describe('get_ftb_quest_files conditional logic', () => {
@@ -81,6 +85,83 @@ describe('FileService - FTB Quest File Discovery (Bun)', () => {
       } catch (error) {
         expect(error.message).toBe(errorMessage);
       }
+    });
+  });
+
+  describe('nested directory structure support', () => {
+    it('should find SNBT files in standard quest structure', async () => {
+      const standardFiles = [
+        '/test/modpack/config/ftbquests/quests/chapters/intro.snbt',
+        '/test/modpack/config/ftbquests/quests/chapters/main.snbt',
+        '/test/modpack/config/ftbquests/quests/chapter_groups.snbt'
+      ];
+      
+      mockInvoke.mockResolvedValue(standardFiles);
+      
+      const result = await FileService.invoke('get_ftb_quest_files', { dir: '/test/modpack' });
+      
+      expect(result).toEqual(standardFiles);
+      expect(result.every(f => f.includes('ftbquests/quests/'))).toBe(true);
+    });
+
+    it('should find SNBT files in FTB Interactions Remastered structure', async () => {
+      const nestedFiles = [
+        '/test/modpack/config/ftbquests/normal/chapters/category1/quest1.snbt',
+        '/test/modpack/config/ftbquests/normal/chapters/category1/quest2.snbt',
+        '/test/modpack/config/ftbquests/normal/chapters/category2/quest3.snbt',
+        '/test/modpack/config/ftbquests/normal/chapters/category2/subcat/quest4.snbt'
+      ];
+      
+      mockInvoke.mockResolvedValue(nestedFiles);
+      
+      const result = await FileService.invoke('get_ftb_quest_files', { dir: '/test/modpack' });
+      
+      expect(result).toEqual(nestedFiles);
+      expect(result.every(f => f.includes('ftbquests/normal/'))).toBe(true);
+    });
+
+    it('should find SNBT files in fallback root structure', async () => {
+      const rootFiles = [
+        '/test/modpack/config/ftbquests/chapters/quest1.snbt',
+        '/test/modpack/config/ftbquests/chapters/quest2.snbt',
+        '/test/modpack/config/ftbquests/data.snbt'
+      ];
+      
+      mockInvoke.mockResolvedValue(rootFiles);
+      
+      const result = await FileService.invoke('get_ftb_quest_files', { dir: '/test/modpack' });
+      
+      expect(result).toEqual(rootFiles);
+      expect(result.every(f => f.includes('ftbquests/') && !f.includes('/quests/') && !f.includes('/normal/'))).toBe(true);
+    });
+
+    it('should return error with helpful message when no quest directories exist', async () => {
+      const errorMessage = 'No FTB quests directory found. Checked: config/ftbquests/quests/, config/ftbquests/normal/, and config/ftbquests/';
+      mockInvoke.mockRejectedValue(new Error(errorMessage));
+      
+      try {
+        await FileService.invoke('get_ftb_quest_files', { dir: '/test/no-quests' });
+        expect(true).toBe(false); // Should not reach here
+      } catch (error) {
+        expect(error.message).toContain('config/ftbquests/quests/');
+        expect(error.message).toContain('config/ftbquests/normal/');
+        expect(error.message).toContain('config/ftbquests/');
+      }
+    });
+
+    it('should handle deeply nested quest structures', async () => {
+      const deeplyNestedFiles = [
+        '/test/modpack/config/ftbquests/normal/chapters/cat1/subcat1/group1/quest1.snbt',
+        '/test/modpack/config/ftbquests/normal/chapters/cat1/subcat1/group2/quest2.snbt',
+        '/test/modpack/config/ftbquests/normal/chapters/cat2/subcat2/group3/quest3.snbt'
+      ];
+      
+      mockInvoke.mockResolvedValue(deeplyNestedFiles);
+      
+      const result = await FileService.invoke('get_ftb_quest_files', { dir: '/test/modpack' });
+      
+      expect(result).toEqual(deeplyNestedFiles);
+      expect(result.length).toBe(3);
     });
   });
 

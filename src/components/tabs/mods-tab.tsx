@@ -25,7 +25,6 @@ export function ModsTab() {
     // Mod-level progress tracking
     setTotalMods,
     setCompletedMods,
-    incrementCompletedMods,
     addTranslationResult,
     error,
     setError,
@@ -64,7 +63,8 @@ export function ModsTab() {
             name: modInfo.name,
             path: modFile, // Keep the full path for internal use
             relativePath: relativePath, // Add relative path for display
-            selected: true
+            selected: true,
+            langFormat: modInfo.langFormat || "json" // Store the language file format
           });
         }
       } catch (error) {
@@ -77,7 +77,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with JSON parsing error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -87,7 +87,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with UTF-8 encoding error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -97,7 +97,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Failed to analyze mod: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN" 
             });
           } catch {
             // Ignore logging errors
@@ -156,7 +156,7 @@ export function ModsTab() {
         if (!sourceFile) {
           console.warn(`Source language file not found for mod: ${target.name}`);
           try {
-            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, process_type: "TRANSLATION" });
+            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, processType: "TRANSLATION" });
           } catch {
             // ignore logging errors
           }
@@ -207,17 +207,23 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
-        incrementCompletedMods, // Use mod-level progress for whole progress display
+        incrementCompletedChunks: useAppStore.getState().incrementCompletedChunks, // Track chunk-level progress
+        // Don't use incrementCompletedMods to avoid progress conflicts
         targetLanguage,
         type: "mod",
         getOutputPath: () => resourcePackDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
+          // Find the target to get the langFormat
+          const target = sortedTargets.find(t => t.id === job.modId);
+          const format = target?.langFormat || 'json';
+          
           await FileService.writeLangFile(
             job.modId,
             targetLanguage,
             content,
-            outputPath
+            outputPath,
+            format
           );
         },
         onResult: addTranslationResult,
@@ -263,6 +269,20 @@ export function ModsTab() {
           label: "tables.path", 
           className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "langFormat",
+          label: "Format",
+          className: "w-20",
+          render: (target) => (
+            <span className={`px-2 py-1 text-xs rounded ${
+              target.langFormat === 'lang' 
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {target.langFormat?.toUpperCase() || 'JSON'}
+            </span>
+          )
         }
       ]}
       config={config}

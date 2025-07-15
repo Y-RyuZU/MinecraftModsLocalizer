@@ -35,6 +35,24 @@
     "systemPromptPlaceholder": "Enter system prompt to define AI behavior",
     "userPrompt": "User Prompt",
     "userPromptPlaceholder": "Enter user prompt template with {language}, {line_count}, {content} variables",
+    "availableVariables": "Available variables: {language}, {line_count}, {content}",
+    "temperature": "Temperature",
+    "temperatureHint": "Controls randomness (0.0-2.0). Higher values make output more creative.",
+    "providers": {
+      "openai": "OpenAI",
+      "anthropic": "Anthropic",
+      "google": "Google"
+    },
+    "tokenBasedChunking": {
+      "title": "Token-Based Chunking (Recommended)",
+      "enable": "Enable Token-Based Chunking",
+      "enableHint": "Prevents 'maximum context length exceeded' errors by intelligently sizing chunks",
+      "maxTokens": "Max Tokens Per Chunk",
+      "maxTokensPlaceholder": "3000",
+      "maxTokensHint": "Conservative limit to prevent token overflow (1000-10000)",
+      "fallback": "Fallback to Entry-Based",
+      "fallbackHint": "Use entry-based chunking if token estimation fails"
+    },
     "typicalLocation": "Typical location",
     "pathSettings": "Path Settings",
     "minecraftDirectory": "Minecraft Directory",
@@ -54,7 +72,11 @@
     "resetToDefaults": "Reset to Defaults",
     "saveSettings": "Save Settings",
     "saving": "Saving...",
-    "discard": "Discard"
+    "discard": "Discard",
+    "saveSuccess": "Settings saved",
+    "saveSuccessDescription": "Your settings have been saved successfully",
+    "saveError": "Failed to save settings",
+    "saveErrorDescription": "An error occurred while saving your settings"
   },
   "tabs": {
     "mods": "Mods",

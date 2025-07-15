@@ -1,6 +1,10 @@
+# Hidden files (except specific directories)
 .*
 !.github/
 !.devcontainer/
+
+# Cargo.lock should be committed for applications
+!Cargo.lock
 *.zip
 *.tar.gz
 
@@ -53,3 +57,4 @@ next-env.d.ts
 src-tauri/target/
 src-tauri/gen/
 src-tauri/logs/
+mod_analysis/

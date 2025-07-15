@@ -1,0 +1,18 @@
+{
+  "item.samplemod.example_item": "Example Item",
+  "item.samplemod.example_item.tooltip": "This is an example item",
+  "block.samplemod.example_block": "Example Block",
+  "block.samplemod.example_block.desc": "A block that does example things",
+  "itemGroup.samplemod": "Sample Mod",
+  "samplemod.config.title": "Sample Mod Configuration",
+  "samplemod.config.enabled": "Enable Sample Features",
+  "samplemod.config.enabled.tooltip": "Enable or disable the sample features",
+  "samplemod.message.welcome": "Welcome to Sample Mod!",
+  "samplemod.message.error": "An error occurred: %s",
+  "samplemod.gui.button.confirm": "Confirm",
+  "samplemod.gui.button.cancel": "Cancel",
+  "advancement.samplemod.root": "Sample Mod",
+  "advancement.samplemod.root.desc": "The beginning of your journey",
+  "advancement.samplemod.first_item": "First Item",
+  "advancement.samplemod.first_item.desc": "Craft your first example item"
+}

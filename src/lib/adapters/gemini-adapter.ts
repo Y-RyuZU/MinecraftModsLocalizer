@@ -3,6 +3,7 @@ import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { MODEL_TOKEN_LIMITS } from "../constants/defaults";
 
 /**
  * Gemini API Adapter
@@ -47,7 +48,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
    */
   private async logError(message: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: "API_REQUEST" });
+      await invoke('log_error', { message, processType: "API_REQUEST" });
     } catch (error) {
       console.error('Failed to log error message:', error);
     }
@@ -65,8 +66,16 @@ export class GeminiAdapter extends BaseLLMAdapter {
     
     // Check if API key is defined and not empty
     if (!this.config.apiKey) {
-      await this.logError("Gemini API key is not configured");
-      throw new Error("Gemini API key is not configured. Please set your API key in the settings.");
+      await this.logError("Gemini API key is not configured. Please set your API key in the settings.");
+      // Return empty translation result to mark as failed
+      return {
+        content: {},
+        metadata: {
+          tokensUsed: 0,
+          timeTaken: 0,
+          model: this.config.model || 'unknown'
+        }
+      };
     }
     
     // Get system and user prompts
@@ -86,8 +95,8 @@ export class GeminiAdapter extends BaseLLMAdapter {
       model,
       systemInstruction: systemPrompt,
       generationConfig: {
-        temperature: DEFAULT_API_CONFIG.temperature,
-        maxOutputTokens: DEFAULT_API_CONFIG.maxTokens,
+        temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+        maxOutputTokens: MODEL_TOKEN_LIMITS.gemini.maxOutputTokens,
       },
       safetySettings: [
         {

@@ -159,11 +159,12 @@ export const createMockModTarget = (modData: typeof mockModData.simpleMod): Tran
 });
 
 export const createMockQuestTarget = (questData: typeof mockQuestData.simpleQuest): TranslationTarget => ({
-  type: 'ftb',
+  type: 'quest',
   id: questData.id,
   name: questData.name,
   path: questData.path,
-  selected: true
+  selected: true,
+  questFormat: 'ftb'
 });
 
 export const createMockGuidebookTarget = (bookData: typeof mockGuidebookData.simpleBook): TranslationTarget => ({
