@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::AppHandle;
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
 
 /// Maximum number of log entries to keep in memory
 const MAX_LOG_ENTRIES: usize = 1000;
@@ -53,6 +53,12 @@ pub struct AppLogger {
     log_buffer: Arc<Mutex<VecDeque<LogEntry>>>,
     /// Current log file path
     log_file_path: Arc<Mutex<Option<PathBuf>>>,
+}
+
+impl Default for AppLogger {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AppLogger {
@@ -441,18 +447,33 @@ pub fn log_translation_statistics(
     }
 }
 
+/// Progress information for file translation
+#[derive(serde::Deserialize)]
+pub struct FileProgressInfo {
+    pub file_name: String,
+    pub file_index: i32,
+    pub total_files: i32,
+    pub chunks_completed: i32,
+    pub total_chunks: i32,
+    pub keys_completed: i32,
+    pub total_keys: i32,
+}
+
 /// Log individual file progress with detailed status
 #[tauri::command]
 pub fn log_file_progress(
-    file_name: &str,
-    file_index: i32,
-    total_files: i32,
-    chunks_completed: i32,
-    total_chunks: i32,
-    keys_completed: i32,
-    total_keys: i32,
+    info: FileProgressInfo,
     logger: tauri::State<Arc<AppLogger>>,
 ) {
+    let FileProgressInfo {
+        file_name,
+        file_index,
+        total_files,
+        chunks_completed,
+        total_chunks,
+        keys_completed,
+        total_keys,
+    } = info;
     let percentage = if total_files > 0 {
         (file_index as f32 / total_files as f32 * 100.0) as i32
     } else {
@@ -474,18 +495,33 @@ pub fn log_file_progress(
     logger.info(&message, Some("TRANSLATION_PROGRESS"));
 }
 
+/// Summary information for translation completion
+#[derive(serde::Deserialize)]
+pub struct TranslationCompletionInfo {
+    pub session_id: String,
+    pub duration_seconds: f64,
+    pub total_files_processed: i32,
+    pub successful_files: i32,
+    pub failed_files: i32,
+    pub total_keys_translated: i32,
+    pub total_api_calls: i32,
+}
+
 /// Log translation completion with comprehensive summary
 #[tauri::command]
 pub fn log_translation_completion(
-    session_id: &str,
-    duration_seconds: f64,
-    total_files_processed: i32,
-    successful_files: i32,
-    failed_files: i32,
-    total_keys_translated: i32,
-    total_api_calls: i32,
+    info: TranslationCompletionInfo,
     logger: tauri::State<Arc<AppLogger>>,
 ) {
+    let TranslationCompletionInfo {
+        session_id,
+        duration_seconds,
+        total_files_processed,
+        successful_files,
+        failed_files,
+        total_keys_translated,
+        total_api_calls,
+    } = info;
     let success_rate = if total_files_processed > 0 {
         (successful_files as f32 / total_files_processed as f32 * 100.0) as i32
     } else {

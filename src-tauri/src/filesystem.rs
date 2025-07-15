@@ -82,7 +82,7 @@ pub async fn get_mod_files(
         let entry_path = entry.path();
 
         // Check if the file is a JAR file
-        if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "jar") {
+        if entry_path.is_file() && entry_path.extension().is_some_and(|ext| ext == "jar") {
             if let Some(path_str) = entry_path.to_str() {
                 mod_files.push(path_str.to_string());
             }
@@ -139,7 +139,7 @@ pub async fn get_ftb_quest_files(
 
                         // Check if the file is a JSON file and not already translated
                         if entry_path.is_file()
-                            && entry_path.extension().map_or(false, |ext| ext == "json")
+                            && entry_path.extension().is_some_and(|ext| ext == "json")
                         {
                             // Skip files that already have language suffixes
                             if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str())
@@ -211,7 +211,7 @@ pub async fn get_ftb_quest_files(
 
                             // Check if the file is an SNBT file and not already translated
                             if entry_path.is_file()
-                                && entry_path.extension().map_or(false, |ext| ext == "snbt")
+                                && entry_path.extension().is_some_and(|ext| ext == "snbt")
                             {
                                 // Skip files that already have language suffixes (e.g., filename.ja_jp.snbt)
                                 if let Some(file_name) =
@@ -259,7 +259,7 @@ pub async fn get_ftb_quest_files(
 
         if !quest_dir_found {
             info!("No FTB quests directory found in standard locations");
-            return Err(format!("No FTB quests directory found. Checked: config/ftbquests/quests/, config/ftbquests/normal/, and config/ftbquests/"));
+            return Err("No FTB quests directory found. Checked: config/ftbquests/quests/, config/ftbquests/normal/, and config/ftbquests/".to_string());
         }
     }
 
@@ -304,7 +304,7 @@ pub async fn get_better_quest_files(
             let entry_path = entry.path();
 
             // Check if the file is a JSON file and not already translated
-            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "json") {
+            if entry_path.is_file() && entry_path.extension().is_some_and(|ext| ext == "json") {
                 // Skip files that already have language suffixes
                 if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str()) {
                     if file_name.contains(".ja_jp.")
@@ -383,7 +383,7 @@ pub async fn get_files_with_extension(
 
         // Check if the file has the specified extension
         if entry_path.is_file()
-            && entry_path.extension().map_or(false, |ext| {
+            && entry_path.extension().is_some_and(|ext| {
                 ext.to_string_lossy() == extension.trim_start_matches('.')
             })
         {
@@ -507,7 +507,7 @@ pub async fn create_resource_pack(
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {
         // Try to create the parent directory if it does not exist
-        if let Err(e) = std::fs::create_dir_all(&dir_path) {
+        if let Err(e) = std::fs::create_dir_all(dir_path) {
             return Err(format!(
                 "Failed to create parent directory: {} ({})",
                 dir, e
@@ -650,6 +650,7 @@ pub async fn open_external_url(
 
     // Use Tauri's shell plugin to open the URL
     let shell = app_handle.shell();
+    #[allow(deprecated)]
     match shell.open(url, None) {
         Ok(_) => {
             info!("Successfully opened URL: {}", url);

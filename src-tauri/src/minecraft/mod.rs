@@ -483,7 +483,7 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
             .collect();
 
         // Try to convert to UTF-8, handling invalid sequences
-        let content = String::from_utf8_lossy(&cleaned_buffer).to_string();
+        let _content = String::from_utf8_lossy(&cleaned_buffer).to_string();
 
         // Use a default mod ID
         let jar_name = "unknown".to_string();
@@ -717,15 +717,11 @@ fn strip_json_comments(json: &str) -> String {
 
     // If not valid, try to fix it
     // Try to parse as serde_json::Value to get more lenient parsing
-    match relaxed_json_parse(&cleaned_json) {
-        Ok(value) => {
-            // Successfully parsed with relaxed parser, serialize back to valid JSON
-            match serde_json::to_string(&value) {
-                Ok(fixed_json) => return fixed_json,
-                Err(_) => {} // Fall back to line-by-line processing
-            }
+    if let Ok(value) = relaxed_json_parse(&cleaned_json) {
+        // Successfully parsed with relaxed parser, serialize back to valid JSON
+        if let Ok(fixed_json) = serde_json::to_string(&value) {
+            return fixed_json;
         }
-        Err(_) => {} // Fall back to line-by-line processing
     }
 
     // If relaxed parsing failed, try line-by-line cleanup
@@ -828,7 +824,7 @@ fn extract_patchouli_books_from_archive(
     let mut patchouli_books = Vec::new();
 
     // Regex to find Patchouli book root directories
-    let patchouli_book_root_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/").unwrap();
+    let _patchouli_book_root_re = Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/").unwrap();
     // Regex to match en_us/**/*.json files (サブディレクトリも含む)
     let en_us_json_re =
         Regex::new(r"^assets/([^/]+)/patchouli_books/([^/]+)/en_us/(.+\.json)$").unwrap();
@@ -847,7 +843,7 @@ fn extract_patchouli_books_from_archive(
         if let Some(caps) = en_us_json_re.captures(&name) {
             let book_mod_id = caps.get(1).unwrap().as_str().to_string();
             let book_id = caps.get(2).unwrap().as_str().to_string();
-            let json_rel_path = caps.get(3).unwrap().as_str().to_string();
+            let _json_rel_path = caps.get(3).unwrap().as_str().to_string();
 
             // Read file content as string
             let mut buffer = Vec::new();
@@ -910,7 +906,7 @@ fn extract_patchouli_books_from_archive(
     for (_book_key, (book_mod_id, book_id, lang_files)) in books_map {
         // Use book_id as name for now (could be improved if needed)
         let path = lang_files
-            .get(0)
+            .first()
             .map(|lf| lf.path.clone())
             .unwrap_or_else(|| "".to_string());
 

@@ -7,6 +7,7 @@ import {TranslationService, TranslationJob} from "@/lib/services/translation-ser
 import {TranslationTab} from "@/components/tabs/common/translation-tab";
 import {invoke} from "@tauri-apps/api/core";
 import {runTranslationJobs} from "@/lib/services/translation-runner";
+import {parseLangFile} from "@/lib/utils/lang-parser";
 
 export function QuestsTab() {
     const {
@@ -150,21 +151,7 @@ export function QuestsTab() {
                     
                     // If it's a .lang file, convert to JSON format for translation
                     if (target.path.endsWith('.lang')) {
-                        const langMap: Record<string, string> = {};
-                        const lines = content.split('\n');
-                        
-                        for (const line of lines) {
-                            const trimmed = line.trim();
-                            // Skip empty lines and comments
-                            if (trimmed && !trimmed.startsWith('#')) {
-                                const separatorIndex = trimmed.indexOf('=');
-                                if (separatorIndex > -1) {
-                                    const key = trimmed.substring(0, separatorIndex).trim();
-                                    const value = trimmed.substring(separatorIndex + 1).trim();
-                                    langMap[key] = value;
-                                }
-                            }
-                        }
+                        const langMap = parseLangFile(content);
                         
                         // Convert to JSON string for translation
                         processedContent = JSON.stringify(langMap, null, 2);
