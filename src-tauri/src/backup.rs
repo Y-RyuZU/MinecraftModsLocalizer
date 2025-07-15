@@ -4,7 +4,6 @@ use crate::logging::AppLogger;
  * Integrates with existing logging infrastructure to store backups in session directories
  */
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
