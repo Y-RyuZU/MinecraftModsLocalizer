@@ -3,7 +3,8 @@
 
 // Define global window object if it doesn't exist
 if (typeof global.window === 'undefined') {
-  global.window = {} as Window;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).window = {} as Window;
 }
 
 // Mock Tauri internals

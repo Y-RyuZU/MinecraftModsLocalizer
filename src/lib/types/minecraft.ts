@@ -154,6 +154,10 @@ export interface TranslationResult {
   outputPath: string;
   /** Whether the translation was successful */
   success: boolean;
+  /** Session ID for backup integration (optional) */
+  sessionId?: string;
+  /** Whether to enable backup for this translation (optional) */
+  enableBackup?: boolean;
 }
 
 /**
