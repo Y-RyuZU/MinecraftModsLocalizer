@@ -517,8 +517,35 @@ export function TranslationTab({
                         <TableBody>
                             {translationTargets.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={tableColumns.length + 1} className="text-center">
-                                        {isScanning ? t(scanningForItemsLabel) : t(noItemsFoundLabel)}
+                                    <TableCell colSpan={tableColumns.length + 1} className="text-center py-16">
+                                        {isScanning ? (
+                                            <div className="flex flex-col items-center gap-4">
+                                                <div className="relative">
+                                                    {/* Outer spinning ring */}
+                                                    <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                                                    
+                                                    {/* Inner pulsing circle */}
+                                                    <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
+                                                </div>
+                                                
+                                                <div className="space-y-2 text-center">
+                                                    <p className="text-lg font-medium">{t(scanningForItemsLabel)}</p>
+                                                    <p className="text-sm text-muted-foreground animate-pulse">
+                                                        {t('misc.pleaseWait')}
+                                                    </p>
+                                                </div>
+                                                
+                                                {/* Progress dots animation */}
+                                                <div className="flex gap-1">
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary"></div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">{t(noItemsFoundLabel)}</p>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ) : (

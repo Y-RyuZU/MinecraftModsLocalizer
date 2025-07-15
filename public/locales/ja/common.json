@@ -151,7 +151,8 @@
   },
   "misc": {
     "loading": "読み込み中...",
-    "selectedDirectory": "選択されたディレクトリ:"
+    "selectedDirectory": "選択されたディレクトリ:",
+    "pleaseWait": "しばらくお待ちください..."
   },
   "logs": {
     "title": "ログ",

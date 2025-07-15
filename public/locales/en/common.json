@@ -151,7 +151,8 @@
   },
   "misc": {
     "loading": "Loading...",
-    "selectedDirectory": "Selected directory:"
+    "selectedDirectory": "Selected directory:",
+    "pleaseWait": "Please wait..."
   },
   "logs": {
     "title": "Logs",

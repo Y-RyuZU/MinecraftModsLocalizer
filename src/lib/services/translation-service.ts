@@ -136,13 +136,15 @@ export class TranslationService {
     this.maxTokensPerChunk = options.maxTokensPerChunk ?? TRANSLATION_DEFAULTS.maxTokensPerChunk;
     this.fallbackToEntryBased = options.fallbackToEntryBased ?? true;
     
-    // Debug logging for token-based chunking
-    console.log('TranslationService Configuration:', {
-      useTokenBasedChunking: this.useTokenBasedChunking,
-      maxTokensPerChunk: this.maxTokensPerChunk,
-      fallbackToEntryBased: this.fallbackToEntryBased,
-      provider: this.adapter.id
-    });
+    // Debug logging for token-based chunking (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('TranslationService Configuration:', {
+        useTokenBasedChunking: this.useTokenBasedChunking,
+        maxTokensPerChunk: this.maxTokensPerChunk,
+        fallbackToEntryBased: this.fallbackToEntryBased,
+        provider: this.adapter.id
+      });
+    }
   }
 
   /**
@@ -593,28 +595,40 @@ export class TranslationService {
   private splitIntoChunks(content: Record<string, string>, jobId: string): TranslationChunk[] {
     const entries = Object.entries(content);
     
-    console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
+    }
     
     if (this.useTokenBasedChunking) {
       try {
-        console.log('Using token-based chunking with max tokens:', this.maxTokensPerChunk);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Using token-based chunking with max tokens:', this.maxTokensPerChunk);
+        }
         const tokenChunks = this.splitIntoTokenBasedChunks(entries, jobId);
-        console.log(`Token-based chunking created ${tokenChunks.length} chunks`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Token-based chunking created ${tokenChunks.length} chunks`);
+        }
         return tokenChunks;
       } catch (error) {
         // Log error and fall back to entry-based chunking if enabled
         console.warn('Token-based chunking failed, falling back to entry-based:', error);
         if (this.fallbackToEntryBased) {
           const fallbackChunks = this.splitIntoEntryBasedChunks(entries, jobId);
-          console.log(`Fallback chunking created ${fallbackChunks.length} chunks`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Fallback chunking created ${fallbackChunks.length} chunks`);
+          }
           return fallbackChunks;
         }
         throw error;
       }
     } else {
-      console.log('Using entry-based chunking with chunk size:', this.chunkSize);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using entry-based chunking with chunk size:', this.chunkSize);
+      }
       const entryChunks = this.splitIntoEntryBasedChunks(entries, jobId);
-      console.log(`Entry-based chunking created ${entryChunks.length} chunks`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Entry-based chunking created ${entryChunks.length} chunks`);
+      }
       return entryChunks;
     }
   }
@@ -632,15 +646,17 @@ export class TranslationService {
     
     // Get token estimation config based on provider
     const tokenConfig = this.getTokenConfigForProvider();
-    console.log('Token config for provider:', this.adapter.id, tokenConfig);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token config for provider:', this.adapter.id, tokenConfig);
+    }
     
     for (const [key, value] of entries) {
       // Create a test chunk with the current entry added
       const testChunk = { ...currentChunk, [key]: value };
       const estimation = estimateTokens(testChunk, tokenConfig);
       
-      // Log token estimation for first few entries
-      if (chunks.length < 2 && Object.keys(currentChunk).length < 3) {
+      // Log token estimation for first few entries (only in development)
+      if (process.env.NODE_ENV === 'development' && chunks.length < 2 && Object.keys(currentChunk).length < 3) {
         console.log(`Entry "${key}": estimated ${estimation.totalTokens} tokens (content: ${estimation.contentTokens}, overhead: ${estimation.promptOverhead})`);
       }
       
@@ -871,10 +887,13 @@ export class TranslationService {
         // Check if the error is related to missing API key
         if (error instanceof Error && 
             (error.message.includes("API key is not configured") || 
-             error.message.includes("Incorrect API key provided: undefined"))) {
+             error.message.includes("Incorrect API key provided: undefined") ||
+             error.message.includes("Invalid API Key") ||
+             error.message.includes("Unauthorized") ||
+             error.message.includes("401"))) {
           await this.logError("API key is not configured or is invalid. Please set your API key in the settings.", "TRANSLATION");
-          // For API key configuration errors, return empty result to mark as failed
-          return {};
+          // For API key configuration errors, don't retry, just throw
+          throw new Error("API key configuration error: " + error.message);
         }
         
         // Log retry attempt

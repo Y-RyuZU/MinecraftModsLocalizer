@@ -50,9 +50,8 @@ export function QuestsTab() {
         for (let i = 0; i < ftbQuestFiles.length; i++) {
             const questFile = ftbQuestFiles[i];
             try {
-                // In a real implementation, we would parse the quest file to get more information
-                // For now, we'll just use the file path
-                const fileName = questFile.split('/').pop() || "unknown";
+                // Extract just the filename for the quest name
+                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
                 const questNumber = i + 1;
 
                 // Calculate relative path by removing the selected directory part
@@ -78,9 +77,8 @@ export function QuestsTab() {
         for (let i = 0; i < betterQuestFiles.length; i++) {
             const questFile = betterQuestFiles[i];
             try {
-                // In a real implementation, we would parse the quest file to get more information
-                // For now, we'll just use the file path
-                const fileName = questFile.split('/').pop() || "unknown";
+                // Extract just the filename for the quest name
+                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
                 const questNumber = i + 1;
 
                 // Calculate relative path by removing the selected directory part

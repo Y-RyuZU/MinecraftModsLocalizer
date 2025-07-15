@@ -208,7 +208,7 @@ export function ModsTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedChunks: useAppStore.getState().incrementCompletedChunks, // Track chunk-level progress
-        // Don't use incrementCompletedMods to avoid progress conflicts
+        incrementWholeProgress: useAppStore.getState().incrementCompletedMods, // Track mod-level progress
         targetLanguage,
         type: "mod",
         getOutputPath: () => resourcePackDir,

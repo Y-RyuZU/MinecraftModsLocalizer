@@ -53,9 +53,14 @@ export function GuidebooksTab() {
 
         if (books.length > 0) {
           // Calculate relative path by removing the selected directory part
-          const relativePath = modFile.startsWith(directory)
+          let relativePath = modFile.startsWith(directory)
             ? modFile.substring(directory.length).replace(/^[/\\]+/, '')
             : modFile;
+          
+          // Remove common "mods/" prefix if present
+          if (relativePath.startsWith('mods/') || relativePath.startsWith('mods\\')) {
+            relativePath = relativePath.substring(5);
+          }
 
           for (const book of books) {
             targets.push({
