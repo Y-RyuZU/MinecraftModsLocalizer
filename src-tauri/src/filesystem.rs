@@ -51,11 +51,11 @@ pub async fn get_mod_files(
     _app_handle: tauri::AppHandle,
     dir: &str,
 ) -> std::result::Result<Vec<String>, String> {
-    info!("Getting mod files from {}", dir);
+    info!("Getting mod files from {dir}");
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
+        return Err(format!("Directory not found: {dir}"));
     }
 
     let mut mod_files = Vec::new();
@@ -99,20 +99,20 @@ pub async fn get_ftb_quest_files(
     _app_handle: tauri::AppHandle,
     dir: &str,
 ) -> std::result::Result<Vec<String>, String> {
-    info!("Getting FTB quest files from {}", dir);
+    info!("Getting FTB quest files from {dir}");
 
     // Validate and canonicalize the path to prevent directory traversal attacks
     let path = match Path::new(dir).canonicalize() {
         Ok(canonical_path) => {
             // Ensure the path is actually a directory
             if !canonical_path.is_dir() {
-                return Err(format!("Path is not a directory: {}", dir));
+                return Err(format!("Path is not a directory: {dir}"));
             }
             canonical_path
         }
         Err(e) => {
-            error!("Failed to canonicalize path {}: {}", dir, e);
-            return Err(format!("Invalid directory path: {}", dir));
+            error!("Failed to canonicalize path {dir}: {e}");
+            return Err(format!("Invalid directory path: {dir}"));
         }
     };
 
@@ -154,7 +154,7 @@ pub async fn get_ftb_quest_files(
                                     || file_name.contains(".pt_br.")
                                     || file_name.contains(".ru_ru.")
                                 {
-                                    debug!("Skipping already translated file: {}", file_name);
+                                    debug!("Skipping already translated file: {file_name}");
                                     continue;
                                 }
                             }
@@ -175,8 +175,8 @@ pub async fn get_ftb_quest_files(
                         }
                     }
                     Err(e) => {
-                        error!("Error reading KubeJS lang directory entry: {}", e);
-                        return Err(format!("Failed to read KubeJS lang directory: {}", e));
+                        error!("Error reading KubeJS lang directory entry: {e}");
+                        return Err(format!("Failed to read KubeJS lang directory: {e}"));
                     }
                 }
             }
@@ -228,7 +228,7 @@ pub async fn get_ftb_quest_files(
                                         || file_name.contains(".pt_br.")
                                         || file_name.contains(".ru_ru.")
                                     {
-                                        debug!("Skipping already translated file: {}", file_name);
+                                        debug!("Skipping already translated file: {file_name}");
                                         continue;
                                     }
                                 }
@@ -249,8 +249,8 @@ pub async fn get_ftb_quest_files(
                             }
                         }
                         Err(e) => {
-                            error!("Error reading FTB quests directory entry: {}", e);
-                            return Err(format!("Failed to read FTB quests directory: {}", e));
+                            error!("Error reading FTB quests directory entry: {e}");
+                            return Err(format!("Failed to read FTB quests directory: {e}"));
                         }
                     }
                 }
@@ -276,11 +276,11 @@ pub async fn get_better_quest_files(
     _app_handle: tauri::AppHandle,
     dir: &str,
 ) -> std::result::Result<Vec<String>, String> {
-    info!("Getting Better Quests files from {}", dir);
+    info!("Getting Better Quests files from {dir}");
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
+        return Err(format!("Directory not found: {dir}"));
     }
 
     let mut quest_files = Vec::new();
@@ -317,7 +317,7 @@ pub async fn get_better_quest_files(
                         || file_name.contains(".pt_br.")
                         || file_name.contains(".ru_ru.")
                     {
-                        debug!("Skipping already translated file: {}", file_name);
+                        debug!("Skipping already translated file: {file_name}");
                         continue;
                     }
                 }
@@ -368,11 +368,11 @@ pub async fn get_files_with_extension(
     dir: &str,
     extension: &str,
 ) -> std::result::Result<Vec<String>, String> {
-    info!("Getting files with extension {} from {}", extension, dir);
+    info!("Getting files with extension {extension} from {dir}");
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
+        return Err(format!("Directory not found: {dir}"));
     }
 
     let mut files = Vec::new();
@@ -403,17 +403,17 @@ pub async fn read_text_file(
     _app_handle: tauri::AppHandle,
     path: &str,
 ) -> std::result::Result<String, String> {
-    info!("Reading text file {}", path);
+    info!("Reading text file {path}");
 
     let file_path = Path::new(path);
     if !file_path.exists() || !file_path.is_file() {
-        return Err(format!("File not found: {}", path));
+        return Err(format!("File not found: {path}"));
     }
 
     // Read the file content using standard Rust file operations
     match std::fs::read_to_string(path) {
         Ok(content) => Ok(content),
-        Err(e) => Err(format!("Failed to read file: {}", e)),
+        Err(e) => Err(format!("Failed to read file: {e}")),
     }
 }
 
@@ -424,7 +424,7 @@ pub async fn write_text_file(
     path: &str,
     content: &str,
 ) -> std::result::Result<bool, String> {
-    info!("Writing text file {}", path);
+    info!("Writing text file {path}");
 
     let file_path = Path::new(path);
 
@@ -433,7 +433,7 @@ pub async fn write_text_file(
         if !parent.exists() {
             // Create directories using standard Rust file operations
             if let Err(e) = std::fs::create_dir_all(parent) {
-                return Err(format!("Failed to create parent directories: {}", e));
+                return Err(format!("Failed to create parent directories: {e}"));
             }
         }
     }
@@ -441,7 +441,7 @@ pub async fn write_text_file(
     // Write the content using standard Rust file operations
     match std::fs::write(path, content) {
         Ok(_) => Ok(true),
-        Err(e) => Err(format!("Failed to write file: {}", e)),
+        Err(e) => Err(format!("Failed to write file: {e}")),
     }
 }
 
@@ -451,12 +451,12 @@ pub async fn create_directory(
     _app_handle: tauri::AppHandle,
     path: &str,
 ) -> std::result::Result<bool, String> {
-    info!("Creating directory {}", path);
+    info!("Creating directory {path}");
 
     // Create the directory and all parent directories using standard Rust file operations
     match std::fs::create_dir_all(path) {
         Ok(_) => Ok(true),
-        Err(e) => Err(format!("Failed to create directory: {}", e)),
+        Err(e) => Err(format!("Failed to create directory: {e}")),
     }
 }
 
@@ -466,7 +466,7 @@ pub async fn open_directory_dialog(
     _app_handle: tauri::AppHandle,
     title: &str,
 ) -> std::result::Result<Option<String>, String> {
-    info!("RUST: Opening directory dialog with title: {}", title);
+    info!("RUST: Opening directory dialog with title: {title}");
 
     // Use the rfd crate to open a directory selection dialog
     let folder = rfd::FileDialog::new().set_title(title).pick_folder();
@@ -480,10 +480,10 @@ pub async fn open_directory_dialog(
     };
 
     if let Some(path_str) = folder.to_str() {
-        info!("RUST: Selected directory: {}", path_str);
+        info!("RUST: Selected directory: {path_str}");
         // Add a prefix to indicate that this is from the native dialog
-        let result = format!("NATIVE_DIALOG:{}", path_str);
-        info!("RUST: Returning result: {}", result);
+        let result = format!("NATIVE_DIALOG:{path_str}");
+        info!("RUST: Returning result: {result}");
         Ok(Some(result))
     } else {
         error!("RUST: Invalid directory path");
@@ -500,8 +500,7 @@ pub async fn create_resource_pack(
     dir: &str,
 ) -> std::result::Result<String, String> {
     info!(
-        "Creating resource pack {} for {} in {}",
-        name, language, dir
+        "Creating resource pack {name} for {language} in {dir}"
     );
 
     let dir_path = Path::new(dir);
@@ -509,8 +508,7 @@ pub async fn create_resource_pack(
         // Try to create the parent directory if it does not exist
         if let Err(e) = std::fs::create_dir_all(dir_path) {
             return Err(format!(
-                "Failed to create parent directory: {} ({})",
-                dir, e
+                "Failed to create parent directory: {dir} ({e})"
             ));
         }
     }
@@ -520,27 +518,27 @@ pub async fn create_resource_pack(
     let _resource_pack_dir_str = resource_pack_dir.to_string_lossy().to_string();
 
     if let Err(e) = std::fs::create_dir_all(&resource_pack_dir) {
-        return Err(format!("Failed to create resource pack directory: {}", e));
+        return Err(format!("Failed to create resource pack directory: {e}"));
     }
 
     // Create pack.mcmeta file
     let pack_mcmeta = ResourcePackManifest {
         pack: ResourcePackInfo {
-            description: format!("Translated resources for {}", language),
+            description: format!("Translated resources for {language}"),
             pack_format: 9, // Minecraft 1.19+ pack format
         },
     };
 
     let pack_mcmeta_json = match serde_json::to_string_pretty(&pack_mcmeta) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize pack.mcmeta: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize pack.mcmeta: {e}")),
     };
 
     let pack_mcmeta_path = resource_pack_dir.join("pack.mcmeta");
     let _pack_mcmeta_path_str = pack_mcmeta_path.to_string_lossy().to_string();
 
     if let Err(e) = std::fs::write(&pack_mcmeta_path, pack_mcmeta_json) {
-        return Err(format!("Failed to write pack.mcmeta: {}", e));
+        return Err(format!("Failed to write pack.mcmeta: {e}"));
     }
 
     // Create assets directory
@@ -548,7 +546,7 @@ pub async fn create_resource_pack(
     let _assets_dir_str = assets_dir.to_string_lossy().to_string();
 
     if let Err(e) = std::fs::create_dir_all(&assets_dir) {
-        return Err(format!("Failed to create assets directory: {}", e));
+        return Err(format!("Failed to create assets directory: {e}"));
     }
 
     if let Some(resource_pack_path) = resource_pack_dir.to_str() {
@@ -569,13 +567,12 @@ pub async fn write_lang_file(
     format: Option<&str>,
 ) -> std::result::Result<bool, String> {
     info!(
-        "Writing lang file for {} in {} to {} with format {:?}",
-        mod_id, language, dir, format
+        "Writing lang file for {mod_id} in {language} to {dir} with format {format:?}"
     );
 
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {
-        return Err(format!("Directory not found: {}", dir));
+        return Err(format!("Directory not found: {dir}"));
     }
 
     // Create mod assets directory
@@ -583,13 +580,13 @@ pub async fn write_lang_file(
     let _mod_assets_dir_str = mod_assets_dir.to_string_lossy().to_string();
 
     if let Err(e) = std::fs::create_dir_all(&mod_assets_dir) {
-        return Err(format!("Failed to create mod assets directory: {}", e));
+        return Err(format!("Failed to create mod assets directory: {e}"));
     }
 
     // Parse content
     let content_map: HashMap<String, String> = match serde_json::from_str(content) {
         Ok(map) => map,
-        Err(e) => return Err(format!("Failed to parse content JSON: {}", e)),
+        Err(e) => return Err(format!("Failed to parse content JSON: {e}")),
     };
 
     // Determine file format based on optional parameter, defaulting to json
@@ -600,18 +597,18 @@ pub async fn write_lang_file(
             // Legacy .lang format: key=value per line
             let mut lines: Vec<String> = content_map
                 .iter()
-                .map(|(k, v)| format!("{}={}", k, v))
+                .map(|(k, v)| format!("{k}={v}"))
                 .collect();
             // Sort lines for consistent output
             lines.sort();
             let lang_content = lines.join("\n");
 
             // Write language file with .lang extension
-            let lang_file_path = mod_assets_dir.join(format!("{}.lang", language));
+            let lang_file_path = mod_assets_dir.join(format!("{language}.lang"));
             let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
 
             if let Err(e) = std::fs::write(&lang_file_path, lang_content) {
-                return Err(format!("Failed to write language file: {}", e));
+                return Err(format!("Failed to write language file: {e}"));
             }
         }
         _ => {
@@ -619,15 +616,15 @@ pub async fn write_lang_file(
             // Serialize content
             let content_json = match serde_json::to_string_pretty(&content_map) {
                 Ok(json) => json,
-                Err(e) => return Err(format!("Failed to serialize content: {}", e)),
+                Err(e) => return Err(format!("Failed to serialize content: {e}")),
             };
 
             // Write language file with .json extension
-            let lang_file_path = mod_assets_dir.join(format!("{}.json", language));
+            let lang_file_path = mod_assets_dir.join(format!("{language}.json"));
             let _lang_file_path_str = lang_file_path.to_string_lossy().to_string();
 
             if let Err(e) = std::fs::write(&lang_file_path, content_json) {
-                return Err(format!("Failed to write language file: {}", e));
+                return Err(format!("Failed to write language file: {e}"));
             }
         }
     }
@@ -641,7 +638,7 @@ pub async fn open_external_url(
     app_handle: tauri::AppHandle,
     url: &str,
 ) -> std::result::Result<bool, String> {
-    info!("Opening external URL: {}", url);
+    info!("Opening external URL: {url}");
 
     // Validate URL
     if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -653,12 +650,12 @@ pub async fn open_external_url(
     #[allow(deprecated)]
     match shell.open(url, None) {
         Ok(_) => {
-            info!("Successfully opened URL: {}", url);
+            info!("Successfully opened URL: {url}");
             Ok(true)
         }
         Err(e) => {
-            error!("Failed to open URL {}: {}", url, e);
-            Err(format!("Failed to open URL: {}", e))
+            error!("Failed to open URL {url}: {e}");
+            Err(format!("Failed to open URL: {e}"))
         }
     }
 }

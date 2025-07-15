@@ -158,7 +158,7 @@ impl AppLogger {
                 entry.timestamp,
                 entry.level.as_str(),
                 if let Some(process_type) = &entry.process_type {
-                    format!("[{}] ", process_type)
+                    format!("[{process_type}] ")
                 } else {
                     String::new()
                 },
@@ -173,11 +173,11 @@ impl AppLogger {
             {
                 Ok(mut file) => {
                     if let Err(e) = file.write_all(log_line.as_bytes()) {
-                        eprintln!("Failed to write to log file: {}", e);
+                        eprintln!("Failed to write to log file: {e}");
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to open log file: {}", e);
+                    eprintln!("Failed to open log file: {e}");
                 }
             }
         }
@@ -272,8 +272,8 @@ pub fn create_logs_directory(
             }
         }
         Err(e) => {
-            eprintln!("Failed to create logs directory: {}", e);
-            Err(format!("Failed to create logs directory: {}", e))
+            eprintln!("Failed to create logs directory: {e}");
+            Err(format!("Failed to create logs directory: {e}"))
         }
     }
 }
@@ -312,8 +312,8 @@ pub fn create_temp_directory(
             }
         }
         Err(e) => {
-            eprintln!("Failed to create temporary directory: {}", e);
-            Err(format!("Failed to create temporary directory: {}", e))
+            eprintln!("Failed to create temporary directory: {e}");
+            Err(format!("Failed to create temporary directory: {e}"))
         }
     }
 }
@@ -353,8 +353,8 @@ pub fn create_logs_directory_with_session(
             }
         }
         Err(e) => {
-            eprintln!("Failed to create logs directory: {}", e);
-            Err(format!("Failed to create logs directory: {}", e))
+            eprintln!("Failed to create logs directory: {e}");
+            Err(format!("Failed to create logs directory: {e}"))
         }
     }
 }
@@ -394,8 +394,8 @@ pub fn create_temp_directory_with_session(
             }
         }
         Err(e) => {
-            eprintln!("Failed to create temporary directory: {}", e);
-            Err(format!("Failed to create temporary directory: {}", e))
+            eprintln!("Failed to create temporary directory: {e}");
+            Err(format!("Failed to create temporary directory: {e}"))
         }
     }
 }
@@ -416,8 +416,7 @@ pub fn log_translation_start(
     logger: tauri::State<Arc<AppLogger>>,
 ) {
     let message = format!(
-        "Starting translation session {} to {} - {} files, ~{} translation keys",
-        session_id, target_language, total_files, total_content_size
+        "Starting translation session {session_id} to {target_language} - {total_files} files, ~{total_content_size} translation keys"
     );
     logger.info(&message, Some("TRANSLATION_START"));
 }
@@ -433,8 +432,7 @@ pub fn log_translation_statistics(
 ) {
     logger.info(
         &format!(
-            "Translation scope: {} files containing ~{} keys and ~{} lines",
-            total_files, estimated_keys, estimated_lines
+            "Translation scope: {total_files} files containing ~{estimated_keys} keys and ~{estimated_lines} lines"
         ),
         Some("TRANSLATION_STATS"),
     );
@@ -478,15 +476,7 @@ pub fn log_file_progress(info: FileProgressInfo, logger: tauri::State<Arc<AppLog
     };
 
     let message = format!(
-        "File {}/{} ({}%): {} - {}/{} chunks, {}/{} keys completed",
-        file_index,
-        total_files,
-        percentage,
-        file_name,
-        chunks_completed,
-        total_chunks,
-        keys_completed,
-        total_keys
+        "File {file_index}/{total_files} ({percentage}%): {file_name} - {chunks_completed}/{total_chunks} chunks, {keys_completed}/{total_keys} keys completed"
     );
 
     logger.info(&message, Some("TRANSLATION_PROGRESS"));
@@ -527,16 +517,14 @@ pub fn log_translation_completion(
 
     logger.info(
         &format!(
-            "Translation session {} completed in {:.2}s - {}/{} files successful ({}%)",
-            session_id, duration_seconds, successful_files, total_files_processed, success_rate
+            "Translation session {session_id} completed in {duration_seconds:.2}s - {successful_files}/{total_files_processed} files successful ({success_rate}%)"
         ),
         Some("TRANSLATION_COMPLETE"),
     );
 
     logger.info(
         &format!(
-            "Summary: {} keys translated across {} API calls - {} failed files",
-            total_keys_translated, total_api_calls, failed_files
+            "Summary: {total_keys_translated} keys translated across {total_api_calls} API calls - {failed_files} failed files"
         ),
         Some("TRANSLATION_COMPLETE"),
     );
@@ -551,14 +539,14 @@ pub fn log_performance_metrics(
     additional_info: Option<String>,
     logger: tauri::State<Arc<AppLogger>>,
 ) {
-    let mut message = format!("Performance: {} took {:.2}ms", operation, duration_ms);
+    let mut message = format!("Performance: {operation} took {duration_ms:.2}ms");
 
     if let Some(memory) = memory_usage_mb {
-        message.push_str(&format!(", memory: {:.1}MB", memory));
+        message.push_str(&format!(", memory: {memory:.1}MB"));
     }
 
     if let Some(info) = additional_info {
-        message.push_str(&format!(", {}", info));
+        message.push_str(&format!(", {info}"));
     }
 
     logger.debug(&message, Some("PERFORMANCE"));

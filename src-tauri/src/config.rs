@@ -153,7 +153,7 @@ pub fn load_config() -> std::result::Result<String, String> {
     // Get the config file path
     let config_path = match get_config_path() {
         Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {}", e)),
+        Err(e) => return Err(format!("Failed to get config path: {e}")),
     };
 
     // Check if the config file exists
@@ -164,18 +164,18 @@ pub fn load_config() -> std::result::Result<String, String> {
         // Serialize the default config
         let config_json = match serde_json::to_string_pretty(&default_config) {
             Ok(json) => json,
-            Err(e) => return Err(format!("Failed to serialize default config: {}", e)),
+            Err(e) => return Err(format!("Failed to serialize default config: {e}")),
         };
 
         // Create the config file
         let mut config_file = match File::create(&config_path) {
             Ok(file) => file,
-            Err(e) => return Err(format!("Failed to create config file: {}", e)),
+            Err(e) => return Err(format!("Failed to create config file: {e}")),
         };
 
         // Write the default config
         if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-            return Err(format!("Failed to write default config: {}", e));
+            return Err(format!("Failed to write default config: {e}"));
         }
 
         return Ok(config_json);
@@ -184,19 +184,19 @@ pub fn load_config() -> std::result::Result<String, String> {
     // Open the config file
     let mut config_file = match File::open(&config_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to open config file: {}", e)),
+        Err(e) => return Err(format!("Failed to open config file: {e}")),
     };
 
     // Read the config file
     let mut config_json = String::new();
     if let Err(e) = config_file.read_to_string(&mut config_json) {
-        return Err(format!("Failed to read config file: {}", e));
+        return Err(format!("Failed to read config file: {e}"));
     }
 
     // Parse the config
     let config: AppConfig = match serde_json::from_str(&config_json) {
         Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {}", e)),
+        Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
 
     // TODO: Update the config with any missing fields from default_config()
@@ -204,7 +204,7 @@ pub fn load_config() -> std::result::Result<String, String> {
     // Serialize the updated config
     let updated_config_json = match serde_json::to_string_pretty(&config) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize updated config: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize updated config: {e}")),
     };
 
     Ok(updated_config_json)
@@ -218,30 +218,30 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     // Parse the config
     let config: AppConfig = match serde_json::from_str(config_json) {
         Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {}", e)),
+        Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
 
     // Get the config file path
     let config_path = match get_config_path() {
         Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {}", e)),
+        Err(e) => return Err(format!("Failed to get config path: {e}")),
     };
 
     // Create the config file
     let mut config_file = match File::create(&config_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create config file: {}", e)),
+        Err(e) => return Err(format!("Failed to create config file: {e}")),
     };
 
     // Serialize the config
     let config_json = match serde_json::to_string_pretty(&config) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize config: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize config: {e}")),
     };
 
     // Write the config
     if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-        return Err(format!("Failed to write config: {}", e));
+        return Err(format!("Failed to write config: {e}"));
     }
 
     Ok(true)

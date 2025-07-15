@@ -70,7 +70,7 @@ pub fn create_backup(
 
     // Create backup directory
     if let Err(e) = fs::create_dir_all(&backup_dir) {
-        let error_msg = format!("Failed to create backup directory: {}", e);
+        let error_msg = format!("Failed to create backup directory: {e}");
         logger.error(&error_msg, Some("BACKUP"));
         return Err(error_msg);
     }
@@ -78,7 +78,7 @@ pub fn create_backup(
     // Create original_files subdirectory
     let original_files_dir = backup_dir.join("original_files");
     if let Err(e) = fs::create_dir_all(&original_files_dir) {
-        let error_msg = format!("Failed to create original files directory: {}", e);
+        let error_msg = format!("Failed to create original files directory: {e}");
         logger.error(&error_msg, Some("BACKUP"));
         return Err(error_msg);
     }
@@ -92,13 +92,13 @@ pub fn create_backup(
             // Create destination path maintaining relative structure
             let file_name = source_path
                 .file_name()
-                .ok_or_else(|| format!("Invalid file path: {}", file_path))?;
+                .ok_or_else(|| format!("Invalid file path: {file_path}"))?;
             let dest_path = original_files_dir.join(file_name);
 
             // Copy file
             if let Err(e) = fs::copy(source_path, &dest_path) {
                 logger.warning(
-                    &format!("Failed to backup file {}: {}", file_path, e),
+                    &format!("Failed to backup file {file_path}: {e}"),
                     Some("BACKUP"),
                 );
             } else {
@@ -110,7 +110,7 @@ pub fn create_backup(
             }
         } else {
             logger.warning(
-                &format!("Source file not found for backup: {}", file_path),
+                &format!("Source file not found for backup: {file_path}"),
                 Some("BACKUP"),
             );
         }
@@ -119,10 +119,10 @@ pub fn create_backup(
     // Save metadata
     let metadata_path = backup_dir.join("metadata.json");
     let metadata_json = serde_json::to_string_pretty(&metadata)
-        .map_err(|e| format!("Failed to serialize backup metadata: {}", e))?;
+        .map_err(|e| format!("Failed to serialize backup metadata: {e}"))?;
 
     fs::write(&metadata_path, metadata_json)
-        .map_err(|e| format!("Failed to write backup metadata: {}", e))?;
+        .map_err(|e| format!("Failed to write backup metadata: {e}"))?;
 
     let backup_path = backup_dir.to_string_lossy().to_string();
     logger.info(
@@ -157,11 +157,11 @@ pub fn list_backups(
 
     // Iterate through session directories
     let session_dirs =
-        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {}", e))?;
+        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {e}"))?;
 
     for session_entry in session_dirs {
         let session_entry =
-            session_entry.map_err(|e| format!("Failed to read session directory entry: {}", e))?;
+            session_entry.map_err(|e| format!("Failed to read session directory entry: {e}"))?;
 
         let session_path = session_entry.path();
         if !session_path.is_dir() {
@@ -188,11 +188,11 @@ pub fn list_backups(
 
         // Iterate through backup directories
         let backup_entries = fs::read_dir(&backups_dir)
-            .map_err(|e| format!("Failed to read backups directory: {}", e))?;
+            .map_err(|e| format!("Failed to read backups directory: {e}"))?;
 
         for backup_entry in backup_entries {
             let backup_entry =
-                backup_entry.map_err(|e| format!("Failed to read backup entry: {}", e))?;
+                backup_entry.map_err(|e| format!("Failed to read backup entry: {e}"))?;
 
             let backup_path = backup_entry.path();
             if !backup_path.is_dir() {
@@ -206,10 +206,10 @@ pub fn list_backups(
             }
 
             let metadata_content = fs::read_to_string(&metadata_path)
-                .map_err(|e| format!("Failed to read backup metadata: {}", e))?;
+                .map_err(|e| format!("Failed to read backup metadata: {e}"))?;
 
             let metadata: BackupMetadata = serde_json::from_str(&metadata_content)
-                .map_err(|e| format!("Failed to parse backup metadata: {}", e))?;
+                .map_err(|e| format!("Failed to parse backup metadata: {e}"))?;
 
             // Filter by type if specified
             if let Some(ref filter_type) = r#type {
@@ -256,7 +256,7 @@ pub fn restore_backup(
     logger: State<Arc<AppLogger>>,
 ) -> Result<(), String> {
     logger.info(
-        &format!("Restoring backup: {} to {}", backup_id, target_path),
+        &format!("Restoring backup: {backup_id} to {target_path}"),
         Some("BACKUP"),
     );
 
@@ -265,7 +265,7 @@ pub fn restore_backup(
     let backup = backups
         .iter()
         .find(|b| b.metadata.id == backup_id)
-        .ok_or_else(|| format!("Backup not found: {}", backup_id))?;
+        .ok_or_else(|| format!("Backup not found: {backup_id}"))?;
 
     let backup_path = Path::new(&backup.backup_path);
     let original_files_dir = backup_path.join("original_files");
@@ -278,19 +278,19 @@ pub fn restore_backup(
 
     // Create target directory if it doesn't exist
     if let Err(e) = fs::create_dir_all(target_dir) {
-        let error_msg = format!("Failed to create target directory: {}", e);
+        let error_msg = format!("Failed to create target directory: {e}");
         logger.error(&error_msg, Some("BACKUP"));
         return Err(error_msg);
     }
 
     // Copy files from backup to target
     let backup_files = fs::read_dir(&original_files_dir)
-        .map_err(|e| format!("Failed to read backup files: {}", e))?;
+        .map_err(|e| format!("Failed to read backup files: {e}"))?;
 
     let mut restored_count = 0;
     for backup_file in backup_files {
         let backup_file =
-            backup_file.map_err(|e| format!("Failed to read backup file entry: {}", e))?;
+            backup_file.map_err(|e| format!("Failed to read backup file entry: {e}"))?;
 
         let source_path = backup_file.path();
         let file_name = source_path
@@ -318,8 +318,7 @@ pub fn restore_backup(
 
     logger.info(
         &format!(
-            "Backup restoration completed: {} files restored",
-            restored_count
+            "Backup restoration completed: {restored_count} files restored"
         ),
         Some("BACKUP"),
     );
@@ -329,28 +328,28 @@ pub fn restore_backup(
 /// Delete a specific backup
 #[tauri::command]
 pub fn delete_backup(backup_id: String, logger: State<Arc<AppLogger>>) -> Result<(), String> {
-    logger.info(&format!("Deleting backup: {}", backup_id), Some("BACKUP"));
+    logger.info(&format!("Deleting backup: {backup_id}"), Some("BACKUP"));
 
     // Find the backup by ID
     let backups = list_backups(None, None, None, logger.clone())?;
     let backup = backups
         .iter()
         .find(|b| b.metadata.id == backup_id)
-        .ok_or_else(|| format!("Backup not found: {}", backup_id))?;
+        .ok_or_else(|| format!("Backup not found: {backup_id}"))?;
 
     let backup_path = Path::new(&backup.backup_path);
 
     if backup_path.exists() {
         fs::remove_dir_all(backup_path)
-            .map_err(|e| format!("Failed to delete backup directory: {}", e))?;
+            .map_err(|e| format!("Failed to delete backup directory: {e}"))?;
 
         logger.info(
-            &format!("Backup deleted successfully: {}", backup_id),
+            &format!("Backup deleted successfully: {backup_id}"),
             Some("BACKUP"),
         );
     } else {
         logger.warning(
-            &format!("Backup directory not found for deletion: {}", backup_id),
+            &format!("Backup directory not found for deletion: {backup_id}"),
             Some("BACKUP"),
         );
     }
@@ -365,7 +364,7 @@ pub fn prune_old_backups(
     logger: State<Arc<AppLogger>>,
 ) -> Result<u32, String> {
     logger.info(
-        &format!("Pruning backups older than {} days", retention_days),
+        &format!("Pruning backups older than {retention_days} days"),
         Some("BACKUP"),
     );
 
@@ -390,8 +389,7 @@ pub fn prune_old_backups(
 
     logger.info(
         &format!(
-            "Backup pruning completed: {} backups removed",
-            deleted_count
+            "Backup pruning completed: {deleted_count} backups removed"
         ),
         Some("BACKUP"),
     );
@@ -436,21 +434,21 @@ pub fn get_backup_storage_size(logger: State<Arc<AppLogger>>) -> Result<u64, Str
 
     // Iterate through session directories looking for backup subdirectories
     let session_dirs =
-        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {}", e))?;
+        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {e}"))?;
 
     for session_entry in session_dirs {
         let session_entry =
-            session_entry.map_err(|e| format!("Failed to read session directory: {}", e))?;
+            session_entry.map_err(|e| format!("Failed to read session directory: {e}"))?;
 
         let backups_dir = session_entry.path().join("backups");
         if backups_dir.exists() {
             total_size += calculate_dir_size(&backups_dir)
-                .map_err(|e| format!("Failed to calculate backup size: {}", e))?;
+                .map_err(|e| format!("Failed to calculate backup size: {e}"))?;
         }
     }
 
     logger.debug(
-        &format!("Total backup storage size: {} bytes", total_size),
+        &format!("Total backup storage size: {total_size} bytes"),
         Some("BACKUP"),
     );
     Ok(total_size)

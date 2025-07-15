@@ -187,7 +187,7 @@ pub fn extract_patchouli_books(
     logger: tauri::State<std::sync::Arc<crate::logging::AppLogger>>,
 ) -> std::result::Result<Vec<PatchouliBook>, String> {
     logger.info(
-        &format!("Starting Patchouli book extraction from: {}", jar_path),
+        &format!("Starting Patchouli book extraction from: {jar_path}"),
         Some("GUIDEBOOK_SCAN"),
     );
 
@@ -201,7 +201,7 @@ pub fn extract_patchouli_books(
                 &format!("Failed to open JAR file {}: {}", jar_path.display(), e),
                 Some("GUIDEBOOK_SCAN"),
             );
-            return Err(format!("Failed to open JAR file: {}", e));
+            return Err(format!("Failed to open JAR file: {e}"));
         }
     };
 
@@ -212,7 +212,7 @@ pub fn extract_patchouli_books(
                 &format!("Failed to read JAR {} as ZIP: {}", jar_path.display(), e),
                 Some("GUIDEBOOK_SCAN"),
             );
-            return Err(format!("Failed to read JAR as ZIP: {}", e));
+            return Err(format!("Failed to read JAR as ZIP: {e}"));
         }
     };
 
@@ -234,7 +234,7 @@ pub fn extract_patchouli_books(
                 ),
                 Some("GUIDEBOOK_SCAN"),
             );
-            return Err(format!("Failed to extract mod info: {}", e));
+            return Err(format!("Failed to extract mod info: {e}"));
         }
     };
 
@@ -260,7 +260,7 @@ pub fn extract_patchouli_books(
                 ),
                 Some("GUIDEBOOK_SCAN"),
             );
-            return Err(format!("Failed to extract Patchouli books: {}", e));
+            return Err(format!("Failed to extract Patchouli books: {e}"));
         }
     };
 
@@ -281,7 +281,7 @@ pub fn write_patchouli_book(
     // Parse content
     let content_map = match serde_json::from_str::<HashMap<String, String>>(content) {
         Ok(map) => map,
-        Err(e) => return Err(format!("Failed to parse content JSON: {}", e)),
+        Err(e) => return Err(format!("Failed to parse content JSON: {e}")),
     };
 
     // Create a temporary file
@@ -289,24 +289,24 @@ pub fn write_patchouli_book(
 
     // Copy the JAR file to the temporary file
     if let Err(e) = fs::copy(&jar_path, &temp_path) {
-        return Err(format!("Failed to create temporary file: {}", e));
+        return Err(format!("Failed to create temporary file: {e}"));
     }
 
     // Open the original JAR file for reading
     let original_file = match File::open(&jar_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to open JAR file: {}", e)),
+        Err(e) => return Err(format!("Failed to open JAR file: {e}")),
     };
 
     let mut original_archive = match ZipArchive::new(original_file) {
         Ok(archive) => archive,
-        Err(e) => return Err(format!("Failed to read JAR as ZIP: {}", e)),
+        Err(e) => return Err(format!("Failed to read JAR as ZIP: {e}")),
     };
 
     // Open the temporary file for writing
     let temp_file = match File::create(&temp_path) {
         Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create temporary file: {}", e)),
+        Err(e) => return Err(format!("Failed to create temporary file: {e}")),
     };
 
     let mut temp_archive = zip::ZipWriter::new(temp_file);
@@ -315,7 +315,7 @@ pub fn write_patchouli_book(
     for i in 0..original_archive.len() {
         let mut file = match original_archive.by_index(i) {
             Ok(file) => file,
-            Err(e) => return Err(format!("Failed to read file from JAR: {}", e)),
+            Err(e) => return Err(format!("Failed to read file from JAR: {e}")),
         };
 
         let name = file.name().to_string();
@@ -323,50 +323,49 @@ pub fn write_patchouli_book(
         // Read the file content
         let mut buffer = Vec::new();
         if let Err(e) = file.read_to_end(&mut buffer) {
-            return Err(format!("Failed to read file content: {}", e));
+            return Err(format!("Failed to read file content: {e}"));
         }
 
         // Write the file to the temporary archive
         if let Err(e) = temp_archive.start_file(name, zip::write::FileOptions::default()) {
-            return Err(format!("Failed to start file in temporary archive: {}", e));
+            return Err(format!("Failed to start file in temporary archive: {e}"));
         }
 
         if let Err(e) = temp_archive.write_all(&buffer) {
-            return Err(format!("Failed to write file content: {}", e));
+            return Err(format!("Failed to write file content: {e}"));
         }
     }
 
     // Add the new language file
     let file_path = format!(
-        "assets/{}/patchouli_books/{}/{}.json",
-        mod_id, book_id, language
+        "assets/{mod_id}/patchouli_books/{book_id}/{language}.json"
     );
 
     if let Err(e) = temp_archive.start_file(file_path, zip::write::FileOptions::default()) {
-        return Err(format!("Failed to start language file in archive: {}", e));
+        return Err(format!("Failed to start language file in archive: {e}"));
     }
 
     let json_content = match serde_json::to_string_pretty(&content_map) {
         Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize content: {}", e)),
+        Err(e) => return Err(format!("Failed to serialize content: {e}")),
     };
 
     if let Err(e) = temp_archive.write_all(json_content.as_bytes()) {
-        return Err(format!("Failed to write language file content: {}", e));
+        return Err(format!("Failed to write language file content: {e}"));
     }
 
     // Finish writing the temporary archive
     if let Err(e) = temp_archive.finish() {
-        return Err(format!("Failed to finalize temporary archive: {}", e));
+        return Err(format!("Failed to finalize temporary archive: {e}"));
     }
 
     // Replace the original JAR file with the temporary file
     if let Err(e) = fs::remove_file(&jar_path) {
-        return Err(format!("Failed to remove original JAR file: {}", e));
+        return Err(format!("Failed to remove original JAR file: {e}"));
     }
 
     if let Err(e) = fs::rename(&temp_path, &jar_path) {
-        return Err(format!("Failed to rename temporary file: {}", e));
+        return Err(format!("Failed to rename temporary file: {e}"));
     }
 
     Ok(true)
@@ -400,7 +399,7 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         let json: serde_json::Value = match relaxed_json_parse(&cleaned_content) {
             Ok(value) => value,
             Err(e) => {
-                error!("Failed to parse fabric.mod.json: {}", e);
+                error!("Failed to parse fabric.mod.json: {e}");
                 // Log more details about the error
                 if let Some(line) = cleaned_content.lines().nth(e.line().saturating_sub(1)) {
                     error!("Error at line {}: {}", e.line(), line);
@@ -435,7 +434,7 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
         // Parse TOML using the toml crate
         let parsed_toml = content
             .parse::<toml::Value>()
-            .map_err(|e| MinecraftError::Mod(format!("Failed to parse mods.toml: {}", e)))?;
+            .map_err(|e| MinecraftError::Mod(format!("Failed to parse mods.toml: {e}")))?;
 
         // Extract values from the parsed TOML
         // モッドセクションを探す（"mods" 配列の最初の要素）
@@ -551,8 +550,7 @@ fn extract_lang_files_from_archive(
                         Ok(content) => content,
                         Err(e) => {
                             error!(
-                                "Failed to parse lang file '{}': {}. Skipping this file.",
-                                name, e
+                                "Failed to parse lang file '{name}': {e}. Skipping this file."
                             );
                             // Skip this file instead of failing the entire mod
                             continue;
@@ -650,8 +648,7 @@ fn extract_lang_files_from_archive_with_format(
                         Ok(content) => content,
                         Err(e) => {
                             error!(
-                                "Failed to parse lang file '{}': {}. Skipping this file.",
-                                name, e
+                                "Failed to parse lang file '{name}': {e}. Skipping this file."
                             );
                             // Skip this file instead of failing the entire mod
                             continue;
@@ -751,13 +748,13 @@ fn strip_json_comments(json: &str) -> String {
 
     // Try to parse the result and provide more detailed error info if it fails
     if let Err(e) = serde_json::from_str::<serde_json::Value>(&result) {
-        debug!("JSON still invalid after cleanup. Error: {}", e);
+        debug!("JSON still invalid after cleanup. Error: {e}");
         let col = e.column();
         let line_no = e.line();
-        debug!("Error at line {}, column {}", line_no, col);
+        debug!("Error at line {line_no}, column {col}");
         // Try to show the problematic line
         if let Some(problematic_line) = result.lines().nth(line_no.saturating_sub(1)) {
-            debug!("Problematic line: {}", problematic_line);
+            debug!("Problematic line: {problematic_line}");
         }
     }
 
@@ -894,7 +891,7 @@ fn extract_patchouli_books_from_archive(
                 content: extracted,
             };
 
-            let book_key = format!("{}:{}", book_mod_id, book_id);
+            let book_key = format!("{book_mod_id}:{book_id}");
             books_map
                 .entry(book_key.clone())
                 .and_modify(|(_modid, _bookid, lang_files)| lang_files.push(lang_file.clone()))
