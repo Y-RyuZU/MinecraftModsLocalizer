@@ -1,14 +1,6 @@
-import {TranslationService, TranslationJob} from "./translation-service";
-import {TranslationResult, TranslationTargetType} from "../types/minecraft";
-import {invoke} from "@tauri-apps/api/core";
-import {ErrorLogger} from "../utils/error-logger";
-import { TRANSLATION_DEFAULTS } from "../constants/defaults";
-import { backupService, type CreateBackupOptions } from "./backup-service";
+import { TranslationService, TranslationJob } from "./translation-service";
+import { TranslationResult, TranslationTargetType } from "../types/minecraft";
 
-/**
- * Shared translation runner for all tabs.
- * Processes jobs chunk-by-chunk, checks for cancellation, and reports progress/results.
- */
 export interface RunTranslationJobsOptions<T extends TranslationJob = TranslationJob> {
     jobs: T[];
     translationService: TranslationService;
@@ -57,11 +49,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
 
     for (let i = 0; i < jobs.length; i++) {
         const job = jobs[i];
-
-        // Set session information for comprehensive logging
-        job.totalFiles = jobs.length;
-        job.currentFileIndex = i + 1;
-
         if (onJobStart) onJobStart(job, i);
         if (setCurrentJobId) setCurrentJobId(job.id);
 
@@ -69,20 +56,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         job.status = "processing";
         job.startTime = Date.now();
 
-        // Log initial file progress
-        await logFileProgress(
-            job.currentFileName || `File ${i + 1}`,
-            i + 1,
-            jobs.length,
-            0,
-            job.chunks.length,
-            0,
-            getTotalKeysInJob(job)
-        );
-
-        let failedChunksCount = 0;
-        const maxFailedChunks = Math.ceil(job.chunks.length * TRANSLATION_DEFAULTS.maxFailedChunksRatio);
-        
         for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
             // Check for cancellation
             if (translationService.isJobInterrupted(job.id)) {
@@ -92,12 +65,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 break;
             }
             const chunk = job.chunks[chunkIndex];
-            
-            // Skip already failed chunks
-            if (chunk.status === "failed") {
-                continue;
-            }
-            
             chunk.status = "processing";
             try {
                 const translatedContent = await translationService.translateChunk(
@@ -105,78 +72,16 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                     job.targetLanguage,
                     job.id
                 );
-                
-                // Check if translation actually produced content
-                if (!translatedContent || Object.keys(translatedContent).length === 0) {
-                    // Handle empty content as a failure without throwing
-                    console.log(`[TranslationRunner] Translation returned empty content for chunk ${chunkIndex} - possible API key issue`);
-                    chunk.status = "failed";
-                    chunk.error = "Translation returned empty content - possible API key issue";
-                    chunk.translatedContent = {};
-                    failedChunksCount++;
-                    
-                    // Log the failure
-                    const errorMessage = "API key is not configured or translation failed";
-                    if (errorMessage.includes("API key")) {
-                        console.log(`[TranslationRunner] API key error detected, stopping job immediately`);
-                        job.status = "failed";
-                        job.error = errorMessage;
-                        break;
-                    }
-                } else {
-                    chunk.translatedContent = translatedContent;
-                    chunk.status = "completed";
-                }
+                chunk.translatedContent = translatedContent;
+                chunk.status = "completed";
             } catch (error) {
                 chunk.status = "failed";
                 chunk.error = error instanceof Error ? error.message : String(error);
-                failedChunksCount++;
-                
-                // Log the failure
-                console.log(`[TranslationRunner] Chunk ${chunkIndex} failed:`, error);
-                
-                // If it's an API key error, stop the entire job immediately
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                if (errorMessage.includes("API key is not configured") || 
-                    errorMessage.includes("API key is not set") ||
-                    errorMessage.includes("Incorrect API key provided")) {
-                    console.log(`[TranslationRunner] API key error detected, stopping job immediately`);
-                    job.status = "failed";
-                    job.error = errorMessage;
-                    break;
-                }
-                
-                // If too many chunks fail, stop processing this job
-                if (failedChunksCount > maxFailedChunks && maxFailedChunks > 0) {
-                    console.log(`[TranslationRunner] Too many failed chunks (${failedChunksCount}/${job.chunks.length}), stopping job`);
-                    job.status = "failed";
-                    job.error = `Too many chunks failed (${failedChunksCount}/${job.chunks.length})`;
-                    break;
-                }
             }
-
+            
             // Increment chunk-level progress once per chunk (only if chunk tracking is used)
-            if (incrementCompletedChunks) {
-                console.log(`[TranslationRunner] Incrementing completed chunks for job ${job.id}, chunk ${chunkIndex + 1}/${job.chunks.length}`);
-                incrementCompletedChunks();
-            }
+            if (incrementCompletedChunks) incrementCompletedChunks();
             if (onJobChunkComplete) onJobChunkComplete(job, chunkIndex);
-
-            // Log updated file progress after chunk completion
-            const completedChunks = job.chunks.filter(c => c.status === "completed").length;
-            const completedKeys = job.chunks
-                .filter(c => c.status === "completed")
-                .reduce((sum, c) => sum + Object.keys(c.content).length, 0);
-
-            await logFileProgress(
-                job.currentFileName || `File ${i + 1}`,
-                i + 1,
-                jobs.length,
-                completedChunks,
-                job.chunks.length,
-                completedKeys,
-                getTotalKeysInJob(job)
-            );
         }
 
         // If interrupted, stop processing further jobs
@@ -188,70 +93,21 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         // Mark job as complete
         job.status = job.chunks.every((c: import("./translation-service").TranslationChunk) => c.status === "completed") ? "completed" : "failed";
         job.endTime = Date.now();
-
-        // Log performance metrics for this job
-        const jobDuration = job.endTime - job.startTime;
-        const jobTotalKeys = getTotalKeysInJob(job);
-        const keysPerSecond = jobTotalKeys / (jobDuration / 1000);
-
-        await logPerformanceMetrics(
-            `Job Translation`,
-            jobDuration,
-            undefined,
-            `${jobTotalKeys} keys, ${keysPerSecond.toFixed(2)} keys/sec, ${job.chunks.length} chunks`
-        );
-
         if (onJobComplete) onJobComplete(job, i);
 
         // Write output and report result
         const outputPath = getOutputPath(job);
         const content = getResultContent(job);
         let writeSuccess = true;
-
+        
         try {
-            // Create backup before writing output (if enabled and session ID provided)
-            if (enableBackup && sessionId) {
-                try {
-                    // Determine source name for backup
-                    const sourceName = job.currentFileName || job.id || `${type}_${i + 1}`;
-                    
-                    // Calculate file size estimate
-                    const contentSize = JSON.stringify(content).length;
-                    
-                    // Create backup options
-                    const backupOptions: CreateBackupOptions = {
-                        type,
-                        sourceName,
-                        targetLanguage,
-                        sessionId,
-                        filePaths: [outputPath], // Path where the output will be written
-                        statistics: {
-                            totalKeys: getTotalKeysInJob(job),
-                            successfulTranslations: job.chunks.filter(c => c.status === "completed").length,
-                            fileSize: contentSize
-                        }
-                    };
-                    
-                    // Create the backup
-                    const backupInfo = await backupService.createBackup(backupOptions);
-                    console.log(`[TranslationRunner] Backup created for ${sourceName}: ${backupInfo.metadata.id}`);
-                } catch (backupError) {
-                    // Log backup error but don't fail the translation
-                    console.warn(`[TranslationRunner] Failed to create backup for job ${job.id}:`, backupError);
-                    await ErrorLogger.logError(`Backup creation failed for job ${job.id}`, backupError, type);
-                }
-            }
-            
             await writeOutput(job, outputPath, content);
         } catch (error) {
-            await ErrorLogger.logError(`Failed to write output for job ${job.id}`, error, type);
+            console.error(`Failed to write output for job ${job.id}:`, error);
             writeSuccess = false;
         }
 
         if (onResult) {
-            // Check if content is actually valid (not empty)
-            const hasValidContent = content && Object.keys(content).length > 0;
-            
             onResult({
                 type,
                 id: type === "mod" ? (job.currentFileName || job.id) : job.id,
@@ -259,83 +115,18 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 targetLanguage,
                 content,
                 outputPath,
-                success: job.status === "completed" && writeSuccess && hasValidContent
+                success: writeSuccess && job.status === "completed",
+                sessionId,
+                enableBackup
             });
         }
 
-        // Increment mod-level progress when entire job is complete (only if mod tracking is used)
-        if (incrementCompletedMods) {
-            console.log(`[TranslationRunner] Incrementing completed mods for job ${job.id}`);
-            incrementCompletedMods();
-        }
+        // Increment mod-level progress if applicable
+        if (incrementCompletedMods) incrementCompletedMods();
+        
+        // Increment whole progress
+        if (incrementWholeProgress) incrementWholeProgress();
     }
+
     if (setCurrentJobId) setCurrentJobId(null);
-}
-
-/**
- * Log file progress with detailed status
- * @param fileName Name of the file
- * @param fileIndex Current file index (1-based)
- * @param totalFiles Total number of files
- * @param chunksCompleted Chunks completed for this file
- * @param totalChunks Total chunks for this file
- * @param keysCompleted Keys completed for this file
- * @param totalKeys Total keys for this file
- */
-async function logFileProgress(
-    fileName: string,
-    fileIndex: number,
-    totalFiles: number,
-    chunksCompleted: number,
-    totalChunks: number,
-    keysCompleted: number,
-    totalKeys: number
-): Promise<void> {
-    try {
-        await invoke('log_file_progress', {
-            fileName: fileName,
-            fileIndex: fileIndex,
-            totalFiles: totalFiles,
-            chunksCompleted: chunksCompleted,
-            totalChunks: totalChunks,
-            keysCompleted: keysCompleted,
-            totalKeys: totalKeys
-        });
-    } catch (error) {
-        await ErrorLogger.logError('logFileProgress', error, 'TRANSLATION_PROGRESS');
-    }
-}
-
-/**
- * Get total number of keys in a translation job
- * @param job Translation job
- * @returns Total number of keys
- */
-function getTotalKeysInJob(job: TranslationJob): number {
-    return job.chunks.reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
-}
-
-/**
- * Log performance metrics for debugging
- * @param operation Operation name
- * @param durationMs Duration in milliseconds
- * @param memoryUsageMb Optional memory usage in MB
- * @param additionalInfo Optional additional information
- */
-async function logPerformanceMetrics(
-    operation: string,
-    durationMs: number,
-    memoryUsageMb?: number,
-    additionalInfo?: string
-): Promise<void> {
-    try {
-        await invoke('log_performance_metrics', {
-            operation,
-            durationMs: durationMs,
-            memoryUsageMb: memoryUsageMb,
-            additionalInfo: additionalInfo
-        });
-    } catch (error) {
-        await ErrorLogger.logError('logPerformanceMetrics', error, 'PERFORMANCE');
-    }
 }
