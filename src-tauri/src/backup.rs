@@ -317,9 +317,7 @@ pub fn restore_backup(
     }
 
     logger.info(
-        &format!(
-            "Backup restoration completed: {restored_count} files restored"
-        ),
+        &format!("Backup restoration completed: {restored_count} files restored"),
         Some("BACKUP"),
     );
     Ok(())
@@ -388,9 +386,7 @@ pub fn prune_old_backups(
     }
 
     logger.info(
-        &format!(
-            "Backup pruning completed: {deleted_count} backups removed"
-        ),
+        &format!("Backup pruning completed: {deleted_count} backups removed"),
         Some("BACKUP"),
     );
     Ok(deleted_count)

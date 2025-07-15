@@ -499,17 +499,13 @@ pub async fn create_resource_pack(
     language: &str,
     dir: &str,
 ) -> std::result::Result<String, String> {
-    info!(
-        "Creating resource pack {name} for {language} in {dir}"
-    );
+    info!("Creating resource pack {name} for {language} in {dir}");
 
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {
         // Try to create the parent directory if it does not exist
         if let Err(e) = std::fs::create_dir_all(dir_path) {
-            return Err(format!(
-                "Failed to create parent directory: {dir} ({e})"
-            ));
+            return Err(format!("Failed to create parent directory: {dir} ({e})"));
         }
     }
 
@@ -566,9 +562,7 @@ pub async fn write_lang_file(
     dir: &str,
     format: Option<&str>,
 ) -> std::result::Result<bool, String> {
-    info!(
-        "Writing lang file for {mod_id} in {language} to {dir} with format {format:?}"
-    );
+    info!("Writing lang file for {mod_id} in {language} to {dir} with format {format:?}");
 
     let dir_path = Path::new(dir);
     if !dir_path.exists() || !dir_path.is_dir() {

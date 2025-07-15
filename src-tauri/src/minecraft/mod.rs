@@ -337,9 +337,7 @@ pub fn write_patchouli_book(
     }
 
     // Add the new language file
-    let file_path = format!(
-        "assets/{mod_id}/patchouli_books/{book_id}/{language}.json"
-    );
+    let file_path = format!("assets/{mod_id}/patchouli_books/{book_id}/{language}.json");
 
     if let Err(e) = temp_archive.start_file(file_path, zip::write::FileOptions::default()) {
         return Err(format!("Failed to start language file in archive: {e}"));
@@ -549,9 +547,7 @@ fn extract_lang_files_from_archive(
                     match serde_json::from_str(&clean_content_str) {
                         Ok(content) => content,
                         Err(e) => {
-                            error!(
-                                "Failed to parse lang file '{name}': {e}. Skipping this file."
-                            );
+                            error!("Failed to parse lang file '{name}': {e}. Skipping this file.");
                             // Skip this file instead of failing the entire mod
                             continue;
                         }
@@ -647,9 +643,7 @@ fn extract_lang_files_from_archive_with_format(
                     match serde_json::from_str(&clean_content_str) {
                         Ok(content) => content,
                         Err(e) => {
-                            error!(
-                                "Failed to parse lang file '{name}': {e}. Skipping this file."
-                            );
+                            error!("Failed to parse lang file '{name}': {e}. Skipping this file.");
                             // Skip this file instead of failing the entire mod
                             continue;
                         }
