@@ -10,7 +10,6 @@ import { LLMSettings } from "@/components/settings/llm-settings";
 import { TranslationSettings } from "@/components/settings/translation-settings";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
-import { FileService } from "@/lib/services/file-service";
 import { toast } from "sonner";
 
 export function SettingsDialog() {
