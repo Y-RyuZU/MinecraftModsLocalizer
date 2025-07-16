@@ -5,6 +5,7 @@ import {
   DEFAULT_PROVIDER,
   API_DEFAULTS,
   TRANSLATION_DEFAULTS,
+  PATH_DEFAULTS,
   UI_DEFAULTS,
   UPDATE_DEFAULTS,
   STORAGE_KEYS as IMPORTED_STORAGE_KEYS,
@@ -23,6 +24,22 @@ export const DEFAULT_API_URLS = IMPORTED_DEFAULT_API_URLS;
 export const STORAGE_KEYS = IMPORTED_STORAGE_KEYS;
 
 /**
+ * Path configuration
+ */
+export interface PathsConfig {
+  /** Minecraft directory path */
+  minecraftDir: string;
+  /** Mods directory path */
+  modsDir: string;
+  /** Resource packs directory path */
+  resourcePacksDir: string;
+  /** Config directory path */
+  configDir: string;
+  /** Logs directory path */
+  logsDir: string;
+}
+
+/**
  * Application configuration
  */
 export interface AppConfig {
@@ -32,10 +49,10 @@ export interface AppConfig {
   translation: TranslationConfig;
   /** UI configuration */
   ui: UIConfig;
-  /** File paths configuration */
-  paths: PathsConfig;
   /** Update configuration */
   update?: UpdateConfig;
+  /** Path configuration */
+  paths: PathsConfig;
 }
 
 /**
@@ -96,6 +113,8 @@ export interface TranslationConfig {
   maxTokensPerChunk?: number;
   /** Fallback to entry-based chunking if token estimation fails */
   fallbackToEntryBased?: boolean;
+  /** Skip translation when target language files already exist */
+  skipExistingTranslations?: boolean;
 }
 
 /**
@@ -106,21 +125,6 @@ export interface UIConfig {
   theme: "light" | "dark" | "system";
 }
 
-/**
- * Paths configuration
- */
-export interface PathsConfig {
-  /** Minecraft directory */
-  minecraftDir: string;
-  /** Mods directory */
-  modsDir: string;
-  /** Resource packs directory */
-  resourcePacksDir: string;
-  /** Config directory */
-  configDir: string;
-  /** Logs directory */
-  logsDir: string;
-}
 
 /**
  * Update configuration
@@ -162,20 +166,21 @@ export const DEFAULT_CONFIG: AppConfig = {
     resourcePackName: TRANSLATION_DEFAULTS.resourcePackName,
     useTokenBasedChunking: TRANSLATION_DEFAULTS.useTokenBasedChunking,
     maxTokensPerChunk: TRANSLATION_DEFAULTS.maxTokensPerChunk,
-    fallbackToEntryBased: TRANSLATION_DEFAULTS.fallbackToEntryBased
+    fallbackToEntryBased: TRANSLATION_DEFAULTS.fallbackToEntryBased,
+    skipExistingTranslations: true
   },
   ui: {
     theme: UI_DEFAULTS.theme
   },
-  paths: {
-    minecraftDir: "",
-    modsDir: "",
-    resourcePacksDir: "",
-    configDir: "",
-    logsDir: ""
-  },
   update: {
     checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
+  },
+  paths: {
+    minecraftDir: PATH_DEFAULTS.minecraftDir,
+    modsDir: PATH_DEFAULTS.modsDir,
+    resourcePacksDir: PATH_DEFAULTS.resourcePacksDir,
+    configDir: PATH_DEFAULTS.configDir,
+    logsDir: PATH_DEFAULTS.logsDir
   }
 };
 

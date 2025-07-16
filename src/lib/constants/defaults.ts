@@ -7,7 +7,7 @@
 // Model and Provider Defaults
 // ============================================
 export const DEFAULT_MODELS = {
-  openai: "o4-mini-2025-04-16",
+  openai: "gpt-4o-mini",
   anthropic: "claude-3-5-haiku-20241022",
   google: "gemini-1.5-flash",
 } as const;
@@ -98,6 +98,17 @@ export const MODEL_TOKEN_LIMITS = {
     maxOutputTokens: 4096,
   },
   fallback: 3000, // Conservative default for unknown models
+} as const;
+
+// ============================================
+// Path Configuration Defaults
+// ============================================
+export const PATH_DEFAULTS = {
+  minecraftDir: "",
+  modsDir: "",
+  resourcePacksDir: "",
+  configDir: "",
+  logsDir: "",
 } as const;
 
 // ============================================
