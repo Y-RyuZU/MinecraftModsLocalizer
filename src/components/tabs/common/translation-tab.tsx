@@ -200,15 +200,17 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Clear existing results
-            setTranslationTargets([]);
-            setFilterText("");
-            setTranslationResults([]);
-
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
                 ? selectedDirectory.substring("NATIVE_DIALOG:".length)
                 : selectedDirectory;
+
+            // Clear existing results after UI has updated
+            requestAnimationFrame(() => {
+                setTranslationTargets([]);
+                setFilterText("");
+                setTranslationResults([]);
+            });
 
             await onScan(actualPath);
         } catch (error) {
@@ -400,13 +402,21 @@ export function TranslationTab({
                         onClick={handleScan}
                         disabled={isScanning || isTranslating || !selectedDirectory}
                         title={!selectedDirectory ? t('errors.selectDirectoryFirst') : ''}
+                        className={isScanning ? 'animate-pulse' : ''}
                     >
+                        {isScanning && (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        )}
                         {isScanning ? t(scanningLabel) : t(scanButtonLabel)}
                     </Button>
                     <Button
                         onClick={handleTranslate}
                         disabled={isScanning || isTranslating || translationTargets.length === 0}
+                        className={isTranslating ? 'animate-pulse' : ''}
                     >
+                        {isTranslating && (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        )}
                         {isTranslating ? t('buttons.translating') : t('buttons.translate')}
                     </Button>
 
@@ -454,7 +464,7 @@ export function TranslationTab({
             )}
 
             {error && (
-                <div className="bg-destructive/20 text-destructive p-2 rounded">
+                <div className="bg-destructive/20 text-destructive p-2 rounded animate-in fade-in-0 slide-in-from-top-2 duration-300">
                     {error}
                 </div>
             )}
@@ -627,7 +637,7 @@ export function TranslationTab({
                                         return 0;
                                     })
                                     .map((target, index) => (
-                                        <TableRow key={`${target.id}-${index}`}>
+                                        <TableRow key={`${target.id}-${index}`} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
                                             <TableCell>
                                                 <Checkbox
                                                     checked={target.selected}
