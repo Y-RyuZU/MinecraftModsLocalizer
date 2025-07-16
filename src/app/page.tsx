@@ -18,7 +18,7 @@ import { CustomFilesTab } from "@/components/tabs/custom-files-tab";
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("mods");
-  const { setConfig, isTranslating } = useAppStore();
+  const { setConfig, isTranslating, isScanning } = useAppStore();
   const { t, ready } = useAppTranslation();
   const [mounted, setMounted] = useState(false);
 
@@ -43,7 +43,15 @@ export default function Home() {
     return (
       <MainLayout>
         <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
-          <p className="text-lg">{mounted && ready ? t('misc.loading') : 'Loading...'}</p>
+          <div className="flex flex-col items-center gap-4 animate-in fade-in-0 duration-500">
+            <div className="relative">
+              <div className="w-12 h-12 border-4 border-primary/20 rounded-full"></div>
+              <div className="absolute inset-0 w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-lg text-muted-foreground">
+              {mounted && ready ? t('misc.loading') : 'Loading...'}
+            </p>
+          </div>
         </div>
       </MainLayout>
     );
@@ -56,6 +64,12 @@ export default function Home() {
       });
       return;
     }
+    if (isScanning) {
+      toast.error(t('errors.scanInProgress'), {
+        description: t('errors.cannotSwitchTabs'),
+      });
+      return;
+    }
     setActiveTab(value);
   };
 
@@ -63,16 +77,16 @@ export default function Home() {
     <MainLayout>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="mods" disabled={isTranslating && activeTab !== "mods"}>
+          <TabsTrigger value="mods" disabled={(isTranslating || isScanning) && activeTab !== "mods"}>
             {t('tabs.mods')}
           </TabsTrigger>
-          <TabsTrigger value="quests" disabled={isTranslating && activeTab !== "quests"}>
+          <TabsTrigger value="quests" disabled={(isTranslating || isScanning) && activeTab !== "quests"}>
             {t('tabs.quests')}
           </TabsTrigger>
-          <TabsTrigger value="guidebooks" disabled={isTranslating && activeTab !== "guidebooks"}>
+          <TabsTrigger value="guidebooks" disabled={(isTranslating || isScanning) && activeTab !== "guidebooks"}>
             {t('tabs.guidebooks')}
           </TabsTrigger>
-          <TabsTrigger value="custom-files" disabled={isTranslating && activeTab !== "custom-files"}>
+          <TabsTrigger value="custom-files" disabled={(isTranslating || isScanning) && activeTab !== "custom-files"}>
             {t('tabs.customFiles')}
           </TabsTrigger>
         </TabsList>

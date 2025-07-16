@@ -59,7 +59,7 @@ export function TranslationSettings({config, setConfig}: TranslationSettingsProp
                     </div>
 
                     {/* Token-Based Chunking Settings */}
-                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50 transition-colors duration-200 hover:bg-muted/70">
                         <h3 className="text-sm font-semibold">{t('settings.tokenBasedChunking.title')}</h3>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -131,6 +131,28 @@ export function TranslationSettings({config, setConfig}: TranslationSettingsProp
                                 </div>
                             )}
                         </div>
+                    </div>
+
+                    {/* Skip Existing Translations Setting */}
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-0.5">
+                            <label className="text-sm font-medium">{t('settings.skipExistingTranslations.title')}</label>
+                            <p className="text-xs text-muted-foreground">
+                                {t('settings.skipExistingTranslations.hint')}
+                            </p>
+                        </div>
+                        <Switch
+                            checked={config.translation.skipExistingTranslations ?? true}
+                            onCheckedChange={(checked) => {
+                                setConfig({
+                                    ...config,
+                                    translation: {
+                                        ...config.translation,
+                                        skipExistingTranslations: checked
+                                    }
+                                });
+                            }}
+                        />
                     </div>
 
                     {/* Other Translation Settings */}
