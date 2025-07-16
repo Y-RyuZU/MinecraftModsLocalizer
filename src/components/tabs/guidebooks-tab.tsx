@@ -22,6 +22,10 @@ export function GuidebooksTab() {
     setTotalChunks,
     setCompletedChunks,
     incrementCompletedChunks,
+    // Guidebook-level progress tracking
+    setTotalGuidebooks,
+    setCompletedGuidebooks,
+    incrementCompletedGuidebooks,
     addTranslationResult,
     error,
       setError,
@@ -53,9 +57,14 @@ export function GuidebooksTab() {
 
         if (books.length > 0) {
           // Calculate relative path by removing the selected directory part
-          const relativePath = modFile.startsWith(directory)
+          let relativePath = modFile.startsWith(directory)
             ? modFile.substring(directory.length).replace(/^[/\\]+/, '')
             : modFile;
+          
+          // Remove common "mods/" prefix if present
+          if (relativePath.startsWith('mods/') || relativePath.startsWith('mods\\')) {
+            relativePath = relativePath.substring(5);
+          }
 
           for (const book of books) {
             targets.push({
@@ -91,9 +100,16 @@ export function GuidebooksTab() {
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
   ) => {
+    // Sort targets alphabetically for consistent processing
+    const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
+    
     // Reset whole progress tracking
     setCompletedChunks(0);
     setWholeProgress(0);
+    setCompletedGuidebooks(0);
+    
+    // Set total guidebooks for progress tracking
+    setTotalGuidebooks(sortedTargets.length);
 
     // Prepare jobs and count total chunks
     let totalChunksCount = 0;
@@ -151,7 +167,6 @@ export function GuidebooksTab() {
     // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
     const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;
     setTotalChunks(finalTotalChunks);
-    console.log(`GuidebooksTab: Set totalChunks to ${finalTotalChunks} for ${jobs.length} jobs`);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {
@@ -166,6 +181,7 @@ export function GuidebooksTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedChunks, // Connect to store for overall progress tracking
+        incrementWholeProgress: incrementCompletedGuidebooks, // Track at guidebook level
         targetLanguage,
         type: "patchouli",
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,

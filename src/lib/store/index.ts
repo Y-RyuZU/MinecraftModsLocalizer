@@ -37,6 +37,15 @@ interface AppState {
   // Mod-level progress tracking
   totalMods: number;
   completedMods: number;
+  // Quest-level progress tracking
+  totalQuests: number;
+  completedQuests: number;
+  // Guidebook-level progress tracking
+  totalGuidebooks: number;
+  completedGuidebooks: number;
+  // Custom files-level progress tracking
+  totalCustomFiles: number;
+  completedCustomFiles: number;
   currentJobId: string | null;
   setTranslating: (isTranslating: boolean) => void;
   setProgress: (progress: number) => void;
@@ -50,6 +59,21 @@ interface AppState {
   setCompletedMods: (completedMods: number) => void;
   incrementCompletedMods: () => void;
   updateModProgress: (completedMods: number, totalMods: number) => void;
+  // Quest-level progress methods
+  setTotalQuests: (totalQuests: number) => void;
+  setCompletedQuests: (completedQuests: number) => void;
+  incrementCompletedQuests: () => void;
+  updateQuestProgress: (completedQuests: number, totalQuests: number) => void;
+  // Guidebook-level progress methods
+  setTotalGuidebooks: (totalGuidebooks: number) => void;
+  setCompletedGuidebooks: (completedGuidebooks: number) => void;
+  incrementCompletedGuidebooks: () => void;
+  updateGuidebookProgress: (completedGuidebooks: number, totalGuidebooks: number) => void;
+  // Custom files-level progress methods
+  setTotalCustomFiles: (totalCustomFiles: number) => void;
+  setCompletedCustomFiles: (completedCustomFiles: number) => void;
+  incrementCompletedCustomFiles: () => void;
+  updateCustomFilesProgress: (completedCustomFiles: number, totalCustomFiles: number) => void;
   setCurrentJobId: (jobId: string | null) => void;
   
   // Translation results
@@ -133,28 +157,31 @@ export const useAppStore = create<AppState>((set) => ({
   // Mod-level progress state
   totalMods: 0,
   completedMods: 0,
+  // Quest-level progress state
+  totalQuests: 0,
+  completedQuests: 0,
+  // Guidebook-level progress state
+  totalGuidebooks: 0,
+  completedGuidebooks: 0,
+  // Custom files-level progress state
+  totalCustomFiles: 0,
+  completedCustomFiles: 0,
   currentJobId: null,
   setTranslating: (isTranslating) => set({ isTranslating }),
-  setProgress: (progress) => set((state) => {
+  setProgress: (progress) => set(() => {
     const newProgress = Math.max(0, Math.min(100, progress || 0));
-    // Prevent backwards progress
-    if (newProgress < state.progress) {
-      console.warn(`Attempted to set progress backwards: ${state.progress}% -> ${newProgress}%`);
-      return state;
-    }
+    // Allow progress to be reset for each file
     return { progress: newProgress };
   }),
   setWholeProgress: (progress) => set((state) => {
     const newProgress = Math.max(0, Math.min(100, progress || 0));
-    // Prevent backwards progress
-    if (newProgress < state.wholeProgress) {
-      console.warn(`Attempted to set whole progress backwards: ${state.wholeProgress}% -> ${newProgress}%`);
+    // Allow resetting to 0 when not translating or when explicitly setting to 0
+    if (newProgress < state.wholeProgress && state.isTranslating && newProgress !== 0) {
       return state;
     }
     return { wholeProgress: newProgress };
   }),
   setTotalChunks: (totalChunks) => {
-    console.log(`Setting totalChunks to: ${totalChunks}`);
     return set({ totalChunks: Math.max(0, totalChunks || 0) });
   },
   setCompletedChunks: (completedChunks) => set({ completedChunks: Math.max(0, completedChunks || 0) }),
@@ -164,8 +191,6 @@ export const useAppStore = create<AppState>((set) => ({
     // Calculate progress with bounds checking (0-100)
     const rawProgress = state.totalChunks > 0 ? (newCompletedChunks / state.totalChunks * 100) : 0;
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
-    
-    console.log(`Progress tracking: ${newCompletedChunks}/${state.totalChunks} chunks (${boundedProgress}%)`);
     
     // Log progress milestones (every 25%)
     const prevProgress = state.totalChunks > 0 ? Math.round((state.completedChunks / state.totalChunks) * 100) : 0;
@@ -182,8 +207,9 @@ export const useAppStore = create<AppState>((set) => ({
     }
     
     return {
-      completedChunks: newCompletedChunks,
-      wholeProgress: boundedProgress
+      completedChunks: newCompletedChunks
+      // Progress is updated by setProgress for individual files
+      // wholeProgress is updated by incrementCompletedMods
     };
   }),
   updateProgressTracking: (completedChunks, totalChunks) => set(() => {
@@ -191,21 +217,15 @@ export const useAppStore = create<AppState>((set) => ({
     const validTotalChunks = Math.max(1, totalChunks || 1);
     const validCompletedChunks = Math.max(0, Math.min(completedChunks || 0, validTotalChunks));
     
-    // Calculate progress with bounds checking (0-100)
-    const rawProgress = (validCompletedChunks / validTotalChunks) * 100;
-    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
-    
-    console.log(`Updated progress tracking: ${validCompletedChunks}/${validTotalChunks} chunks (${boundedProgress}%)`);
-    
     return {
       completedChunks: validCompletedChunks,
-      totalChunks: validTotalChunks,
-      wholeProgress: boundedProgress
+      totalChunks: validTotalChunks
+      // Progress is updated by setProgress for individual files
+      // wholeProgress is updated by updateModProgress
     };
   }),
   // Mod-level progress methods
   setTotalMods: (totalMods) => {
-    console.log(`Setting totalMods to: ${totalMods}`);
     return set({ totalMods: Math.max(0, totalMods || 0) });
   },
   setCompletedMods: (completedMods) => set({ completedMods: Math.max(0, completedMods || 0) }),
@@ -215,8 +235,6 @@ export const useAppStore = create<AppState>((set) => ({
     // Calculate progress with bounds checking (0-100)
     const rawProgress = state.totalMods > 0 ? (newCompletedMods / state.totalMods * 100) : 0;
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
-    
-    console.log(`Mod progress tracking: ${newCompletedMods}/${state.totalMods} mods (${boundedProgress}%)`);
     
     // Log mod completion milestones
     const prevProgress = state.totalMods > 0 ? Math.round((state.completedMods / state.totalMods) * 100) : 0;
@@ -246,11 +264,90 @@ export const useAppStore = create<AppState>((set) => ({
     const rawProgress = (validCompletedMods / validTotalMods) * 100;
     const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
     
-    console.log(`Updated mod progress tracking: ${validCompletedMods}/${validTotalMods} mods (${boundedProgress}%)`);
-    
     return {
       completedMods: validCompletedMods,
       totalMods: validTotalMods,
+      wholeProgress: boundedProgress
+    };
+  }),
+  // Quest-level progress methods
+  setTotalQuests: (totalQuests) => {
+    return set({ totalQuests: Math.max(0, totalQuests || 0) });
+  },
+  setCompletedQuests: (completedQuests) => set({ completedQuests: Math.max(0, completedQuests || 0) }),
+  incrementCompletedQuests: () => set((state) => {
+    const newCompletedQuests = Math.min(state.completedQuests + 1, state.totalQuests);
+    const rawProgress = state.totalQuests > 0 ? (newCompletedQuests / state.totalQuests * 100) : 0;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedQuests: newCompletedQuests,
+      wholeProgress: boundedProgress
+    };
+  }),
+  updateQuestProgress: (completedQuests, totalQuests) => set(() => {
+    const validTotalQuests = Math.max(1, totalQuests || 1);
+    const validCompletedQuests = Math.max(0, Math.min(completedQuests || 0, validTotalQuests));
+    const rawProgress = (validCompletedQuests / validTotalQuests) * 100;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedQuests: validCompletedQuests,
+      totalQuests: validTotalQuests,
+      wholeProgress: boundedProgress
+    };
+  }),
+  // Guidebook-level progress methods
+  setTotalGuidebooks: (totalGuidebooks) => {
+    return set({ totalGuidebooks: Math.max(0, totalGuidebooks || 0) });
+  },
+  setCompletedGuidebooks: (completedGuidebooks) => set({ completedGuidebooks: Math.max(0, completedGuidebooks || 0) }),
+  incrementCompletedGuidebooks: () => set((state) => {
+    const newCompletedGuidebooks = Math.min(state.completedGuidebooks + 1, state.totalGuidebooks);
+    const rawProgress = state.totalGuidebooks > 0 ? (newCompletedGuidebooks / state.totalGuidebooks * 100) : 0;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedGuidebooks: newCompletedGuidebooks,
+      wholeProgress: boundedProgress
+    };
+  }),
+  updateGuidebookProgress: (completedGuidebooks, totalGuidebooks) => set(() => {
+    const validTotalGuidebooks = Math.max(1, totalGuidebooks || 1);
+    const validCompletedGuidebooks = Math.max(0, Math.min(completedGuidebooks || 0, validTotalGuidebooks));
+    const rawProgress = (validCompletedGuidebooks / validTotalGuidebooks) * 100;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedGuidebooks: validCompletedGuidebooks,
+      totalGuidebooks: validTotalGuidebooks,
+      wholeProgress: boundedProgress
+    };
+  }),
+  // Custom files-level progress methods
+  setTotalCustomFiles: (totalCustomFiles) => {
+    return set({ totalCustomFiles: Math.max(0, totalCustomFiles || 0) });
+  },
+  setCompletedCustomFiles: (completedCustomFiles) => set({ completedCustomFiles: Math.max(0, completedCustomFiles || 0) }),
+  incrementCompletedCustomFiles: () => set((state) => {
+    const newCompletedCustomFiles = Math.min(state.completedCustomFiles + 1, state.totalCustomFiles);
+    const rawProgress = state.totalCustomFiles > 0 ? (newCompletedCustomFiles / state.totalCustomFiles * 100) : 0;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedCustomFiles: newCompletedCustomFiles,
+      wholeProgress: boundedProgress
+    };
+  }),
+  updateCustomFilesProgress: (completedCustomFiles, totalCustomFiles) => set(() => {
+    const validTotalCustomFiles = Math.max(1, totalCustomFiles || 1);
+    const validCompletedCustomFiles = Math.max(0, Math.min(completedCustomFiles || 0, validTotalCustomFiles));
+    const rawProgress = (validCompletedCustomFiles / validTotalCustomFiles) * 100;
+    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
+    
+    return {
+      completedCustomFiles: validCompletedCustomFiles,
+      totalCustomFiles: validTotalCustomFiles,
       wholeProgress: boundedProgress
     };
   }),
@@ -288,6 +385,12 @@ export const useAppStore = create<AppState>((set) => ({
     completedChunks: 0,
     totalMods: 0,
     completedMods: 0,
+    totalQuests: 0,
+    completedQuests: 0,
+    totalGuidebooks: 0,
+    completedGuidebooks: 0,
+    totalCustomFiles: 0,
+    completedCustomFiles: 0,
     currentJobId: null,
     translationResults: [],
     error: null,

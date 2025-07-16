@@ -119,8 +119,6 @@ export function TranslationTab({
                                    setTranslating,
                                    setProgress,
                                    setWholeProgress,
-                                   setTotalChunks,
-                                   setCompletedChunks,
                                    addTranslationResult,
                                    error,
                                    setError,
@@ -164,11 +162,12 @@ export function TranslationTab({
 
                 // Log the selection type for debugging
                 if (selected.startsWith("NATIVE_DIALOG:")) {
-                    console.log("Native dialog was used!");
-                } else {
-                    console.log("Mock dialog was used!");
-                    // Only show warning in development mode
                     if (process.env.NODE_ENV === 'development') {
+                        console.log("Native dialog was used!");
+                    }
+                } else {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log("Mock dialog was used!");
                         setError("Warning: Mock dialog was used instead of native dialog");
                     }
                 }
@@ -189,6 +188,15 @@ export function TranslationTab({
         try {
             setIsScanning(true);
             setError(null);
+            
+            // Clear existing results before scanning
+            setTranslationTargets([]);
+            setFilterText("");
+            
+            // Reset translation state if exists
+            if (translationResults.length > 0) {
+                setTranslationResults([]);
+            }
 
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
@@ -240,13 +248,12 @@ export function TranslationTab({
             // Reset cancellation flag
             wasCancelledRef.current = false;
 
+            // Reset translation state immediately
+            resetTranslationState();
             setTranslating(true);
             setProgress(0);
             setWholeProgress(0);
-            setTotalChunks(0);
-            setCompletedChunks(0);
             setError(null);
-            setCurrentJobId(null);
 
             const selectedTargets = translationTargets.filter(target => target.selected);
 
@@ -264,11 +271,15 @@ export function TranslationTab({
                 return;
             }
 
+            // Get provider-specific API key
+            const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
+            const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+            
             // Create a translation service
             const translationService = new TranslationService({
                 llmConfig: {
                     provider: config.llm.provider,
-                    apiKey: config.llm.apiKey,
+                    apiKey: apiKey,
                     baseUrl: config.llm.baseUrl,
                     model: config.llm.model,
                 },
@@ -278,12 +289,9 @@ export function TranslationTab({
                 // Token-based chunking configuration
                 useTokenBasedChunking: config.translation.useTokenBasedChunking,
                 maxTokensPerChunk: config.translation.maxTokensPerChunk,
-                fallbackToEntryBased: config.translation.fallbackToEntryBased,
-                onProgress: (job) => {
-                    // Update individual job progress (bounded 0-100)
-                    const boundedProgress = Math.max(0, Math.min(100, job.progress || 0));
-                    setProgress(boundedProgress);
-                }
+                fallbackToEntryBased: config.translation.fallbackToEntryBased
+                // Remove onProgress callback to prevent duplicate updates
+                // Progress is now handled directly by translation-runner.ts
             });
 
             // Store the translation service in the ref
@@ -517,8 +525,35 @@ export function TranslationTab({
                         <TableBody>
                             {translationTargets.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={tableColumns.length + 1} className="text-center">
-                                        {isScanning ? t(scanningForItemsLabel) : t(noItemsFoundLabel)}
+                                    <TableCell colSpan={tableColumns.length + 1} className="text-center py-16">
+                                        {isScanning ? (
+                                            <div className="flex flex-col items-center gap-4">
+                                                <div className="relative">
+                                                    {/* Outer spinning ring */}
+                                                    <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
+                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                                                    
+                                                    {/* Inner pulsing circle */}
+                                                    <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
+                                                </div>
+                                                
+                                                <div className="space-y-2 text-center">
+                                                    <p className="text-lg font-medium">{t(scanningForItemsLabel)}</p>
+                                                    <p className="text-sm text-muted-foreground animate-pulse">
+                                                        {t('misc.pleaseWait')}
+                                                    </p>
+                                                </div>
+                                                
+                                                {/* Progress dots animation */}
+                                                <div className="flex gap-1">
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.3s]"></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.15s]"></div>
+                                                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary"></div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">{t(noItemsFoundLabel)}</p>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -534,7 +569,7 @@ export function TranslationTab({
                                             .filter(t => t.id === target.id)
                                             .length > 1;
 
-                                        if (duplicateIds) {
+                                        if (duplicateIds && process.env.NODE_ENV === 'development') {
                                             console.log(`重複したtarget.id: ${target.id} ${target.name}`);
                                         }
 

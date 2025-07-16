@@ -120,7 +120,6 @@ export function ModsTab() {
   ) => {
     // Sort targets alphabetically by name for predictable processing order
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-    console.log(`ModsTab: Processing ${sortedTargets.length} mods in alphabetical order:`, sortedTargets.map(t => t.name));
     // Always set resource packs directory to <selectedDirectory>/resourcepacks
     const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
 
@@ -133,9 +132,11 @@ export function ModsTab() {
       resourcePacksDir
     );
 
-    // Reset progress tracking (use mod-level instead of chunk-level)
+    // Reset progress tracking
     setCompletedMods(0);
+    setCompletedChunks(0);
     setWholeProgress(0);
+    setCurrentJobId(null);
 
     // Prepare jobs and count total chunks (using sorted targets)
     let totalChunksCount = 0;
@@ -187,18 +188,24 @@ export function ModsTab() {
 
     // Use mod-level progress tracking: denominator = total mods, numerator = completed mods
     setTotalMods(sortedTargets.length);
-    console.log(`ModsTab: Set totalMods to ${sortedTargets.length} for mod-level progress tracking`);
     
-    // Keep chunk tracking for internal processing (optional)
-    const extraStepsPerJob = 2;
-    const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount + (jobs.length * extraStepsPerJob) : jobs.length * 3;
-    setTotalChunks(finalTotalChunks);
-    console.log(`ModsTab: Set totalChunks to ${finalTotalChunks} (for internal tracking only)`);
+    // Set chunk tracking for progress calculation
+    setTotalChunks(totalChunksCount);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {
       setCurrentJobId(jobs[0].id);
     }
+    
+    // Generate session ID for this translation
+    const sessionId = await invoke<string>('generate_session_id');
+    
+    // Create logs directory with session ID  
+    const minecraftDir = selectedDirectory;
+    const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+      minecraftDir: minecraftDir,
+      sessionId: sessionId
+    });
 
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");
@@ -207,10 +214,12 @@ export function ModsTab() {
         jobs,
         translationService,
         setCurrentJobId,
+        setProgress,
         incrementCompletedChunks: useAppStore.getState().incrementCompletedChunks, // Track chunk-level progress
-        // Don't use incrementCompletedMods to avoid progress conflicts
+        incrementWholeProgress: useAppStore.getState().incrementCompletedMods, // Track mod-level progress
         targetLanguage,
         type: "mod",
+        sessionId,
         getOutputPath: () => resourcePackDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
@@ -246,6 +255,17 @@ export function ModsTab() {
           } catch {}
         }
       });
+      
+      // Backup the generated resource pack after successful translation
+      try {
+        await invoke('backup_resource_pack', {
+          packPath: resourcePackDir,
+          sessionPath: sessionPath
+        });
+      } catch (error) {
+        console.error('Failed to backup resource pack:', error);
+        // Don't fail the translation if backup fails
+      }
     } finally {
       setTranslating(false);
     }

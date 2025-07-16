@@ -24,6 +24,10 @@ export function QuestsTab() {
         setTotalChunks,
         setCompletedChunks,
         incrementCompletedChunks,
+        // Quest-level progress tracking
+        setTotalQuests,
+        setCompletedQuests,
+        incrementCompletedQuests,
         addTranslationResult,
         error,
         setError,
@@ -37,6 +41,9 @@ export function QuestsTab() {
 
     // Scan for quests
     const handleScan = async (directory: string) => {
+        // Clear existing targets before scanning
+        setQuestTranslationTargets([]);
+        
         // Get FTB quest files
         const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
 
@@ -50,9 +57,8 @@ export function QuestsTab() {
         for (let i = 0; i < ftbQuestFiles.length; i++) {
             const questFile = ftbQuestFiles[i];
             try {
-                // In a real implementation, we would parse the quest file to get more information
-                // For now, we'll just use the file path
-                const fileName = questFile.split('/').pop() || "unknown";
+                // Extract just the filename for the quest name
+                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
                 const questNumber = i + 1;
 
                 // Calculate relative path by removing the selected directory part
@@ -78,9 +84,8 @@ export function QuestsTab() {
         for (let i = 0; i < betterQuestFiles.length; i++) {
             const questFile = betterQuestFiles[i];
             try {
-                // In a real implementation, we would parse the quest file to get more information
-                // For now, we'll just use the file path
-                const fileName = questFile.split('/').pop() || "unknown";
+                // Extract just the filename for the quest name
+                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
                 const questNumber = i + 1;
 
                 // Calculate relative path by removing the selected directory part
@@ -130,10 +135,39 @@ export function QuestsTab() {
             setCompletedChunks(0);
             setWholeProgress(0);
             setProgress(0);
+            setCompletedQuests(0);
             
             // Set total quests for progress tracking
-            const totalQuests = sortedTargets.length;
+            setTotalQuests(sortedTargets.length);
+                const totalQuests = sortedTargets.length;
             setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
+            
+            // Generate session ID for this translation
+            const sessionId = await invoke<string>('generate_session_id');
+            
+            // Create logs directory with session ID
+            const minecraftDir = selectedDirectory;
+            const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+                minecraftDir: minecraftDir,
+                sessionId: sessionId
+            });
+            
+            // Backup SNBT files before translation (only for FTB quests)
+            const snbtFiles = sortedTargets
+                .filter(target => target.questFormat === 'ftb' && target.path.endsWith('.snbt'))
+                .map(target => target.path);
+            
+            if (snbtFiles.length > 0) {
+                try {
+                    await invoke('backup_snbt_files', {
+                        files: snbtFiles,
+                        sessionPath: sessionPath
+                    });
+                        } catch (error) {
+                    console.error('Failed to backup SNBT files:', error);
+                    // Continue with translation even if backup fails
+                }
+            }
             
             // Create jobs for all quests
             const jobs: Array<{
@@ -186,9 +220,10 @@ export function QuestsTab() {
                 translationService,
                 setCurrentJobId,
                 incrementCompletedChunks, // Track at chunk level for real-time progress
-                incrementWholeProgress: incrementCompletedChunks, // Track at quest level
+                incrementWholeProgress: incrementCompletedQuests, // Track at quest level
                 targetLanguage,
                 type: "quest",
+                sessionId,
                 getOutputPath: () => selectedDirectory,
                 getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
                 writeOutput: async (job, outputPath, content) => {
@@ -289,13 +324,28 @@ export function QuestsTab() {
 
     // Custom render function for the type column
     const renderQuestType = (target: TranslationTarget) => {
-        if (target.questFormat === "ftb") {
-            return "FTB Quest";
+        const isFTB = target.questFormat === "ftb";
+        const isDirectMode = !isFTB && target.path.endsWith('DefaultQuests.lang');
+        
+        let type: string;
+        let className: string;
+        
+        if (isFTB) {
+            type = "FTB Quest";
+            className = "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        } else if (isDirectMode) {
+            type = "Better Quest (Direct)";
+            className = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         } else {
-            // For BetterQuest, show if it's direct mode
-            const isDirectMode = target.path.endsWith('DefaultQuests.lang');
-            return isDirectMode ? "Better Quest (Direct)" : "Better Quest";
+            type = "Better Quest";
+            className = "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200";
         }
+        
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
+                {type}
+            </span>
+        );
     };
 
     return (

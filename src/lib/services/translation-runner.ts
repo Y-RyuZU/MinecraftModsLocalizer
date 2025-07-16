@@ -1,5 +1,7 @@
 import { TranslationService, TranslationJob } from "./translation-service";
 import { TranslationResult, TranslationTargetType } from "../types/minecraft";
+import { invoke } from '@tauri-apps/api/core';
+import { useAppStore } from '@/lib/store';
 
 export interface RunTranslationJobsOptions<T extends TranslationJob = TranslationJob> {
     jobs: T[];
@@ -10,6 +12,7 @@ export interface RunTranslationJobsOptions<T extends TranslationJob = Translatio
     onJobInterrupted?: (job: T, index: number) => void;
     onResult?: (result: TranslationResult) => void;
     setCurrentJobId?: (jobId: string | null) => void;
+    setProgress?: (progress: number) => void;
     incrementCompletedChunks?: () => void;
     incrementCompletedMods?: () => void;
     incrementWholeProgress?: () => void;
@@ -35,6 +38,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         onJobInterrupted,
         onResult,
         setCurrentJobId,
+        setProgress,
         incrementCompletedChunks,
         incrementCompletedMods,
         incrementWholeProgress,
@@ -47,6 +51,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         enableBackup = true
     } = options;
 
+
     for (let i = 0; i < jobs.length; i++) {
         const job = jobs[i];
         if (onJobStart) onJobStart(job, i);
@@ -55,6 +60,15 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         // Start the translation job chunk-by-chunk, checking for interruption
         job.status = "processing";
         job.startTime = Date.now();
+        
+        // Reset individual file progress with immediate update
+        if (setProgress) {
+            setProgress(0);
+        }
+        
+        // Calculate total keys for this job (for key-based progress)
+        const totalKeys = job.chunks.reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
+        let processedKeys = 0;
 
         for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
             // Check for cancellation
@@ -79,7 +93,21 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 chunk.error = error instanceof Error ? error.message : String(error);
             }
             
-            // Increment chunk-level progress once per chunk (only if chunk tracking is used)
+            // Update processed keys count
+            processedKeys += Object.keys(chunk.content).length;
+            
+            // Update individual file progress based on processed keys
+            const keyProgress = totalKeys > 0 ? Math.round((processedKeys / totalKeys) * 100) : 100;
+            if (setProgress) {
+                setProgress(keyProgress);
+            }
+            
+            // Update job progress for consistency (no callback trigger to avoid double updates)
+            const completedChunks = job.chunks.filter(c => c.status === "completed" || c.status === "failed").length;
+            const serviceProgress = job.chunks.length > 0 ? Math.round((completedChunks / job.chunks.length) * 100) : 0;
+            (job as { progress?: number }).progress = serviceProgress;
+            
+            // Increment overall chunk-level progress
             if (incrementCompletedChunks) incrementCompletedChunks();
             if (onJobChunkComplete) onJobChunkComplete(job, chunkIndex);
         }
@@ -120,12 +148,47 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 enableBackup
             });
         }
-
-        // Increment mod-level progress if applicable
-        if (incrementCompletedMods) incrementCompletedMods();
         
-        // Increment whole progress
-        if (incrementWholeProgress) incrementWholeProgress();
+        // Update translation summary if session ID is provided
+        if (sessionId) {
+            try {
+                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown> }> }).chunks || [];
+                const translatedKeys = chunks.filter((c) => c.status === "completed")
+                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
+                const totalKeys = Object.keys((job as { sourceContent?: Record<string, unknown> }).sourceContent || {}).length;
+                
+                const config = useAppStore.getState().config;
+                
+                await invoke('update_translation_summary', {
+                    minecraftDir: config.paths.minecraftDir || '',
+                    sessionId,
+                    translationType: type,
+                    name: job.currentFileName || job.id,
+                    status: job.status === "completed" ? "completed" : "failed",
+                    translatedKeys,
+                    totalKeys,
+                    targetLanguage
+                });
+            } catch (error) {
+                console.error('Failed to update translation summary:', error);
+                // Don't fail the translation if summary update fails
+            }
+        }
+
+        // Ensure final progress is set to 100% for completed jobs
+        if (setProgress && job.status === "completed") {
+            setProgress(100);
+        }
+        
+        // Increment mod-level progress if applicable
+        if (incrementCompletedMods) {
+            incrementCompletedMods();
+        }
+        
+        // Increment whole progress (for backward compatibility with other tabs)
+        if (incrementWholeProgress && incrementWholeProgress !== incrementCompletedMods) {
+            incrementWholeProgress();
+        }
     }
 
     if (setCurrentJobId) setCurrentJobId(null);

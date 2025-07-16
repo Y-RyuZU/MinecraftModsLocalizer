@@ -34,10 +34,14 @@
     "systemPrompt": "System Prompt",
     "systemPromptPlaceholder": "Enter system prompt to define AI behavior",
     "userPrompt": "User Prompt",
-    "userPromptPlaceholder": "Enter user prompt template with {language}, {line_count}, {content} variables",
-    "availableVariables": "Available variables: {language}, {line_count}, {content}",
+    "userPromptPlaceholder": "Enter user prompt template with {{language}}, {{line_count}}, {{content}} variables",
+    "availableVariables": "Available variables: {{language}}, {{line_count}}, {{content}}",
     "temperature": "Temperature",
     "temperatureHint": "Controls randomness (0.0-2.0). Higher values make output more creative.",
+    "apiKeyProviderHint": "This API key is only for {{provider}}",
+    "modelProviderHint": "Default model for {{provider}}: {{defaultModel}}",
+    "advancedSettings": "Advanced Settings",
+    "prompts": "Prompts",
     "providers": {
       "openai": "OpenAI",
       "anthropic": "Anthropic",
@@ -76,7 +80,29 @@
     "saveSuccess": "Settings saved",
     "saveSuccessDescription": "Your settings have been saved successfully",
     "saveError": "Failed to save settings",
-    "saveErrorDescription": "An error occurred while saving your settings"
+    "saveErrorDescription": "An error occurred while saving your settings",
+    "backup": {
+      "title": "Backup Settings",
+      "description": "Configure automatic backup of translation files",
+      "enabled": "Enable Automatic Backup",
+      "enabledDescription": "Create backups before overwriting translation files",
+      "retentionDays": "Retention Period (days)",
+      "keepForever": "Keep forever",
+      "days": "days",
+      "retentionDescription": "Backups older than this will be automatically deleted. Set to 0 to keep forever.",
+      "maxBackupsPerType": "Max Backups per Type",
+      "unlimited": "Unlimited",
+      "backups": "backups",
+      "maxBackupsDescription": "Maximum number of backups to keep for each translation type. Set to 0 for unlimited.",
+      "autoPrune": "Auto-prune on Startup",
+      "autoPruneDescription": "Automatically delete old backups when the application starts",
+      "storageUsed": "Storage Used",
+      "pruning": "Pruning...",
+      "pruneNow": "Prune Old Backups",
+      "simpleBackupDescription": "Backups are created automatically during translation. Original files are preserved before translation, and results are saved after completion.",
+      "translationHistory": "Translation History",
+      "noHistory": "No translation history found"
+    }
   },
   "tabs": {
     "mods": "Mods",
@@ -85,7 +111,8 @@
     "customFiles": "Custom Files",
     "settings": "Settings",
     "targetLanguage": "Target Language",
-    "selectLanguage": "Select language"
+    "selectLanguage": "Select language",
+    "translations": "Translations"
   },
   "cards": {
     "modTranslation": "Mod Translation",
@@ -144,14 +171,18 @@
     "noFilesSelected": "No files selected for translation",
     "selectDirectoryFirst": "Please select a directory first",
     "selectProfileDirectoryFirst": "Please select a profile directory first",
-    "noTargetLanguageSelected": "No target language selected. Please select a target language from the dropdown in the translation tab."
+    "noTargetLanguageSelected": "No target language selected. Please select a target language from the dropdown in the translation tab.",
+    "translationInProgress": "Translation in Progress",
+    "cannotSwitchTabs": "Cannot switch tabs while translation is in progress. Please wait for the current translation to complete or cancel it.",
+    "failedToLoad": "Failed to load"
   },
   "info": {
     "translationCancelled": "Translation cancelled by user"
   },
   "misc": {
     "loading": "Loading...",
-    "selectedDirectory": "Selected directory:"
+    "selectedDirectory": "Selected directory:",
+    "pleaseWait": "Please wait..."
   },
   "logs": {
     "title": "Logs",
@@ -183,7 +214,33 @@
     "clear": "Clear",
     "confirmClear": "Are you sure you want to clear all translation history?",
     "noHistory": "No translation history yet",
-    "noResultsFound": "No results found matching your search"
+    "noResultsFound": "No results found matching your search",
+    "sessionDate": "Session Date",
+    "targetLanguage": "Target Language",
+    "totalItems": "Total Items",
+    "success": "Success",
+    "successCount": "Success Count",
+    "successRate": "Success Rate",
+    "translationDetails": "Translation Details",
+    "keyCount": "Keys",
+    "fileName": "File Name",
+    "type": "Type",
+    "status": "Status",
+    "completed": "Completed",
+    "failed": "Failed",
+    "types": {
+      "quest": "Quest",
+      "mod": "Mod",
+      "guidebook": "Guidebook",
+      "customFiles": "Custom Files",
+      "resource_pack": "Resource Pack"
+    },
+    "statuses": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "pending": "Pending",
+      "in_progress": "In Progress"
+    }
   },
   "update": {
     "title": "Update Available",
@@ -202,7 +259,7 @@
     "installNow": "Install Now",
     "downloading": "Downloading Update...",
     "installing": "Installing Update...",
-    "progressSize": "{downloaded}MB / {total}MB",
+    "progressSize": "{{downloaded}}MB / {{total}}MB",
     "restartPrompt": "Update has been installed. Would you like to restart the application now?",
     "updateComplete": "Update Complete",
     "restartNow": "Restart Now",
@@ -215,7 +272,11 @@
     }
   },
   "common": {
-    "close": "Close"
+    "close": "Close",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "viewDetails": "View Details",
+    "hideDetails": "Hide Details"
   },
   "header": {
     "downloadReleases": "Download releases",

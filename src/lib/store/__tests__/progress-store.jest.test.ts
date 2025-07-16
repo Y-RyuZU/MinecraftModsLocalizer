@@ -33,22 +33,38 @@ describe('Progress Store', () => {
       state.setProgress(150);
       expect(useAppStore.getState().progress).toBe(100);
 
-      // Test negative value (should not go backwards from current value)
-      const currentWholeProgress = useAppStore.getState().wholeProgress;
+      // Test negative value - should clamp to 0
       state.setWholeProgress(-10);
-      // Should maintain current value due to backward progress prevention
-      expect(useAppStore.getState().wholeProgress).toBe(currentWholeProgress);
+      expect(useAppStore.getState().wholeProgress).toBe(0);
 
-      // Test null/undefined with backward progress prevention
-      // Progress is already at 100%, so null (treated as 0) won't decrease it
-      const currentProgress = useAppStore.getState().progress;
+      // Test null/undefined - should reset to 0
       state.setProgress(null as any);
-      expect(useAppStore.getState().progress).toBe(currentProgress); // Should stay at 100%
+      expect(useAppStore.getState().progress).toBe(0);
 
       // Same for wholeProgress
-      const currentWhole = useAppStore.getState().wholeProgress;
       state.setWholeProgress(undefined as any);
-      expect(useAppStore.getState().wholeProgress).toBe(currentWhole);
+      expect(useAppStore.getState().wholeProgress).toBe(0);
+    });
+
+    it('should prevent backward progress during translation', () => {
+      const state = useAppStore.getState();
+
+      // Set initial progress and start translating
+      state.setWholeProgress(50);
+      state.setTranslating(true);
+
+      // Try to set progress backwards - should maintain current value
+      state.setWholeProgress(30);
+      expect(useAppStore.getState().wholeProgress).toBe(50);
+
+      // Allow setting to 0 even when translating
+      state.setWholeProgress(0);
+      expect(useAppStore.getState().wholeProgress).toBe(0);
+
+      // Allow progress when not translating
+      state.setTranslating(false);
+      state.setWholeProgress(25);
+      expect(useAppStore.getState().wholeProgress).toBe(25);
     });
 
     it('should manage translation state', () => {
@@ -92,19 +108,22 @@ describe('Progress Store', () => {
 
       state.incrementCompletedChunks();
       expect(useAppStore.getState().completedChunks).toBe(1);
-      expect(useAppStore.getState().wholeProgress).toBe(10); // 1/10 * 100
+      // incrementCompletedChunks doesn't update wholeProgress
+      expect(useAppStore.getState().wholeProgress).toBe(0);
 
       state.incrementCompletedChunks();
       state.incrementCompletedChunks();
       expect(useAppStore.getState().completedChunks).toBe(3);
-      expect(useAppStore.getState().wholeProgress).toBe(30); // 3/10 * 100
+      // incrementCompletedChunks doesn't update wholeProgress
+      expect(useAppStore.getState().wholeProgress).toBe(0);
 
       // Test bounds - shouldn't exceed totalChunks
       state.setCompletedChunks(9);
       state.incrementCompletedChunks(); // Should go to 10
       state.incrementCompletedChunks(); // Should stay at 10
       expect(useAppStore.getState().completedChunks).toBe(10);
-      expect(useAppStore.getState().wholeProgress).toBe(100);
+      // incrementCompletedChunks doesn't update wholeProgress
+      expect(useAppStore.getState().wholeProgress).toBe(0);
     });
 
     it('should update progress tracking correctly', () => {
@@ -114,14 +133,16 @@ describe('Progress Store', () => {
       const currentState = useAppStore.getState();
       expect(currentState.completedChunks).toBe(7);
       expect(currentState.totalChunks).toBe(20);
-      expect(currentState.wholeProgress).toBe(35); // 7/20 * 100
+      // updateProgressTracking doesn't update wholeProgress anymore
+      expect(currentState.wholeProgress).toBe(0);
 
       // Test with completed > total
       state.updateProgressTracking(15, 10);
       const updatedState = useAppStore.getState();
       expect(updatedState.completedChunks).toBe(10); // Capped at total
       expect(updatedState.totalChunks).toBe(10);
-      expect(updatedState.wholeProgress).toBe(100);
+      // updateProgressTracking doesn't update wholeProgress anymore
+      expect(updatedState.wholeProgress).toBe(0);
     });
   });
 
@@ -196,12 +217,12 @@ describe('Progress Store', () => {
     it('should round progress values correctly', () => {
       const state = useAppStore.getState();
 
-      // Test chunk progress rounding
+      // Test chunk progress rounding - updateProgressTracking doesn't update wholeProgress
       state.updateProgressTracking(1, 3); // 33.333...%
-      expect(useAppStore.getState().wholeProgress).toBe(33);
+      expect(useAppStore.getState().wholeProgress).toBe(0);
 
       state.updateProgressTracking(2, 3); // 66.666...%
-      expect(useAppStore.getState().wholeProgress).toBe(67);
+      expect(useAppStore.getState().wholeProgress).toBe(0);
 
       // Test mod progress rounding
       state.updateModProgress(1, 7); // 14.285...%

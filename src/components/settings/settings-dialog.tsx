@@ -3,25 +3,28 @@
 import { useAppTranslation } from "@/lib/i18n";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { LLMSettings } from "@/components/settings/llm-settings";
 import { TranslationSettings } from "@/components/settings/translation-settings";
 import { PathSettings } from "@/components/settings/path-settings";
-import { UISettings } from "@/components/settings/ui-settings";
-import { BackupSettings } from "@/components/settings/backup-settings";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from "@/lib/services/file-service";
 import { toast } from "sonner";
 
 export function SettingsDialog() {
-  const { t } = useAppTranslation();
+  const { t, ready } = useAppTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { config, setConfig } = useAppStore();
   const [isSaving, setIsSaving] = useState(false);
   const [originalConfig, setOriginalConfig] = useState(config);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Save settings
   const handleSave = async () => {
@@ -85,7 +88,7 @@ export function SettingsDialog() {
       <Button 
         variant="ghost" 
         size="icon" 
-        aria-label={t('settings.openSettings')}
+        aria-label={mounted && ready ? t('settings.openSettings') : 'Settings'}
         onClick={() => setIsDialogOpen(true)}
       >
         <Settings className="h-5 w-5" />
@@ -118,12 +121,6 @@ export function SettingsDialog() {
             
             {/* Path Settings */}
             <PathSettings config={config} onSelectDirectory={handleSelectDirectory} />
-            
-            {/* UI Settings */}
-            <UISettings config={config} setConfig={setConfig} />
-            
-            {/* Backup Settings */}
-            <BackupSettings config={config} setConfig={setConfig} />
             
             {/* Reset Button */}
             <Card>

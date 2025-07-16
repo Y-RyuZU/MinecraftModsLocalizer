@@ -1,7 +1,8 @@
 use crate::logging::AppLogger;
 /**
- * Backup module for managing translation file backups
- * Integrates with existing logging infrastructure to store backups in session directories
+ * Simplified backup module for translation system
+ * Only handles backup creation - all management features have been removed
+ * as per TX016 specification for a minimal backup system
  */
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -137,315 +138,273 @@ pub fn create_backup(
     Ok(backup_path)
 }
 
-/// List available backups with optional filtering
-#[tauri::command]
-pub fn list_backups(
-    r#type: Option<String>,
-    session_id: Option<String>,
-    limit: Option<usize>,
-    logger: State<Arc<AppLogger>>,
-) -> Result<Vec<BackupInfo>, String> {
-    logger.debug("Listing backups", Some("BACKUP"));
+/// Copy directory recursively
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.as_ref().join(entry.file_name());
 
-    let logs_dir = PathBuf::from("logs").join("localizer");
-
-    if !logs_dir.exists() {
-        return Ok(Vec::new());
-    }
-
-    let mut backups = Vec::new();
-
-    // Iterate through session directories
-    let session_dirs =
-        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {e}"))?;
-
-    for session_entry in session_dirs {
-        let session_entry =
-            session_entry.map_err(|e| format!("Failed to read session directory entry: {e}"))?;
-
-        let session_path = session_entry.path();
-        if !session_path.is_dir() {
-            continue;
-        }
-
-        let session_name = session_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or_default();
-
-        // Filter by session ID if specified
-        if let Some(ref filter_session) = session_id {
-            if session_name != filter_session {
-                continue;
-            }
-        }
-
-        // Check for backups directory in this session
-        let backups_dir = session_path.join("backups");
-        if !backups_dir.exists() {
-            continue;
-        }
-
-        // Iterate through backup directories
-        let backup_entries = fs::read_dir(&backups_dir)
-            .map_err(|e| format!("Failed to read backups directory: {e}"))?;
-
-        for backup_entry in backup_entries {
-            let backup_entry =
-                backup_entry.map_err(|e| format!("Failed to read backup entry: {e}"))?;
-
-            let backup_path = backup_entry.path();
-            if !backup_path.is_dir() {
-                continue;
-            }
-
-            // Read metadata
-            let metadata_path = backup_path.join("metadata.json");
-            if !metadata_path.exists() {
-                continue;
-            }
-
-            let metadata_content = fs::read_to_string(&metadata_path)
-                .map_err(|e| format!("Failed to read backup metadata: {e}"))?;
-
-            let metadata: BackupMetadata = serde_json::from_str(&metadata_content)
-                .map_err(|e| format!("Failed to parse backup metadata: {e}"))?;
-
-            // Filter by type if specified
-            if let Some(ref filter_type) = r#type {
-                if &metadata.r#type != filter_type {
-                    continue;
-                }
-            }
-
-            // Check if backup can be restored (original files exist)
-            let original_files_dir = backup_path.join("original_files");
-            let can_restore = original_files_dir.exists()
-                && original_files_dir
-                    .read_dir()
-                    .map(|mut entries| entries.next().is_some())
-                    .unwrap_or(false);
-
-            let backup_info = BackupInfo {
-                metadata,
-                backup_path: backup_path.to_string_lossy().to_string(),
-                can_restore,
-            };
-
-            backups.push(backup_info);
+        if ty.is_dir() {
+            copy_dir_all(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
         }
     }
-
-    // Sort by timestamp (newest first)
-    backups.sort_by(|a, b| b.metadata.timestamp.cmp(&a.metadata.timestamp));
-
-    // Apply limit if specified
-    if let Some(limit) = limit {
-        backups.truncate(limit);
-    }
-
-    logger.info(&format!("Found {} backups", backups.len()), Some("BACKUP"));
-    Ok(backups)
+    Ok(())
 }
 
-/// Restore files from a backup
+/// Backup original SNBT files before translation
 #[tauri::command]
-pub fn restore_backup(
-    backup_id: String,
-    target_path: String,
+pub fn backup_snbt_files(
+    files: Vec<String>,
+    session_path: String,
     logger: State<Arc<AppLogger>>,
 ) -> Result<(), String> {
     logger.info(
-        &format!("Restoring backup: {backup_id} to {target_path}"),
+        &format!("Backing up {} SNBT files", files.len()),
         Some("BACKUP"),
     );
 
-    // Find the backup by ID
-    let backups = list_backups(None, None, None, logger.clone())?;
-    let backup = backups
-        .iter()
-        .find(|b| b.metadata.id == backup_id)
-        .ok_or_else(|| format!("Backup not found: {backup_id}"))?;
+    // Create backup directory: {session_path}/backup/snbt_original/
+    let backup_dir = PathBuf::from(&session_path)
+        .join("backup")
+        .join("snbt_original");
 
-    let backup_path = Path::new(&backup.backup_path);
-    let original_files_dir = backup_path.join("original_files");
-
-    if !original_files_dir.exists() {
-        return Err("Backup original files not found".to_string());
-    }
-
-    let target_dir = Path::new(&target_path);
-
-    // Create target directory if it doesn't exist
-    if let Err(e) = fs::create_dir_all(target_dir) {
-        let error_msg = format!("Failed to create target directory: {e}");
+    if let Err(e) = fs::create_dir_all(&backup_dir) {
+        let error_msg = format!("Failed to create SNBT backup directory: {e}");
         logger.error(&error_msg, Some("BACKUP"));
         return Err(error_msg);
     }
 
-    // Copy files from backup to target
-    let backup_files = fs::read_dir(&original_files_dir)
-        .map_err(|e| format!("Failed to read backup files: {e}"))?;
+    // Copy each SNBT file to backup directory
+    let mut backed_up_count = 0;
+    for file_path in files {
+        let source = Path::new(&file_path);
+        if source.exists() {
+            if let Some(file_name) = source.file_name() {
+                let dest = backup_dir.join(file_name);
 
-    let mut restored_count = 0;
-    for backup_file in backup_files {
-        let backup_file =
-            backup_file.map_err(|e| format!("Failed to read backup file entry: {e}"))?;
-
-        let source_path = backup_file.path();
-        let file_name = source_path
-            .file_name()
-            .ok_or_else(|| "Invalid backup file name".to_string())?;
-        let dest_path = target_dir.join(file_name);
-
-        if let Err(e) = fs::copy(&source_path, &dest_path) {
-            logger.warning(
-                &format!("Failed to restore file {}: {}", source_path.display(), e),
-                Some("BACKUP"),
-            );
+                if let Err(e) = fs::copy(source, &dest) {
+                    logger.warning(
+                        &format!("Failed to backup SNBT file {file_path}: {e}"),
+                        Some("BACKUP"),
+                    );
+                } else {
+                    backed_up_count += 1;
+                    logger.debug(
+                        &format!("Backed up SNBT: {} -> {}", file_path, dest.display()),
+                        Some("BACKUP"),
+                    );
+                }
+            }
         } else {
-            restored_count += 1;
-            logger.debug(
-                &format!(
-                    "Restored file: {} -> {}",
-                    source_path.display(),
-                    dest_path.display()
-                ),
+            logger.warning(
+                &format!("SNBT file not found for backup: {file_path}"),
                 Some("BACKUP"),
             );
         }
     }
 
     logger.info(
-        &format!("Backup restoration completed: {restored_count} files restored"),
+        &format!("SNBT backup completed: {backed_up_count} files backed up"),
         Some("BACKUP"),
     );
+
     Ok(())
 }
 
-/// Delete a specific backup
+/// Backup generated resource pack after mods translation
 #[tauri::command]
-pub fn delete_backup(backup_id: String, logger: State<Arc<AppLogger>>) -> Result<(), String> {
-    logger.info(&format!("Deleting backup: {backup_id}"), Some("BACKUP"));
+pub fn backup_resource_pack(
+    pack_path: String,
+    session_path: String,
+    logger: State<Arc<AppLogger>>,
+) -> Result<(), String> {
+    logger.info(
+        &format!("Backing up resource pack: {pack_path}"),
+        Some("BACKUP"),
+    );
 
-    // Find the backup by ID
-    let backups = list_backups(None, None, None, logger.clone())?;
-    let backup = backups
-        .iter()
-        .find(|b| b.metadata.id == backup_id)
-        .ok_or_else(|| format!("Backup not found: {backup_id}"))?;
+    let source = Path::new(&pack_path);
 
-    let backup_path = Path::new(&backup.backup_path);
-
-    if backup_path.exists() {
-        fs::remove_dir_all(backup_path)
-            .map_err(|e| format!("Failed to delete backup directory: {e}"))?;
-
-        logger.info(
-            &format!("Backup deleted successfully: {backup_id}"),
-            Some("BACKUP"),
-        );
-    } else {
-        logger.warning(
-            &format!("Backup directory not found for deletion: {backup_id}"),
-            Some("BACKUP"),
-        );
+    if !source.exists() {
+        return Err(format!("Resource pack not found: {pack_path}"));
     }
 
-    Ok(())
-}
+    // Extract pack name from path
+    let pack_name = source
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Invalid resource pack path".to_string())?;
 
-/// Prune old backups based on retention policy
-#[tauri::command]
-pub fn prune_old_backups(
-    retention_days: u32,
-    logger: State<Arc<AppLogger>>,
-) -> Result<u32, String> {
+    // Create backup directory: {session_path}/backup/resource_pack/
+    let backup_dir = PathBuf::from(&session_path)
+        .join("backup")
+        .join("resource_pack");
+
+    if let Err(e) = fs::create_dir_all(&backup_dir) {
+        let error_msg = format!("Failed to create resource pack backup directory: {e}");
+        logger.error(&error_msg, Some("BACKUP"));
+        return Err(error_msg);
+    }
+
+    // Copy entire resource pack directory
+    let dest = backup_dir.join(pack_name);
+
+    if let Err(e) = copy_dir_all(source, &dest) {
+        let error_msg = format!("Failed to backup resource pack: {e}");
+        logger.error(&error_msg, Some("BACKUP"));
+        return Err(error_msg);
+    }
+
     logger.info(
-        &format!("Pruning backups older than {retention_days} days"),
+        &format!("Resource pack backup completed: {}", dest.display()),
         Some("BACKUP"),
     );
 
-    let cutoff_time = chrono::Utc::now() - chrono::Duration::days(retention_days as i64);
-    let backups = list_backups(None, None, None, logger.clone())?;
+    Ok(())
+}
 
-    let mut deleted_count = 0;
-    for backup in backups {
-        // Parse backup timestamp
-        if let Ok(backup_time) = chrono::DateTime::parse_from_rfc3339(&backup.metadata.timestamp) {
-            if backup_time.with_timezone(&chrono::Utc) < cutoff_time {
-                if let Ok(()) = delete_backup(backup.metadata.id.clone(), logger.clone()) {
-                    deleted_count += 1;
-                    logger.debug(
-                        &format!("Pruned old backup: {}", backup.metadata.id),
-                        Some("BACKUP"),
-                    );
+/// Translation summary types for translation history
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationSummary {
+    pub lang: String,
+    pub translations: Vec<TranslationEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationEntry {
+    #[serde(rename = "type")]
+    pub translation_type: String, // "mod", "quest", "patchouli", "custom"
+    pub name: String,
+    pub status: String, // "completed" or "failed"
+    pub keys: String,   // Format: "translated/total" e.g. "234/234"
+}
+
+/// List all translation session directories
+#[tauri::command]
+pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<String>, String> {
+    let logs_path = PathBuf::from(&minecraft_dir).join("logs").join("localizer");
+
+    if !logs_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut sessions = Vec::new();
+
+    // Read directory entries
+    let entries =
+        fs::read_dir(&logs_path).map_err(|e| format!("Failed to read logs directory: {e}"))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {e}"))?;
+        let path = entry.path();
+
+        // Only include directories that match session ID format
+        if path.is_dir() {
+            if let Some(dir_name) = path.file_name() {
+                if let Some(name_str) = dir_name.to_str() {
+                    // Simple validation: check if it matches YYYY-MM-DD_HH-MM-SS format
+                    if name_str.len() == 19 && name_str.chars().nth(10) == Some('_') {
+                        sessions.push(name_str.to_string());
+                    }
                 }
             }
         }
     }
 
-    logger.info(
-        &format!("Backup pruning completed: {deleted_count} backups removed"),
-        Some("BACKUP"),
-    );
-    Ok(deleted_count)
+    // Sort sessions by name (newest first due to timestamp format)
+    sessions.sort_by(|a, b| b.cmp(a));
+
+    Ok(sessions)
 }
 
-/// Get backup information by ID
+/// Read translation summary for a specific session
 #[tauri::command]
-pub fn get_backup_info(
-    backup_id: String,
-    logger: State<Arc<AppLogger>>,
-) -> Result<Option<BackupInfo>, String> {
-    let backups = list_backups(None, None, None, logger)?;
-    Ok(backups.into_iter().find(|b| b.metadata.id == backup_id))
+pub async fn get_translation_summary(
+    minecraft_dir: String,
+    session_id: String,
+) -> Result<TranslationSummary, String> {
+    let summary_path = PathBuf::from(&minecraft_dir)
+        .join("logs")
+        .join("localizer")
+        .join(&session_id)
+        .join("translation_summary.json");
+
+    if !summary_path.exists() {
+        return Err(format!(
+            "Translation summary not found for session: {session_id}"
+        ));
+    }
+
+    // Read and parse the JSON file
+    let content = fs::read_to_string(&summary_path)
+        .map_err(|e| format!("Failed to read summary file: {e}"))?;
+
+    let summary: TranslationSummary =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse summary JSON: {e}"))?;
+
+    Ok(summary)
 }
 
-/// Get total backup storage size
+/// Update translation summary with a new entry
 #[tauri::command]
-pub fn get_backup_storage_size(logger: State<Arc<AppLogger>>) -> Result<u64, String> {
-    let logs_dir = PathBuf::from("logs").join("localizer");
+#[allow(clippy::too_many_arguments)]
+pub async fn update_translation_summary(
+    minecraft_dir: String,
+    session_id: String,
+    translation_type: String,
+    name: String,
+    status: String,
+    translated_keys: i32,
+    total_keys: i32,
+    target_language: String,
+) -> Result<(), String> {
+    let session_dir = PathBuf::from(&minecraft_dir)
+        .join("logs")
+        .join("localizer")
+        .join(&session_id);
 
-    if !logs_dir.exists() {
-        return Ok(0);
-    }
+    // Ensure session directory exists
+    fs::create_dir_all(&session_dir)
+        .map_err(|e| format!("Failed to create session directory: {e}"))?;
 
-    let mut total_size = 0u64;
+    let summary_path = session_dir.join("translation_summary.json");
 
-    // Calculate size recursively for all backup directories
-    fn calculate_dir_size(dir: &Path) -> Result<u64, std::io::Error> {
-        let mut size = 0u64;
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                size += calculate_dir_size(&path)?;
-            } else {
-                size += entry.metadata()?.len();
-            }
+    // Read existing summary or create new one
+    let mut summary = if summary_path.exists() {
+        let content = fs::read_to_string(&summary_path)
+            .map_err(|e| format!("Failed to read existing summary: {e}"))?;
+
+        serde_json::from_str::<TranslationSummary>(&content)
+            .map_err(|e| format!("Failed to parse existing summary: {e}"))?
+    } else {
+        TranslationSummary {
+            lang: target_language.clone(),
+            translations: Vec::new(),
         }
-        Ok(size)
-    }
+    };
 
-    // Iterate through session directories looking for backup subdirectories
-    let session_dirs =
-        fs::read_dir(&logs_dir).map_err(|e| format!("Failed to read logs directory: {e}"))?;
+    // Add new translation entry
+    let entry = TranslationEntry {
+        translation_type,
+        name,
+        status,
+        keys: format!("{translated_keys}/{total_keys}"),
+    };
 
-    for session_entry in session_dirs {
-        let session_entry =
-            session_entry.map_err(|e| format!("Failed to read session directory: {e}"))?;
+    summary.translations.push(entry);
 
-        let backups_dir = session_entry.path().join("backups");
-        if backups_dir.exists() {
-            total_size += calculate_dir_size(&backups_dir)
-                .map_err(|e| format!("Failed to calculate backup size: {e}"))?;
-        }
-    }
+    // Write updated summary back to file
+    let json = serde_json::to_string_pretty(&summary)
+        .map_err(|e| format!("Failed to serialize summary: {e}"))?;
 
-    logger.debug(
-        &format!("Total backup storage size: {total_size} bytes"),
-        Some("BACKUP"),
-    );
-    Ok(total_size)
+    fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
+
+    Ok(())
 }

@@ -497,86 +497,12 @@ fn extract_mod_info(archive: &mut ZipArchive<File>) -> Result<(String, String, S
 /// Extract language files from a JAR archive for a specific language
 fn extract_lang_files_from_archive(
     archive: &mut ZipArchive<File>,
-    _mod_id: &str,
+    mod_id: &str,
     target_language: &str,
 ) -> Result<Vec<LangFile>> {
-    let mut lang_files = Vec::new();
-
-    // Find all language files
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let name = file.name().to_string();
-
-        // Check if the file is a language file (.json or .lang)
-        if name.contains("/lang/") && (name.ends_with(".json") || name.ends_with(".lang")) {
-            // Extract language code from the file name
-            let parts: Vec<&str> = name.split('/').collect();
-            let filename = parts.last().unwrap_or(&"unknown.json");
-            let language = if filename.ends_with(".json") {
-                filename.trim_end_matches(".json").to_lowercase()
-            } else if filename.ends_with(".lang") {
-                filename.trim_end_matches(".lang").to_lowercase()
-            } else {
-                filename.to_lowercase()
-            };
-
-            // Only process the target language file (case-insensitive)
-            if language == target_language.to_lowercase() {
-                // Read the file content
-                let mut buffer = Vec::new();
-                file.read_to_end(&mut buffer)?;
-
-                // First, remove any null bytes and other problematic bytes
-                let cleaned_buffer: Vec<u8> = buffer
-                    .into_iter()
-                    .filter(|&b| b != 0 && (b >= 0x20 || b == 0x09 || b == 0x0A || b == 0x0D))
-                    .collect();
-
-                // Try to convert to UTF-8, handling invalid sequences
-                let content_str = String::from_utf8_lossy(&cleaned_buffer).to_string();
-                debug!(
-                    "Attempting to parse lang file: {}. Content snippet: {}",
-                    name,
-                    content_str.chars().take(100).collect::<String>()
-                ); // Log file path and content snippet
-
-                // Parse content based on extension
-                let content: HashMap<String, String> = if name.ends_with(".json") {
-                    // Strip _comment lines before parsing
-                    let clean_content_str = strip_json_comments(&content_str);
-                    match serde_json::from_str(&clean_content_str) {
-                        Ok(content) => content,
-                        Err(e) => {
-                            error!("Failed to parse lang file '{name}': {e}. Skipping this file.");
-                            // Skip this file instead of failing the entire mod
-                            continue;
-                        }
-                    }
-                } else {
-                    // .lang legacy format: key=value per line
-                    let mut map = HashMap::new();
-                    for line in content_str.lines() {
-                        let trimmed = line.trim();
-                        if trimmed.is_empty() || trimmed.starts_with('#') {
-                            continue;
-                        }
-                        if let Some((key, value)) = trimmed.split_once('=') {
-                            map.insert(key.trim().to_string(), value.trim().to_string());
-                        }
-                    }
-                    map
-                };
-
-                // Create LangFile
-                lang_files.push(LangFile {
-                    language,
-                    path: name,
-                    content,
-                });
-            }
-        }
-    }
-
+    // Use the _with_format function and just return the files
+    let (lang_files, _format) =
+        extract_lang_files_from_archive_with_format(archive, mod_id, target_language)?;
     Ok(lang_files)
 }
 
