@@ -95,6 +95,14 @@ export function GuidebooksTab() {
     try {
       setScanning(true);
       
+      // Set initial scan progress immediately
+      setScanProgress({
+        currentFile: '',
+        processedCount: 0,
+        totalCount: undefined,
+        scanType: 'guidebooks',
+      });
+      
       // Get mods directory
       const modsDirectory = directory + "/mods";
       // Get mod files

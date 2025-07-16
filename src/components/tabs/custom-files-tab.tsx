@@ -96,6 +96,14 @@ export function CustomFilesTab() {
     try {
       setScanning(true);
       
+      // Set initial scan progress immediately
+      setScanProgress({
+        currentFile: '',
+        processedCount: 0,
+        totalCount: undefined,
+        scanType: 'custom-files',
+      });
+      
       // Get JSON and SNBT files
       const jsonFiles = await FileService.getFilesWithExtension(directory, ".json");
       const snbtFiles = await FileService.getFilesWithExtension(directory, ".snbt");

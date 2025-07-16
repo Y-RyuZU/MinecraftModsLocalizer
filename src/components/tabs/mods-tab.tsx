@@ -94,6 +94,14 @@ export function ModsTab() {
     try {
       setScanning(true);
       
+      // Set initial scan progress immediately
+      setScanProgress({
+        currentFile: '',
+        processedCount: 0,
+        totalCount: undefined,
+        scanType: 'mods',
+      });
+      
       // Get mods directory
       const modsDirectory = directory + "/mods";
 

@@ -97,6 +97,14 @@ export function QuestsTab() {
         try {
             setScanning(true);
             
+            // Set initial scan progress immediately
+            setScanProgress({
+                currentFile: '',
+                processedCount: 0,
+                totalCount: undefined,
+                scanType: 'quests',
+            });
+            
             // Clear existing targets before scanning
             setQuestTranslationTargets([]);
             
