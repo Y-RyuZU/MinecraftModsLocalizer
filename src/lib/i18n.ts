@@ -29,8 +29,13 @@ if (!i18n.isInitialized) {
         escapeValue: false
       },
       react: {
-        useSuspense: false
+        useSuspense: false,
+        // Add a check for missing translations
+        transSupportBasicHtmlNodes: true,
+        transKeepBasicHtmlNodesFor: ['br', 'strong', 'i']
       },
+      // Add debug mode in development
+      debug: process.env.NODE_ENV === 'development',
       detection: {
         order: ['localStorage', 'navigator'],
         caches: ['localStorage']
@@ -39,7 +44,8 @@ if (!i18n.isInitialized) {
 }
 
 export const useAppTranslation = () => {
-  return useTranslation('common');
+  const result = useTranslation('common');
+  return result;
 };
 
 export default i18n;

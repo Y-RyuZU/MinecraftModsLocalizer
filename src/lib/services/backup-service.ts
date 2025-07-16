@@ -117,7 +117,7 @@ export class BackupService {
 
     try {
       // Generate unique backup ID
-      const backupId = this.generateBackupId(options.type, options.sourceName, options.targetLanguage);
+      const backupId = this.generateFullBackupId(options.type, options.sourceName, options.targetLanguage);
       
       // Create backup metadata
       const metadata: BackupMetadata = {
@@ -150,9 +150,18 @@ export class BackupService {
 
 
   /**
-   * Generate unique backup ID
+   * Generate unique backup ID for a given type (public for testing)
    */
-  private generateBackupId(type: TranslationTargetType, sourceName: string, targetLanguage: string): string {
+  generateBackupId(type: TranslationTargetType): string {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+                      new Date().toTimeString().slice(0, 8).replace(/:/g, '-');
+    return `${timestamp}_${type}`;
+  }
+
+  /**
+   * Generate unique backup ID with full details
+   */
+  private generateFullBackupId(type: TranslationTargetType, sourceName: string, targetLanguage: string): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const cleanSourceName = sourceName.replace(/[^a-zA-Z0-9]/g, '_');
     return `${type}_${cleanSourceName}_${targetLanguage}_${timestamp}`;

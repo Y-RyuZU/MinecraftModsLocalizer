@@ -150,6 +150,9 @@ export class ConfigService {
         }
       }
       
+      // Migrate legacy apiKey to provider-specific keys
+      this.config = this.migrateApiKeys(this.config);
+      
       this.loaded = true;
     } catch (error) {
       console.error("Failed to load configuration:", error);
@@ -281,6 +284,32 @@ export class ConfigService {
     
     return result as T;
   }
+
+  /**
+   * Migrate legacy apiKey to provider-specific keys
+   * @param config Configuration to migrate
+   * @returns Migrated configuration
+   */
+  private static migrateApiKeys(config: AppConfig): AppConfig {
+    // Initialize apiKeys if not present
+    if (!config.llm.apiKeys) {
+      config.llm.apiKeys = {
+        openai: "",
+        anthropic: "",
+        google: ""
+      };
+    }
+    
+    // Migrate legacy apiKey to provider-specific key
+    if (config.llm.apiKey && config.llm.provider) {
+      const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
+      if (!config.llm.apiKeys[provider]) {
+        config.llm.apiKeys[provider] = config.llm.apiKey;
+      }
+    }
+    
+    return config;
+  }
 }
 
 /**
@@ -292,7 +321,12 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
   return {
     llm: {
       provider: config.llm.provider,
-      api_key: config.llm.apiKey,
+      api_key: config.llm.apiKey || "", // Keep for backward compatibility
+      api_keys: config.llm.apiKeys || {
+        openai: "",
+        anthropic: "",
+        google: ""
+      },
       base_url: config.llm.baseUrl,
       model: config.llm.model,
       max_retries: config.llm.maxRetries,
@@ -335,10 +369,18 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
   const paths = backendConfig.paths as Record<string, unknown> | undefined;
 
+  // Parse api_keys if it exists
+  const apiKeys = llm?.api_keys as Record<string, string> | undefined;
+
   return {
     llm: {
       provider: (llm?.provider as string) || "",
-      apiKey: (llm?.api_key as string) || "",
+      apiKey: (llm?.api_key as string) || "", // Keep for backward compatibility
+      apiKeys: apiKeys || {
+        openai: "",
+        anthropic: "",
+        google: ""
+      },
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
       maxRetries: (llm?.max_retries as number) || DEFAULT_CONFIG.llm.maxRetries,
