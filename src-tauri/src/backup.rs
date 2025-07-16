@@ -1,3 +1,4 @@
+use crate::filesystem::serialize_json_sorted;
 use crate::logging::AppLogger;
 /**
  * Simplified backup module for translation system
@@ -9,6 +10,28 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::State;
+
+/// Validate session ID format: YYYY-MM-DD_HH-MM-SS
+fn validate_session_id_format(session_id: &str) -> bool {
+    if session_id.len() != 19 {
+        return false;
+    }
+    
+    let chars: Vec<char> = session_id.chars().collect();
+    
+    // Check pattern: YYYY-MM-DD_HH-MM-SS
+    chars[4] == '-' && 
+    chars[7] == '-' && 
+    chars[10] == '_' && 
+    chars[13] == '-' && 
+    chars[16] == '-' &&
+    chars[0..4].iter().all(|c| c.is_ascii_digit()) &&
+    chars[5..7].iter().all(|c| c.is_ascii_digit()) &&
+    chars[8..10].iter().all(|c| c.is_ascii_digit()) &&
+    chars[11..13].iter().all(|c| c.is_ascii_digit()) &&
+    chars[14..16].iter().all(|c| c.is_ascii_digit()) &&
+    chars[17..19].iter().all(|c| c.is_ascii_digit())
+}
 
 /// Backup metadata structure matching TypeScript interface
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,9 +140,9 @@ pub fn create_backup(
         }
     }
 
-    // Save metadata
+    // Save metadata with sorted keys
     let metadata_path = backup_dir.join("metadata.json");
-    let metadata_json = serde_json::to_string_pretty(&metadata)
+    let metadata_json = serialize_json_sorted(&metadata)
         .map_err(|e| format!("Failed to serialize backup metadata: {e}"))?;
 
     fs::write(&metadata_path, metadata_json)
@@ -309,8 +332,8 @@ pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<Stri
         if path.is_dir() {
             if let Some(dir_name) = path.file_name() {
                 if let Some(name_str) = dir_name.to_str() {
-                    // Simple validation: check if it matches YYYY-MM-DD_HH-MM-SS format
-                    if name_str.len() == 19 && name_str.chars().nth(10) == Some('_') {
+                    // Validate session ID format: YYYY-MM-DD_HH-MM-SS
+                    if validate_session_id_format(name_str) {
                         sessions.push(name_str.to_string());
                     }
                 }
@@ -400,9 +423,9 @@ pub async fn update_translation_summary(
 
     summary.translations.push(entry);
 
-    // Write updated summary back to file
-    let json = serde_json::to_string_pretty(&summary)
-        .map_err(|e| format!("Failed to serialize summary: {e}"))?;
+    // Write updated summary back to file with sorted keys
+    let json =
+        serialize_json_sorted(&summary).map_err(|e| format!("Failed to serialize summary: {e}"))?;
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 

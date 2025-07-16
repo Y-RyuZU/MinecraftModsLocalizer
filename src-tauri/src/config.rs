@@ -1,3 +1,4 @@
+use crate::filesystem::serialize_json_sorted;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
@@ -161,8 +162,8 @@ pub fn load_config() -> std::result::Result<String, String> {
         // Create a default config
         let default_config = default_config();
 
-        // Serialize the default config
-        let config_json = match serde_json::to_string_pretty(&default_config) {
+        // Serialize the default config with sorted keys
+        let config_json = match serialize_json_sorted(&default_config) {
             Ok(json) => json,
             Err(e) => return Err(format!("Failed to serialize default config: {e}")),
         };
@@ -201,8 +202,8 @@ pub fn load_config() -> std::result::Result<String, String> {
 
     // TODO: Update the config with any missing fields from default_config()
 
-    // Serialize the updated config
-    let updated_config_json = match serde_json::to_string_pretty(&config) {
+    // Serialize the updated config with sorted keys
+    let updated_config_json = match serialize_json_sorted(&config) {
         Ok(json) => json,
         Err(e) => return Err(format!("Failed to serialize updated config: {e}")),
     };
@@ -233,8 +234,8 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
         Err(e) => return Err(format!("Failed to create config file: {e}")),
     };
 
-    // Serialize the config
-    let config_json = match serde_json::to_string_pretty(&config) {
+    // Serialize the config with sorted keys
+    let config_json = match serialize_json_sorted(&config) {
         Ok(json) => json,
         Err(e) => return Err(format!("Failed to serialize config: {e}")),
     };

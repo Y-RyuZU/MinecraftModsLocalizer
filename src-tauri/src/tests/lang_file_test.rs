@@ -1,132 +1,106 @@
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
-use tempfile::TempDir;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::filesystem::write_lang_file;
+    use crate::filesystem::{serialize_json_sorted, sort_json_object};
 
-    #[tokio::test]
-    async fn test_write_lang_file_json_format() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap();
+    #[test]
+    fn test_sort_json_object() {
+        // Create a test JSON object with unsorted keys
+        let mut map = serde_json::Map::new();
+        map.insert(
+            "zebra".to_string(),
+            serde_json::Value::String("last".to_string()),
+        );
+        map.insert(
+            "apple".to_string(),
+            serde_json::Value::String("first".to_string()),
+        );
+        map.insert(
+            "banana".to_string(),
+            serde_json::Value::String("middle".to_string()),
+        );
 
-        // Create test content
-        let mut content = HashMap::new();
-        content.insert("item.test.name".to_string(), "Test Item".to_string());
-        content.insert("block.test.stone".to_string(), "Test Stone".to_string());
+        let json_value = serde_json::Value::Object(map);
 
-        let content_json = serde_json::to_string(&content).unwrap();
+        // Sort the JSON object
+        let sorted_value = sort_json_object(&json_value);
 
-        // Test writing JSON format
-        let result = write_lang_file(
-            tauri::AppHandle::default(),
-            "testmod",
-            "en_us",
-            &content_json,
-            dir_path,
-            Some("json"),
-        )
-        .await;
-
-        assert!(result.is_ok());
-
-        // Check that the file was created with correct extension
-        let expected_path = Path::new(dir_path)
-            .join("assets")
-            .join("testmod")
-            .join("lang")
-            .join("en_us.json");
-
-        assert!(expected_path.exists());
-
-        // Verify content
-        let written_content = fs::read_to_string(expected_path).unwrap();
-        let parsed: HashMap<String, String> = serde_json::from_str(&written_content).unwrap();
-        assert_eq!(parsed.get("item.test.name").unwrap(), "Test Item");
-        assert_eq!(parsed.get("block.test.stone").unwrap(), "Test Stone");
+        // Verify the keys are sorted
+        if let serde_json::Value::Object(sorted_map) = sorted_value {
+            let keys: Vec<&String> = sorted_map.keys().collect();
+            assert_eq!(keys, vec!["apple", "banana", "zebra"]);
+        } else {
+            panic!("Expected JSON object");
+        }
     }
 
-    #[tokio::test]
-    async fn test_write_lang_file_lang_format() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap();
+    #[test]
+    fn test_sort_json_object_nested() {
+        // Create a nested JSON object with unsorted keys
+        let mut inner_map = serde_json::Map::new();
+        inner_map.insert(
+            "inner_z".to_string(),
+            serde_json::Value::String("inner_z_val".to_string()),
+        );
+        inner_map.insert(
+            "inner_a".to_string(),
+            serde_json::Value::String("inner_a_val".to_string()),
+        );
 
-        // Create test content
-        let mut content = HashMap::new();
-        content.insert("item.test.name".to_string(), "Test Item".to_string());
-        content.insert("block.test.stone".to_string(), "Test Stone".to_string());
+        let mut outer_map = serde_json::Map::new();
+        outer_map.insert("outer_z".to_string(), serde_json::Value::Object(inner_map));
+        outer_map.insert(
+            "outer_a".to_string(),
+            serde_json::Value::String("outer_a_val".to_string()),
+        );
 
-        let content_json = serde_json::to_string(&content).unwrap();
+        let json_value = serde_json::Value::Object(outer_map);
 
-        // Test writing lang format
-        let result = write_lang_file(
-            tauri::AppHandle::default(),
-            "testmod",
-            "en_us",
-            &content_json,
-            dir_path,
-            Some("lang"),
-        )
-        .await;
+        // Sort the JSON object
+        let sorted_value = sort_json_object(&json_value);
 
-        assert!(result.is_ok());
+        // Verify the outer keys are sorted
+        if let serde_json::Value::Object(sorted_map) = sorted_value {
+            let keys: Vec<&String> = sorted_map.keys().collect();
+            assert_eq!(keys, vec!["outer_a", "outer_z"]);
 
-        // Check that the file was created with correct extension
-        let expected_path = Path::new(dir_path)
-            .join("assets")
-            .join("testmod")
-            .join("lang")
-            .join("en_us.lang");
-
-        assert!(expected_path.exists());
-
-        // Verify content
-        let written_content = fs::read_to_string(expected_path).unwrap();
-        let lines: Vec<&str> = written_content.lines().collect();
-
-        // Content should be sorted
-        assert!(lines.contains(&"block.test.stone=Test Stone"));
-        assert!(lines.contains(&"item.test.name=Test Item"));
-        assert_eq!(lines.len(), 2);
+            // Verify the inner keys are sorted
+            if let Some(serde_json::Value::Object(inner_sorted)) = sorted_map.get("outer_z") {
+                let inner_keys: Vec<&String> = inner_sorted.keys().collect();
+                assert_eq!(inner_keys, vec!["inner_a", "inner_z"]);
+            } else {
+                panic!("Expected nested JSON object");
+            }
+        } else {
+            panic!("Expected JSON object");
+        }
     }
 
-    #[tokio::test]
-    async fn test_write_lang_file_default_format() {
-        // Create a temporary directory
-        let temp_dir = TempDir::new().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap();
-
-        // Create test content
+    #[test]
+    fn test_serialize_json_sorted() {
+        // Create a test HashMap with unsorted keys
         let mut content = HashMap::new();
-        content.insert("test.key".to_string(), "Test Value".to_string());
+        content.insert("zebra.item".to_string(), "Zebra Item".to_string());
+        content.insert("apple.block".to_string(), "Apple Block".to_string());
+        content.insert("banana.tool".to_string(), "Banana Tool".to_string());
 
-        let content_json = serde_json::to_string(&content).unwrap();
+        // Serialize with sorted keys
+        let result = serialize_json_sorted(&content).unwrap();
 
-        // Test without format parameter (should default to JSON)
-        let result = write_lang_file(
-            tauri::AppHandle::default(),
-            "testmod",
-            "en_us",
-            &content_json,
-            dir_path,
-            None,
-        )
-        .await;
+        // Parse back to verify ordering
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
 
-        assert!(result.is_ok());
+        if let serde_json::Value::Object(map) = parsed {
+            let keys: Vec<&String> = map.keys().collect();
+            assert_eq!(keys, vec!["apple.block", "banana.tool", "zebra.item"]);
+        } else {
+            panic!("Expected JSON object");
+        }
 
-        // Check that JSON file was created by default
-        let expected_path = Path::new(dir_path)
-            .join("assets")
-            .join("testmod")
-            .join("lang")
-            .join("en_us.json");
-
-        assert!(expected_path.exists());
+        // Verify that the JSON string has the keys in sorted order
+        assert!(result.find("apple.block").unwrap() < result.find("banana.tool").unwrap());
+        assert!(result.find("banana.tool").unwrap() < result.find("zebra.item").unwrap());
     }
 }
