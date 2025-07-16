@@ -67,18 +67,21 @@ export function CompletionDialog({
   };
 
   const getStatusMessage = () => {
+    // Translate the type name
+    const translatedType = t(`tabs.${translationType}`);
+    
     if (failureCount > 0 && successCount === 0) {
-      return t('completion.failedMessage', { type: translationType });
+      return t('completion.failedMessage', { type: translatedType });
     } else if (failureCount > 0 && successCount > 0) {
       return t('completion.partialMessage', {
         successful: successCount,
         failed: failureCount,
-        type: translationType
+        type: translatedType
       });
     } else {
       return t('completion.successMessage', {
         count: successCount,
-        type: translationType
+        type: translatedType
       });
     }
   };

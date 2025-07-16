@@ -22,6 +22,10 @@ export function GuidebooksTab() {
     setTotalChunks,
     setCompletedChunks,
     incrementCompletedChunks,
+    // Guidebook-level progress tracking
+    setTotalGuidebooks,
+    setCompletedGuidebooks,
+    incrementCompletedGuidebooks,
     addTranslationResult,
     error,
       setError,
@@ -96,9 +100,17 @@ export function GuidebooksTab() {
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
   ) => {
+    // Sort targets alphabetically for consistent processing
+    const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
+    
     // Reset whole progress tracking
     setCompletedChunks(0);
     setWholeProgress(0);
+    setCompletedGuidebooks(0);
+    
+    // Set total guidebooks for progress tracking
+    setTotalGuidebooks(sortedTargets.length);
+    console.log(`GuidebooksTab: Set totalGuidebooks to ${sortedTargets.length} for guidebook-level progress tracking`);
 
     // Prepare jobs and count total chunks
     let totalChunksCount = 0;
@@ -171,6 +183,7 @@ export function GuidebooksTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedChunks, // Connect to store for overall progress tracking
+        incrementWholeProgress: incrementCompletedGuidebooks, // Track at guidebook level
         targetLanguage,
         type: "patchouli",
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,

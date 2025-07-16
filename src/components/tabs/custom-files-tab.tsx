@@ -23,6 +23,10 @@ export function CustomFilesTab() {
     setTotalChunks,
     setCompletedChunks,
     incrementCompletedChunks,
+    // Custom files-level progress tracking
+    setTotalCustomFiles,
+    setCompletedCustomFiles,
+    incrementCompletedCustomFiles,
     addTranslationResult,
     error,
     setError,
@@ -99,10 +103,13 @@ export function CustomFilesTab() {
       setCompletedChunks(0);
       setWholeProgress(0);
       setProgress(0);
+      setCompletedCustomFiles(0);
       
       // Set total files for progress tracking
       const totalFiles = sortedTargets.length;
       setTotalChunks(totalFiles); // Track at file level
+      setTotalCustomFiles(totalFiles);
+      console.log(`CustomFilesTab: Set totalCustomFiles to ${totalFiles} for custom files-level progress tracking`);
       
       // Create jobs for all files
       const jobs: Array<{
@@ -192,7 +199,7 @@ export function CustomFilesTab() {
         translationService,
         setCurrentJobId,
         incrementCompletedChunks, // Track at chunk level for real-time progress
-        incrementWholeProgress: incrementCompletedChunks, // Track at file level
+        incrementWholeProgress: incrementCompletedCustomFiles, // Track at file level
         targetLanguage,
         type: "custom",
         getOutputPath: () => outputDir,
