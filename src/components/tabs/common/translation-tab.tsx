@@ -217,7 +217,14 @@ export function TranslationTab({
             await onScan(actualPath);
         } catch (error) {
             console.error(`Failed to scan ${tabType}:`, error);
-            setError(`Failed to scan ${tabType}: ${error}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            // Check if the error is a translation key
+            if (errorMessage.startsWith('errors.')) {
+                setError(t(errorMessage));
+            } else {
+                setError(`Failed to scan ${tabType}: ${errorMessage}`);
+            }
         } finally {
             setIsScanning(false);
         }
@@ -549,7 +556,7 @@ export function TranslationTab({
                                                     <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
                                                 </div>
                                                 
-                                                <div className="space-y-2 text-center">
+                                                <div className="space-y-3 text-center">
                                                     <p className="text-lg 2xl:text-xl font-medium">
                                                         {scanProgress?.currentFile ? 
                                                             `Scanning: ${scanProgress.currentFile}` : 
@@ -564,6 +571,16 @@ export function TranslationTab({
                                                             t('misc.pleaseWait')
                                                         }
                                                     </p>
+                                                    
+                                                    {/* Small progress bar for scan progress */}
+                                                    {scanProgress?.totalCount && (scanProgress?.processedCount ?? 0) > 0 && (
+                                                        <div className="w-full max-w-md mx-auto">
+                                                            <Progress 
+                                                                value={Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)} 
+                                                                className="h-1.5" 
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 {/* Progress dots animation */}
