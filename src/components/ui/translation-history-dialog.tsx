@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
-import { Card } from './card';
 import { ScrollArea } from './scroll-area';
-import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw } from 'lucide-react';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './table';
+import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw, ArrowUpDown } from 'lucide-react';
 import { useAppTranslation } from '@/lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@/lib/store';
@@ -13,6 +13,27 @@ import { useAppStore } from '@/lib/store';
 interface TranslationHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+type SortField = 'sessionId' | 'language' | 'totalTranslations' | 'successRate';
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+}
+
+interface SessionSummary {
+  sessionId: string;
+  language: string;
+  totalTranslations: number;
+  successfulTranslations: number;
+  successRate: number;
+  timestamp: Date;
+  expanded: boolean;
+  summary?: TranslationSummary;
+  loading?: boolean;
+  error?: string;
 }
 
 interface TranslationEntry {
@@ -27,128 +48,169 @@ interface TranslationSummary {
   translations: TranslationEntry[];
 }
 
-interface SessionRowProps {
-  sessionId: string;
-  isExpanded: boolean;
-  onToggle: () => void;
-  minecraftDir: string;
+
+// Format session ID to human-readable date/time
+const formatSessionId = (id: string) => {
+  // Format: YYYY-MM-DD_HH-MM-SS
+  const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [_, year, month, day, hour, minute, second] = match;
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+  }
+  return id;
+};
+
+// Parse session ID to Date object
+const parseSessionId = (id: string): Date => {
+  const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [_, year, month, day, hour, minute, second] = match;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+  }
+  return new Date();
+};
+
+// Calculate session summary stats
+const calculateSessionStats = (summary: TranslationSummary): { totalTranslations: number; successfulTranslations: number; successRate: number } => {
+  const totalTranslations = summary.translations.length;
+  const successfulTranslations = summary.translations.filter(t => t.status === 'completed').length;
+  const successRate = totalTranslations > 0 ? (successfulTranslations / totalTranslations) * 100 : 0;
+  
+  return {
+    totalTranslations,
+    successfulTranslations,
+    successRate
+  };
+};
+
+function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary }) {
+  const { t } = useAppTranslation();
+  const { summary } = sessionSummary;
+  
+  if (!summary) return null;
+  
+  return (
+    <TableRow className="bg-muted/30">
+      <TableCell colSpan={5} className="p-4">
+        <div className="space-y-3">
+          <div className="text-sm font-medium">{t('tables.translations', 'Translations')}:</div>
+          <div className="grid gap-2">
+            {summary.translations.map((translation, index) => (
+              <div key={index} className="flex items-center justify-between text-sm pl-4 py-1">
+                <div className="flex items-center space-x-2">
+                  {translation.status === 'completed' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className="capitalize">{translation.type}:</span>
+                  <span>{translation.name}</span>
+                </div>
+                <span className="text-muted-foreground">({translation.keys})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 }
 
-function SessionRow({ sessionId, isExpanded, onToggle, minecraftDir }: SessionRowProps) {
+function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: { 
+  sessionSummary: SessionSummary; 
+  onToggle: () => void; 
+  minecraftDir: string;
+  updateSession: (sessionId: string, updates: Partial<SessionSummary>) => void;
+}) {
   const { t } = useAppTranslation();
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<TranslationSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Format session ID to human-readable date/time
-  const formatSessionId = (id: string) => {
-    // Format: YYYY-MM-DD_HH-MM-SS
-    const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
-    if (match) {
-      const [_, year, month, day, hour, minute, second] = match;
-      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-    }
-    return id;
-  };
-
+  
   const loadSummary = async () => {
-    if (!isExpanded || summary) return;
-
-    setLoading(true);
-    setError(null);
+    if (sessionSummary.summary) return;
+    
+    updateSession(sessionSummary.sessionId, { loading: true });
     
     try {
       const result = await invoke<TranslationSummary>('get_translation_summary', {
         minecraftDir,
-        sessionId
+        sessionId: sessionSummary.sessionId
       });
-      setSummary(result);
+      
+      const stats = calculateSessionStats(result);
+      updateSession(sessionSummary.sessionId, {
+        summary: result,
+        totalTranslations: stats.totalTranslations,
+        successfulTranslations: stats.successfulTranslations,
+        successRate: stats.successRate,
+        language: result.lang,
+        loading: false,
+        error: undefined
+      });
     } catch (err) {
       console.error('Failed to load translation summary:', err);
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
+      updateSession(sessionSummary.sessionId, {
+        error: err instanceof Error ? err.message : String(err),
+        loading: false
+      });
     }
   };
-
+  
   useEffect(() => {
-    loadSummary();
-  }, [isExpanded]);
-
+    if (sessionSummary.expanded && !sessionSummary.summary && !sessionSummary.loading) {
+      loadSummary();
+    }
+  }, [sessionSummary.expanded]);
+  
   return (
-    <Card className="p-4">
-      <div 
-        className="flex items-center justify-between cursor-pointer"
-        onClick={onToggle}
-      >
-        <div className="flex items-center space-x-2">
-          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          <span className="font-medium">{formatSessionId(sessionId)}</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-        >
-          {isExpanded ? t('common.hideDetails', 'Hide Details') : t('common.viewDetails', 'View Details')}
-        </Button>
-      </div>
-
-      {isExpanded && (
-        <div className="mt-4 space-y-2">
-          {loading && (
-            <div className="text-sm text-muted-foreground">
-              {t('common.loading', 'Loading...')}
-            </div>
+    <>
+      <TableRow className="cursor-pointer" onClick={onToggle}>
+        <TableCell>
+          <div className="flex items-center space-x-2">
+            {sessionSummary.expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <span className="font-medium">{formatSessionId(sessionSummary.sessionId)}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          {sessionSummary.loading ? (
+            <span className="text-muted-foreground">{t('common.loading', 'Loading...')}</span>
+          ) : (
+            sessionSummary.language || '-'
           )}
-          
-          {error && (
-            <div className="text-sm text-red-500">
-              {t('errors.failedToLoad', 'Failed to load details')}: {error}
-            </div>
-          )}
-          
-          {summary && (
-            <div className="space-y-3">
-              <div className="text-sm">
-                <span className="font-medium">{t('tables.targetLanguage', 'Target Language')}:</span> {summary.lang}
+        </TableCell>
+        <TableCell>
+          {sessionSummary.loading ? '-' : sessionSummary.totalTranslations.toString()}
+        </TableCell>
+        <TableCell>
+          {sessionSummary.loading ? '-' : `${sessionSummary.successfulTranslations}/${sessionSummary.totalTranslations}`}
+        </TableCell>
+        <TableCell>
+          {sessionSummary.loading ? '-' : (
+            <div className="flex items-center space-x-2">
+              <div className="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div 
+                  className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${sessionSummary.successRate}%` }}
+                ></div>
               </div>
-              
-              <div className="space-y-2">
-                <div className="text-sm font-medium">{t('tables.translations', 'Translations')}:</div>
-                {summary.translations.map((translation, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm pl-4">
-                    <div className="flex items-center space-x-2">
-                      {translation.status === 'completed' ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      )}
-                      <span className="capitalize">{translation.type}:</span>
-                      <span>{translation.name}</span>
-                    </div>
-                    <span className="text-muted-foreground">({translation.keys})</span>
-                  </div>
-                ))}
-              </div>
+              <span className="text-sm text-muted-foreground">{sessionSummary.successRate.toFixed(1)}%</span>
             </div>
           )}
-        </div>
+        </TableCell>
+      </TableRow>
+      
+      {sessionSummary.expanded && (
+        <SessionDetailsRow sessionSummary={sessionSummary} />
       )}
-    </Card>
+    </>
   );
 }
 
 export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHistoryDialogProps) {
   const { t } = useAppTranslation();
   const config = useAppStore(state => state.config);
-  const [sessions, setSessions] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'sessionId', direction: 'desc' });
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
@@ -159,7 +221,19 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
       const sessionList = await invoke<string[]>('list_translation_sessions', {
         minecraftDir
       });
-      setSessions(sessionList);
+      
+      const sessionSummaries: SessionSummary[] = sessionList.map(sessionId => ({
+        sessionId,
+        language: '-',
+        totalTranslations: 0,
+        successfulTranslations: 0,
+        successRate: 0,
+        timestamp: parseSessionId(sessionId),
+        expanded: false,
+        loading: false
+      }));
+      
+      setSessions(sessionSummaries);
     } catch (err) {
       console.error('Failed to load translation sessions:', err);
       setError(err instanceof Error ? err.message : String(err));
@@ -175,14 +249,59 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
   }, [open, loadSessions]);
 
   const handleToggleSession = (sessionId: string) => {
-    setExpandedSession(prev => prev === sessionId ? null : sessionId);
+    setSessions(prev => prev.map(session => 
+      session.sessionId === sessionId 
+        ? { ...session, expanded: !session.expanded }
+        : session
+    ));
   };
+
+  const updateSession = (sessionId: string, updates: Partial<SessionSummary>) => {
+    setSessions(prev => prev.map(session => 
+      session.sessionId === sessionId 
+        ? { ...session, ...updates }
+        : session
+    ));
+  };
+
+  const handleSort = (field: SortField) => {
+    const direction = sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    setSortConfig({ field, direction });
+  };
+
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const { field, direction } = sortConfig;
+    const multiplier = direction === 'asc' ? 1 : -1;
+    
+    switch (field) {
+      case 'sessionId':
+        return (a.timestamp.getTime() - b.timestamp.getTime()) * multiplier;
+      case 'language':
+        return a.language.localeCompare(b.language) * multiplier;
+      case 'totalTranslations':
+        return (a.totalTranslations - b.totalTranslations) * multiplier;
+      case 'successRate':
+        return (a.successRate - b.successRate) * multiplier;
+      default:
+        return 0;
+    }
+  });
+
+  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <button
+      className="flex items-center space-x-1 hover:bg-muted/50 rounded px-2 py-1 transition-colors"
+      onClick={() => handleSort(field)}
+    >
+      <span>{children}</span>
+      <ArrowUpDown className="h-4 w-4" />
+    </button>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh]">
+      <DialogContent className="max-w-5xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>{t('backup.translationHistory', 'Translation History')}</DialogTitle>
+          <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -202,23 +321,44 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
           {!loading && !error && sessions.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              <p>{t('backup.noHistory', 'No translation history found')}</p>
+              <p>{t('settings.backup.noHistory', 'No translation history found')}</p>
             </div>
           )}
 
           {!loading && !error && sessions.length > 0 && (
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-3 pr-4">
-                {sessions.map((sessionId) => (
-                  <SessionRow
-                    key={sessionId}
-                    sessionId={sessionId}
-                    isExpanded={expandedSession === sessionId}
-                    onToggle={() => handleToggleSession(sessionId)}
-                    minecraftDir={config.paths.minecraftDir || ''}
-                  />
-                ))}
-              </div>
+            <ScrollArea className="h-[500px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">
+                      <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
+                    </TableHead>
+                    <TableHead className="w-[120px]">
+                      <SortButton field="language">{t('tables.targetLanguage', 'Target Language')}</SortButton>
+                    </TableHead>
+                    <TableHead className="w-[100px]">
+                      <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
+                    </TableHead>
+                    <TableHead className="w-[120px]">
+                      {t('history.success', 'Success')}
+                    </TableHead>
+                    <TableHead className="w-[150px]">
+                      <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedSessions.map((sessionSummary) => (
+                    <SessionRow
+                      key={sessionSummary.sessionId}
+                      sessionSummary={sessionSummary}
+                      onToggle={() => handleToggleSession(sessionSummary.sessionId)}
+                      minecraftDir={config.paths.minecraftDir || ''}
+                      updateSession={updateSession}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
             </ScrollArea>
           )}
         </div>

@@ -215,7 +215,11 @@
     "clear": "Clear",
     "confirmClear": "Are you sure you want to clear all translation history?",
     "noHistory": "No translation history yet",
-    "noResultsFound": "No results found matching your search"
+    "noResultsFound": "No results found matching your search",
+    "sessionDate": "Session Date",
+    "totalItems": "Total Items",
+    "success": "Success",
+    "successRate": "Success Rate"
   },
   "update": {
     "title": "Update Available",

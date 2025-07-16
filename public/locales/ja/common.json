@@ -215,7 +215,11 @@
     "clear": "クリア",
     "confirmClear": "翻訳履歴をすべてクリアしてもよろしいですか？",
     "noHistory": "翻訳履歴はまだありません",
-    "noResultsFound": "検索にマッチする結果が見つかりません"
+    "noResultsFound": "検索にマッチする結果が見つかりません",
+    "sessionDate": "セッション日時",
+    "totalItems": "総アイテム数",
+    "success": "成功",
+    "successRate": "成功率"
   },
   "update": {
     "title": "アップデートが利用可能",
