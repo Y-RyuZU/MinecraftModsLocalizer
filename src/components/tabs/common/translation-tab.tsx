@@ -189,8 +189,8 @@ export function TranslationTab({
         }
     };
 
-    // Scan for items - memoized to prevent unnecessary re-creation
-    const handleScan = useCallback(async () => {
+    // Scan for items
+    const handleScan = async () => {
         if (!selectedDirectory) {
             setError(t('errors.selectDirectoryFirst'));
             return;
@@ -200,13 +200,11 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Clear existing results immediately - but only if necessary
-            if (translationTargets.length > 0) {
-                setTranslationTargets([]);
-            }
-            if (filterText) {
-                setFilterText("");
-            }
+            // Clear existing results before scanning
+            setTranslationTargets([]);
+            setFilterText("");
+            
+            // Reset translation state if exists
             if (translationResults.length > 0) {
                 setTranslationResults([]);
             }
@@ -233,7 +231,7 @@ export function TranslationTab({
         } finally {
             setIsScanning(false);
         }
-    }, [selectedDirectory, t, onScan]);
+    };
 
     // Select all items
     const handleSelectAll = (checked: boolean) => {
