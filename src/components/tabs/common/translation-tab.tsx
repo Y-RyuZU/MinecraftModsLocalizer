@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useRef, ReactNode, useCallback, useMemo} from "react";
+import {useState, useRef, ReactNode} from "react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
@@ -200,14 +200,10 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Clear existing results before scanning
+            // Clear existing results
             setTranslationTargets([]);
             setFilterText("");
-            
-            // Reset translation state if exists
-            if (translationResults.length > 0) {
-                setTranslationResults([]);
-            }
+            setTranslationResults([]);
 
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
@@ -464,7 +460,7 @@ export function TranslationTab({
             )}
 
             {isTranslating && (
-                <div className="space-y-2">
+                <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-2 duration-300">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 mr-4 space-y-4">
                             {/* Job Progress - Single file progress */}
@@ -549,11 +545,11 @@ export function TranslationTab({
                                 <TableRow>
                                     <TableCell colSpan={tableColumns.length + 1} className="text-center py-16">
                                         {isScanning ? (
-                                            <div className="flex flex-col items-center gap-4">
+                                            <div className="flex flex-col items-center gap-4 animate-in fade-in-0 duration-300">
                                                 <div className="relative">
                                                     {/* Outer spinning ring */}
                                                     <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent transition-all duration-300"></div>
                                                     
                                                     {/* Inner pulsing circle */}
                                                     <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
