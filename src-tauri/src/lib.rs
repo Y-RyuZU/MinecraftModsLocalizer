@@ -9,8 +9,8 @@ pub mod minecraft;
 mod tests;
 
 use backup::{
-    create_backup, backup_snbt_files, backup_resource_pack,
-    list_translation_sessions, get_translation_summary, update_translation_summary,
+    backup_resource_pack, backup_snbt_files, create_backup, get_translation_summary,
+    list_translation_sessions, update_translation_summary,
 };
 use config::{load_config, save_config};
 use filesystem::{

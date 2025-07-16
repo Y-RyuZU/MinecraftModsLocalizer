@@ -146,7 +146,7 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result
         let ty = entry.file_type()?;
         let src_path = entry.path();
         let dst_path = dst.as_ref().join(entry.file_name());
-        
+
         if ty.is_dir() {
             copy_dir_all(&src_path, &dst_path)?;
         } else {
@@ -186,7 +186,7 @@ pub fn backup_snbt_files(
         if source.exists() {
             if let Some(file_name) = source.file_name() {
                 let dest = backup_dir.join(file_name);
-                
+
                 if let Err(e) = fs::copy(&source, &dest) {
                     logger.warning(
                         &format!("Failed to backup SNBT file {}: {e}", file_path),
@@ -212,7 +212,7 @@ pub fn backup_snbt_files(
         &format!("SNBT backup completed: {} files backed up", backed_up_count),
         Some("BACKUP"),
     );
-    
+
     Ok(())
 }
 
@@ -229,7 +229,7 @@ pub fn backup_resource_pack(
     );
 
     let source = Path::new(&pack_path);
-    
+
     if !source.exists() {
         return Err(format!("Resource pack not found: {}", pack_path));
     }
@@ -253,7 +253,7 @@ pub fn backup_resource_pack(
 
     // Copy entire resource pack directory
     let dest = backup_dir.join(pack_name);
-    
+
     if let Err(e) = copy_dir_all(&source, &dest) {
         let error_msg = format!("Failed to backup resource pack: {e}");
         logger.error(&error_msg, Some("BACKUP"));
@@ -264,7 +264,7 @@ pub fn backup_resource_pack(
         &format!("Resource pack backup completed: {}", dest.display()),
         Some("BACKUP"),
     );
-    
+
     Ok(())
 }
 
@@ -280,33 +280,31 @@ pub struct TranslationSummary {
 #[serde(rename_all = "camelCase")]
 pub struct TranslationEntry {
     #[serde(rename = "type")]
-    pub translation_type: String,  // "mod", "quest", "patchouli", "custom"
+    pub translation_type: String, // "mod", "quest", "patchouli", "custom"
     pub name: String,
-    pub status: String,  // "completed" or "failed"
-    pub keys: String,    // Format: "translated/total" e.g. "234/234"
+    pub status: String, // "completed" or "failed"
+    pub keys: String,   // Format: "translated/total" e.g. "234/234"
 }
 
 /// List all translation session directories
 #[tauri::command]
 pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<String>, String> {
-    let logs_path = PathBuf::from(&minecraft_dir)
-        .join("logs")
-        .join("localizer");
-    
+    let logs_path = PathBuf::from(&minecraft_dir).join("logs").join("localizer");
+
     if !logs_path.exists() {
         return Ok(Vec::new());
     }
-    
+
     let mut sessions = Vec::new();
-    
+
     // Read directory entries
-    let entries = fs::read_dir(&logs_path)
-        .map_err(|e| format!("Failed to read logs directory: {}", e))?;
-    
+    let entries =
+        fs::read_dir(&logs_path).map_err(|e| format!("Failed to read logs directory: {}", e))?;
+
     for entry in entries {
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
-        
+
         // Only include directories that match session ID format
         if path.is_dir() {
             if let Some(dir_name) = path.file_name() {
@@ -319,10 +317,10 @@ pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<Stri
             }
         }
     }
-    
+
     // Sort sessions by name (newest first due to timestamp format)
     sessions.sort_by(|a, b| b.cmp(a));
-    
+
     Ok(sessions)
 }
 
@@ -330,25 +328,28 @@ pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<Stri
 #[tauri::command]
 pub async fn get_translation_summary(
     minecraft_dir: String,
-    session_id: String
+    session_id: String,
 ) -> Result<TranslationSummary, String> {
     let summary_path = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id)
         .join("translation_summary.json");
-    
+
     if !summary_path.exists() {
-        return Err(format!("Translation summary not found for session: {}", session_id));
+        return Err(format!(
+            "Translation summary not found for session: {}",
+            session_id
+        ));
     }
-    
+
     // Read and parse the JSON file
     let content = fs::read_to_string(&summary_path)
         .map_err(|e| format!("Failed to read summary file: {}", e))?;
-    
+
     let summary: TranslationSummary = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse summary JSON: {}", e))?;
-    
+
     Ok(summary)
 }
 
@@ -368,18 +369,18 @@ pub async fn update_translation_summary(
         .join("logs")
         .join("localizer")
         .join(&session_id);
-    
+
     // Ensure session directory exists
     fs::create_dir_all(&session_dir)
         .map_err(|e| format!("Failed to create session directory: {}", e))?;
-    
+
     let summary_path = session_dir.join("translation_summary.json");
-    
+
     // Read existing summary or create new one
     let mut summary = if summary_path.exists() {
         let content = fs::read_to_string(&summary_path)
             .map_err(|e| format!("Failed to read existing summary: {}", e))?;
-        
+
         serde_json::from_str::<TranslationSummary>(&content)
             .map_err(|e| format!("Failed to parse existing summary: {}", e))?
     } else {
@@ -388,7 +389,7 @@ pub async fn update_translation_summary(
             translations: Vec::new(),
         }
     };
-    
+
     // Add new translation entry
     let entry = TranslationEntry {
         translation_type,
@@ -396,15 +397,14 @@ pub async fn update_translation_summary(
         status,
         keys: format!("{}/{}", translated_keys, total_keys),
     };
-    
+
     summary.translations.push(entry);
-    
+
     // Write updated summary back to file
     let json = serde_json::to_string_pretty(&summary)
         .map_err(|e| format!("Failed to serialize summary: {}", e))?;
-    
-    fs::write(&summary_path, json)
-        .map_err(|e| format!("Failed to write summary file: {}", e))?;
-    
+
+    fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {}", e))?;
+
     Ok(())
 }

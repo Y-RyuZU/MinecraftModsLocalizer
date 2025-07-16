@@ -501,7 +501,8 @@ fn extract_lang_files_from_archive(
     target_language: &str,
 ) -> Result<Vec<LangFile>> {
     // Use the _with_format function and just return the files
-    let (lang_files, _format) = extract_lang_files_from_archive_with_format(archive, mod_id, target_language)?;
+    let (lang_files, _format) =
+        extract_lang_files_from_archive_with_format(archive, mod_id, target_language)?;
     Ok(lang_files)
 }
 
