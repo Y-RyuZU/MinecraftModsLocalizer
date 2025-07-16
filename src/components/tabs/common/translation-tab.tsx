@@ -405,7 +405,7 @@ export function TranslationTab({
                     </Button>
 
                     {/* Target Language Selector */}
-                    <div className="min-w-[200px]">
+                    <div className="min-w-[200px] 2xl:min-w-[250px]">
                         <TargetLanguageSelector
                             labelKey="tabs.targetLanguage"
                             availableLanguages={config.translation.additionalLanguages?.map((lang: {
@@ -424,7 +424,7 @@ export function TranslationTab({
                 </div>
                 {filterPlaceholder && (
                     <div className="flex items-center gap-2 relative">
-                        <div className="relative w-[250px]">
+                        <div className="relative w-[250px] 2xl:w-[350px]">
                             <Search
                                 className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                             <Input
@@ -460,7 +460,7 @@ export function TranslationTab({
                             {/* Job Progress - Single file progress */}
                             <div>
                                 <Progress value={progress} className="h-2"/>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm 2xl:text-base text-muted-foreground">
                                     {t(progressLabel)} {progress}%
                                     {translationServiceRef.current?.getJob(currentJobId || '')?.currentFileName && (
                                         <span className="ml-2">
@@ -473,7 +473,7 @@ export function TranslationTab({
                             {/* Whole Progress - Overall progress across all files */}
                             <div>
                                 <Progress value={wholeProgress} className="h-2"/>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm 2xl:text-base text-muted-foreground">
                                     {t('progress.wholeProgress')} {wholeProgress}%
                                 </p>
                             </div>
@@ -494,12 +494,12 @@ export function TranslationTab({
             )}
 
             <div className="border rounded-md">
-                <ScrollArea className="h-[500px]" orientation="both">
-                    <div className="w-max">
+                <ScrollArea className="h-[60vh] min-h-[500px] 2xl:h-[70vh] 2xl:min-h-[600px]" orientation="both">
+                    <div className="w-max min-w-full">
                         <Table>
                             <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[50px] sticky top-0 bg-background z-10">
+                                <TableHead className="w-[50px] 2xl:w-[60px] sticky top-0 bg-background z-10">
                                     <Checkbox
                                         onCheckedChange={(checked) => handleSelectAll(!!checked)}
                                         disabled={isScanning || isTranslating || translationTargets.length === 0}
@@ -550,15 +550,17 @@ export function TranslationTab({
                                                 </div>
                                                 
                                                 <div className="space-y-2 text-center">
-                                                    <p className="text-lg font-medium">
+                                                    <p className="text-lg 2xl:text-xl font-medium">
                                                         {scanProgress?.currentFile ? 
                                                             `Scanning: ${scanProgress.currentFile}` : 
                                                             t(scanningForItemsLabel)
                                                         }
                                                     </p>
-                                                    <p className="text-sm text-muted-foreground">
+                                                    <p className="text-sm 2xl:text-base text-muted-foreground">
                                                         {(scanProgress?.processedCount ?? 0) > 0 ? 
-                                                            `(${scanProgress?.processedCount} files)` : 
+                                                            scanProgress?.totalCount ? 
+                                                                `(${scanProgress.processedCount} / ${scanProgress.totalCount} files - ${Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)}%)` :
+                                                                `(${scanProgress?.processedCount} files)` : 
                                                             t('misc.pleaseWait')
                                                         }
                                                     </p>

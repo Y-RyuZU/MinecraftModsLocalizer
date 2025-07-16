@@ -86,10 +86,18 @@ pub async fn get_mod_files(
         path.to_path_buf()
     };
 
+    // First, count total files for progress tracking
+    let total_files = WalkDir::new(&target_dir)
+        .max_depth(1)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|entry| entry.path().is_file())
+        .count();
+
     // Walk through the directory and find all JAR files
     let mut processed_count = 0;
     let mut last_emit = Instant::now();
-    const EMIT_INTERVAL: Duration = Duration::from_millis(1000);
+    const EMIT_INTERVAL: Duration = Duration::from_millis(200); // More frequent updates
 
     for entry in WalkDir::new(target_dir)
         .max_depth(1)
@@ -98,36 +106,42 @@ pub async fn get_mod_files(
     {
         let entry_path = entry.path();
 
-        // Emit progress: every file OR every 1000ms
-        if last_emit.elapsed() >= EMIT_INTERVAL {
+        if entry_path.is_file() {
+            processed_count += 1;
+            
             let current_file = entry_path
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
 
-            let _ = app_handle.emit(
-                "scan_progress",
-                ScanProgressPayload {
-                    current_file,
-                    processed_count,
-                    total_count: None,
-                    scan_type: "mods".to_string(),
-                    completed: false,
-                },
-            );
+            // Emit progress: every 10 files OR every 200ms OR when finding JAR files
+            let should_emit = processed_count % 10 == 0 
+                || last_emit.elapsed() >= EMIT_INTERVAL 
+                || entry_path.extension().is_some_and(|ext| ext == "jar");
 
-            last_emit = Instant::now();
-        }
+            if should_emit {
+                let _ = app_handle.emit(
+                    "scan_progress",
+                    ScanProgressPayload {
+                        current_file,
+                        processed_count,
+                        total_count: Some(total_files),
+                        scan_type: "mods".to_string(),
+                        completed: false,
+                    },
+                );
 
-        // Check if the file is a JAR file
-        if entry_path.is_file() && entry_path.extension().is_some_and(|ext| ext == "jar") {
-            if let Some(path_str) = entry_path.to_str() {
-                mod_files.push(path_str.to_string());
+                last_emit = Instant::now();
+            }
+
+            // Check if the file is a JAR file
+            if entry_path.extension().is_some_and(|ext| ext == "jar") {
+                if let Some(path_str) = entry_path.to_str() {
+                    mod_files.push(path_str.to_string());
+                }
             }
         }
-
-        processed_count += 1;
     }
 
     // Emit completion event
@@ -136,7 +150,7 @@ pub async fn get_mod_files(
         ScanProgressPayload {
             current_file: "".to_string(),
             processed_count,
-            total_count: Some(processed_count),
+            total_count: Some(total_files),
             scan_type: "mods".to_string(),
             completed: true,
         },
@@ -256,30 +270,44 @@ pub async fn get_ftb_quest_files(
                 info!("Scanning FTB quests directory: {}", quest_root.display());
                 quest_dir_found = true;
 
+                // First, count total files for progress tracking
+                let total_files = WalkDir::new(&quest_root)
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                    .filter(|entry| entry.path().is_file())
+                    .count();
+
                 // Walk through the directory and find all SNBT files
                 let mut processed_count = 0;
                 let mut last_emit = Instant::now();
-                const EMIT_INTERVAL: Duration = Duration::from_millis(1000);
+                const EMIT_INTERVAL: Duration = Duration::from_millis(200);
 
                 for entry in WalkDir::new(&quest_root).into_iter() {
                     match entry {
                         Ok(entry) => {
                             let entry_path = entry.path();
 
-                            // Emit progress: every 1000ms
-                            if last_emit.elapsed() >= EMIT_INTERVAL {
-                                let current_file = entry_path
-                                    .file_name()
-                                    .unwrap_or_default()
-                                    .to_string_lossy()
-                                    .to_string();
+                            if entry_path.is_file() {
+                                processed_count += 1;
+                            }
 
+                            let current_file = entry_path
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
+
+                            // Emit progress: every 10 files OR every 200ms
+                            let should_emit = processed_count % 10 == 0 
+                                || last_emit.elapsed() >= EMIT_INTERVAL;
+
+                            if should_emit {
                                 let _ = app_handle.emit(
                                     "scan_progress",
                                     ScanProgressPayload {
                                         current_file,
                                         processed_count,
-                                        total_count: None,
+                                        total_count: Some(total_files),
                                         scan_type: "quests".to_string(),
                                         completed: false,
                                     },
@@ -326,8 +354,6 @@ pub async fn get_ftb_quest_files(
                                     }
                                 }
                             }
-
-                            processed_count += 1;
                         }
                         Err(e) => {
                             error!("Error reading FTB quests directory entry: {e}");
@@ -342,7 +368,7 @@ pub async fn get_ftb_quest_files(
                     ScanProgressPayload {
                         current_file: "".to_string(),
                         processed_count,
-                        total_count: Some(processed_count),
+                        total_count: Some(total_files),
                         scan_type: "quests".to_string(),
                         completed: true,
                     },
@@ -378,15 +404,27 @@ pub async fn get_better_quest_files(
 
     let mut quest_files = Vec::new();
 
-    // Progress tracking
-    let mut processed_count = 0;
-    let mut last_emit = Instant::now();
-    const EMIT_INTERVAL: Duration = Duration::from_millis(1000);
-
     // Check both standard and direct locations for BetterQuesting files
     // 1. Standard location: resources/betterquesting/lang/*.json
     let resources_dir = path.join("resources");
     let better_quests_dir = resources_dir.join("betterquesting").join("lang");
+
+    // Count total files first for progress tracking
+    let total_files = if better_quests_dir.exists() && better_quests_dir.is_dir() {
+        WalkDir::new(&better_quests_dir)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|entry| entry.path().is_file())
+            .count()
+    } else {
+        0
+    } + 1; // +1 for the potential DefaultQuests.lang file
+
+    // Progress tracking
+    let mut processed_count = 0;
+    let mut last_emit = Instant::now();
+    const EMIT_INTERVAL: Duration = Duration::from_millis(200);
 
     if better_quests_dir.exists() && better_quests_dir.is_dir() {
         info!(
@@ -401,20 +439,27 @@ pub async fn get_better_quest_files(
         {
             let entry_path = entry.path();
 
-            // Emit progress: every 1000ms
-            if last_emit.elapsed() >= EMIT_INTERVAL {
-                let current_file = entry_path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
+            if entry_path.is_file() {
+                processed_count += 1;
+            }
 
+            let current_file = entry_path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+
+            // Emit progress: every 10 files OR every 200ms
+            let should_emit = processed_count % 10 == 0 
+                || last_emit.elapsed() >= EMIT_INTERVAL;
+
+            if should_emit {
                 let _ = app_handle.emit(
                     "scan_progress",
                     ScanProgressPayload {
                         current_file,
                         processed_count,
-                        total_count: None,
+                        total_count: Some(total_files),
                         scan_type: "guidebooks".to_string(),
                         completed: false,
                     },
@@ -446,8 +491,6 @@ pub async fn get_better_quest_files(
                     quest_files.push(path_str.to_string());
                 }
             }
-
-            processed_count += 1;
         }
     } else {
         info!(
@@ -466,6 +509,20 @@ pub async fn get_better_quest_files(
             "Found DefaultQuests.lang file (direct): {}",
             default_quests_file.display()
         );
+        processed_count += 1;
+        
+        // Emit progress for DefaultQuests.lang file
+        let _ = app_handle.emit(
+            "scan_progress",
+            ScanProgressPayload {
+                current_file: "DefaultQuests.lang".to_string(),
+                processed_count,
+                total_count: Some(total_files),
+                scan_type: "guidebooks".to_string(),
+                completed: false,
+            },
+        );
+        
         if let Some(path_str) = default_quests_file.to_str() {
             quest_files.push(path_str.to_string());
         }
@@ -482,7 +539,7 @@ pub async fn get_better_quest_files(
         ScanProgressPayload {
             current_file: "".to_string(),
             processed_count,
-            total_count: Some(processed_count),
+            total_count: Some(total_files),
             scan_type: "guidebooks".to_string(),
             completed: true,
         },
@@ -511,29 +568,43 @@ pub async fn get_files_with_extension(
 
     let mut files = Vec::new();
 
+    // First, count total files for progress tracking
+    let total_files = WalkDir::new(path)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|entry| entry.path().is_file())
+        .count();
+
     // Progress tracking
     let mut processed_count = 0;
     let mut last_emit = Instant::now();
-    const EMIT_INTERVAL: Duration = Duration::from_millis(1000);
+    const EMIT_INTERVAL: Duration = Duration::from_millis(200);
 
     // Walk through the directory and find all files with the specified extension
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         let entry_path = entry.path();
 
-        // Emit progress: every 1000ms
-        if last_emit.elapsed() >= EMIT_INTERVAL {
-            let current_file = entry_path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
+        if entry_path.is_file() {
+            processed_count += 1;
+        }
 
+        let current_file = entry_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        // Emit progress: every 10 files OR every 200ms
+        let should_emit = processed_count % 10 == 0 
+            || last_emit.elapsed() >= EMIT_INTERVAL;
+
+        if should_emit {
             let _ = app_handle.emit(
                 "scan_progress",
                 ScanProgressPayload {
                     current_file,
                     processed_count,
-                    total_count: None,
+                    total_count: Some(total_files),
                     scan_type: "custom-files".to_string(),
                     completed: false,
                 },
@@ -552,8 +623,6 @@ pub async fn get_files_with_extension(
                 files.push(path_str.to_string());
             }
         }
-
-        processed_count += 1;
     }
 
     // Emit completion event
@@ -562,7 +631,7 @@ pub async fn get_files_with_extension(
         ScanProgressPayload {
             current_file: "".to_string(),
             processed_count,
-            total_count: Some(processed_count),
+            total_count: Some(total_files),
             scan_type: "custom-files".to_string(),
             completed: true,
         },
