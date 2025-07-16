@@ -54,7 +54,7 @@ const formatSessionId = (id: string) => {
   // Format: YYYY-MM-DD_HH-MM-SS
   const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
   if (match) {
-    const [_, year, month, day, hour, minute, second] = match;
+    const [, year, month, day, hour, minute, second] = match;
     return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
   }
   return id;
@@ -64,7 +64,7 @@ const formatSessionId = (id: string) => {
 const parseSessionId = (id: string): Date => {
   const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
   if (match) {
-    const [_, year, month, day, hour, minute, second] = match;
+    const [, year, month, day, hour, minute, second] = match;
     return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
   }
   return new Date();
@@ -164,7 +164,7 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: {
 }) {
   const { t } = useAppTranslation();
   
-  const loadSummary = async () => {
+  const loadSummary = useCallback(async () => {
     if (sessionSummary.summary) return;
     
     updateSession(sessionSummary.sessionId, { loading: true });
@@ -192,13 +192,13 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: {
         loading: false
       });
     }
-  };
+  }, [sessionSummary.sessionId, sessionSummary.summary, updateSession, minecraftDir]);
   
   useEffect(() => {
     if (sessionSummary.expanded && !sessionSummary.summary && !sessionSummary.loading) {
       loadSummary();
     }
-  }, [sessionSummary.expanded]);
+  }, [sessionSummary.expanded, sessionSummary.summary, sessionSummary.loading, loadSummary]);
   
   return (
     <>

@@ -9,8 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LLMSettings } from "@/components/settings/llm-settings";
 import { TranslationSettings } from "@/components/settings/translation-settings";
 import { PathSettings } from "@/components/settings/path-settings";
-import { UISettings } from "@/components/settings/ui-settings";
-import { BackupSettings } from "@/components/settings/backup-settings";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from "@/lib/services/file-service";
@@ -123,12 +121,6 @@ export function SettingsDialog() {
             
             {/* Path Settings */}
             <PathSettings config={config} onSelectDirectory={handleSelectDirectory} />
-            
-            {/* UI Settings */}
-            <UISettings config={config} setConfig={setConfig} />
-            
-            {/* Backup Settings */}
-            <BackupSettings config={config} setConfig={setConfig} />
             
             {/* Reset Button */}
             <Card>

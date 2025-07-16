@@ -120,6 +120,16 @@ describe('Backup System E2E Tests', () => {
             ]
           };
           
+        // Handle logging commands
+        case 'log_translation_start':
+        case 'log_translation_statistics':
+        case 'log_translation_process':
+        case 'log_translation_completion':
+        case 'log_error':
+        case 'log_file_operation':
+          // Mock logging - just return success
+          return;
+          
         default:
           throw new Error(`Unknown command: ${command}`);
       }

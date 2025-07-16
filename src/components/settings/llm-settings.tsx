@@ -20,11 +20,6 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
   const { t, ready } = useAppTranslation();
   const [showApiKey, setShowApiKey] = useState(false);
   
-  // Don't render until translations are loaded
-  if (!ready) {
-    return <div className="animate-pulse h-96 bg-muted rounded-lg" />;
-  }
-  
   // Initialize apiKeys if not present
   if (!config.llm.apiKeys) {
     config.llm.apiKeys = {
@@ -97,6 +92,11 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
       }
     }
   }, [config, setConfig]);
+  
+  // Don't render until translations are loaded
+  if (!ready) {
+    return <div className="animate-pulse h-96 bg-muted rounded-lg" />;
+  }
   
   // Get provider display name
   const getProviderDisplayName = (provider: string) => {

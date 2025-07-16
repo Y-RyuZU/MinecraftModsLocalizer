@@ -120,7 +120,6 @@ export function ModsTab() {
   ) => {
     // Sort targets alphabetically by name for predictable processing order
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-    console.log(`ModsTab: Processing ${sortedTargets.length} mods in alphabetical order:`, sortedTargets.map(t => t.name));
     // Always set resource packs directory to <selectedDirectory>/resourcepacks
     const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
 
@@ -189,11 +188,9 @@ export function ModsTab() {
 
     // Use mod-level progress tracking: denominator = total mods, numerator = completed mods
     setTotalMods(sortedTargets.length);
-    console.log(`ModsTab: Set totalMods to ${sortedTargets.length} for mod-level progress tracking`);
     
     // Set chunk tracking for progress calculation
     setTotalChunks(totalChunksCount);
-    console.log(`ModsTab: Set totalChunks to ${totalChunksCount} for chunk-level progress tracking`);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {
@@ -265,7 +262,6 @@ export function ModsTab() {
           packPath: resourcePackDir,
           sessionPath: sessionPath
         });
-        console.log(`Backed up resource pack: ${resourcePackDir}`);
       } catch (error) {
         console.error('Failed to backup resource pack:', error);
         // Don't fail the translation if backup fails

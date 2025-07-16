@@ -595,9 +595,6 @@ export class TranslationService {
   private splitIntoChunks(content: Record<string, string>, jobId: string): TranslationChunk[] {
     const entries = Object.entries(content);
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Chunking ${entries.length} entries - useTokenBasedChunking: ${this.useTokenBasedChunking}`);
-    }
     
     if (this.useTokenBasedChunking) {
       try {
@@ -694,7 +691,9 @@ export class TranslationService {
           currentChunkTokens = 0;
         } else {
           // Content can't be split further, add as is with warning
-          console.warn(`Entry "${key}" exceeds token limit but cannot be split further`);
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Entry "${key}" exceeds token limit but cannot be split further`);
+          }
           chunks.push({
             id: `${jobId}_chunk_${chunks.length}`,
             content: currentChunk,
@@ -954,10 +953,8 @@ export class TranslationService {
     
     job.progress = Math.round((completedChunks / totalChunks) * 100);
     
-    // Notify progress callback
-    if (this.onProgress) {
-      this.onProgress(job);
-    }
+    // Remove onProgress callback to prevent duplicate updates
+    // Progress is now handled directly by translation-runner.ts
   }
 
   /**

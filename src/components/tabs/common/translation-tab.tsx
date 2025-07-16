@@ -162,11 +162,12 @@ export function TranslationTab({
 
                 // Log the selection type for debugging
                 if (selected.startsWith("NATIVE_DIALOG:")) {
-                    console.log("Native dialog was used!");
-                } else {
-                    console.log("Mock dialog was used!");
-                    // Only show warning in development mode
                     if (process.env.NODE_ENV === 'development') {
+                        console.log("Native dialog was used!");
+                    }
+                } else {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log("Mock dialog was used!");
                         setError("Warning: Mock dialog was used instead of native dialog");
                     }
                 }
@@ -247,6 +248,8 @@ export function TranslationTab({
             // Reset cancellation flag
             wasCancelledRef.current = false;
 
+            // Reset translation state immediately
+            resetTranslationState();
             setTranslating(true);
             setProgress(0);
             setWholeProgress(0);
@@ -286,13 +289,9 @@ export function TranslationTab({
                 // Token-based chunking configuration
                 useTokenBasedChunking: config.translation.useTokenBasedChunking,
                 maxTokensPerChunk: config.translation.maxTokensPerChunk,
-                fallbackToEntryBased: config.translation.fallbackToEntryBased,
-                onProgress: (job) => {
-                    // Update individual job progress (bounded 0-100)
-                    const boundedProgress = Math.max(0, Math.min(100, job.progress || 0));
-                    console.log(`[TranslationTab] onProgress called: ${boundedProgress}%`);
-                    setProgress(boundedProgress);
-                }
+                fallbackToEntryBased: config.translation.fallbackToEntryBased
+                // Remove onProgress callback to prevent duplicate updates
+                // Progress is now handled directly by translation-runner.ts
             });
 
             // Store the translation service in the ref
@@ -466,11 +465,6 @@ export function TranslationTab({
                                 <p className="text-sm text-muted-foreground">
                                     {t('progress.wholeProgress')} {wholeProgress}%
                                 </p>
-                                {process.env.NODE_ENV === 'development' && (
-                                    <p className="text-xs text-gray-500">
-                                        Debug: wholeProgress = {wholeProgress}
-                                    </p>
-                                )}
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -575,7 +569,7 @@ export function TranslationTab({
                                             .filter(t => t.id === target.id)
                                             .length > 1;
 
-                                        if (duplicateIds) {
+                                        if (duplicateIds && process.env.NODE_ENV === 'development') {
                                             console.log(`重複したtarget.id: ${target.id} ${target.name}`);
                                         }
 

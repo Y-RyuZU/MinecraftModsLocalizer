@@ -10,7 +10,7 @@ interface BackupSettingsProps {
   setConfig: (config: AppConfig) => void;
 }
 
-export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
+export function BackupSettings({ }: BackupSettingsProps) {
   const { t } = useAppTranslation();
 
   return (

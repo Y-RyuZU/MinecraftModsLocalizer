@@ -139,8 +139,7 @@ export function QuestsTab() {
             
             // Set total quests for progress tracking
             setTotalQuests(sortedTargets.length);
-            console.log(`QuestsTab: Set totalQuests to ${sortedTargets.length} for quest-level progress tracking`);
-            const totalQuests = sortedTargets.length;
+                const totalQuests = sortedTargets.length;
             setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
             
             // Generate session ID for this translation
@@ -164,8 +163,7 @@ export function QuestsTab() {
                         files: snbtFiles,
                         sessionPath: sessionPath
                     });
-                    console.log(`Backed up ${snbtFiles.length} SNBT files`);
-                } catch (error) {
+                        } catch (error) {
                     console.error('Failed to backup SNBT files:', error);
                     // Continue with translation even if backup fails
                 }

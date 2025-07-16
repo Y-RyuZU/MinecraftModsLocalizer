@@ -217,10 +217,6 @@ export const useAppStore = create<AppState>((set) => ({
     const validTotalChunks = Math.max(1, totalChunks || 1);
     const validCompletedChunks = Math.max(0, Math.min(completedChunks || 0, validTotalChunks));
     
-    // Calculate progress with bounds checking (0-100)
-    const rawProgress = (validCompletedChunks / validTotalChunks) * 100;
-    const boundedProgress = Math.max(0, Math.min(100, Math.round(rawProgress)));
-    
     return {
       completedChunks: validCompletedChunks,
       totalChunks: validTotalChunks

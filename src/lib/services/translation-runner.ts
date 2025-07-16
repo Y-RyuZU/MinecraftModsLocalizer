@@ -51,9 +51,6 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         enableBackup = true
     } = options;
 
-    console.log(`[TranslationRunner] Starting ${jobs.length} jobs`);
-    console.log(`[TranslationRunner] setProgress function exists: ${!!setProgress}`);
-    console.log(`[TranslationRunner] incrementCompletedMods function exists: ${!!incrementCompletedMods}`);
 
     for (let i = 0; i < jobs.length; i++) {
         const job = jobs[i];
@@ -64,12 +61,14 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         job.status = "processing";
         job.startTime = Date.now();
         
-        // Reset individual file progress
+        // Reset individual file progress with immediate update
         if (setProgress) {
-            console.log(`[Job ${i + 1}/${jobs.length}] Starting job with ${job.chunks.length} chunks`);
             setProgress(0);
         }
-        const jobTotalChunks = job.chunks.length;
+        
+        // Calculate total keys for this job (for key-based progress)
+        const totalKeys = job.chunks.reduce((sum, chunk) => sum + Object.keys(chunk.content).length, 0);
+        let processedKeys = 0;
 
         for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
             // Check for cancellation
@@ -94,23 +93,19 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 chunk.error = error instanceof Error ? error.message : String(error);
             }
             
-            // Update individual file progress
-            const fileProgress = Math.round(((chunkIndex + 1) / jobTotalChunks) * 100);
+            // Update processed keys count
+            processedKeys += Object.keys(chunk.content).length;
+            
+            // Update individual file progress based on processed keys
+            const keyProgress = totalKeys > 0 ? Math.round((processedKeys / totalKeys) * 100) : 100;
             if (setProgress) {
-                console.log(`[Job ${i + 1}/${jobs.length}] Chunk ${chunkIndex + 1}/${jobTotalChunks} completed, progress: ${fileProgress}%`);
-                setProgress(fileProgress);
+                setProgress(keyProgress);
             }
             
-            // Manually update TranslationService job progress to trigger onProgress callback
+            // Update job progress for consistency (no callback trigger to avoid double updates)
             const completedChunks = job.chunks.filter(c => c.status === "completed" || c.status === "failed").length;
-            const serviceProgress = Math.round((completedChunks / job.chunks.length) * 100);
-            (job as any).progress = serviceProgress;
-            
-            // Trigger the onProgress callback manually if it exists
-            if ((translationService as any).onProgress) {
-                console.log(`[Job ${i + 1}/${jobs.length}] Triggering onProgress callback with ${serviceProgress}%`);
-                (translationService as any).onProgress(job);
-            }
+            const serviceProgress = job.chunks.length > 0 ? Math.round((completedChunks / job.chunks.length) * 100) : 0;
+            (job as { progress?: number }).progress = serviceProgress;
             
             // Increment overall chunk-level progress
             if (incrementCompletedChunks) incrementCompletedChunks();
@@ -157,10 +152,10 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         // Update translation summary if session ID is provided
         if (sessionId) {
             try {
-                const chunks = (job as any).chunks || [];
-                const translatedKeys = chunks.filter((c: any) => c.status === "completed")
-                    .reduce((sum: number, chunk: any) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
-                const totalKeys = Object.keys((job as any).sourceContent || {}).length;
+                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown> }> }).chunks || [];
+                const translatedKeys = chunks.filter((c) => c.status === "completed")
+                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
+                const totalKeys = Object.keys((job as { sourceContent?: Record<string, unknown> }).sourceContent || {}).length;
                 
                 const config = useAppStore.getState().config;
                 
@@ -180,15 +175,18 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
             }
         }
 
+        // Ensure final progress is set to 100% for completed jobs
+        if (setProgress && job.status === "completed") {
+            setProgress(100);
+        }
+        
         // Increment mod-level progress if applicable
         if (incrementCompletedMods) {
-            console.log(`[Job ${i + 1}/${jobs.length}] Job completed, incrementing mod progress`);
             incrementCompletedMods();
         }
         
         // Increment whole progress (for backward compatibility with other tabs)
         if (incrementWholeProgress && incrementWholeProgress !== incrementCompletedMods) {
-            console.log(`[Job ${i + 1}/${jobs.length}] Job completed, incrementing whole progress`);
             incrementWholeProgress();
         }
     }

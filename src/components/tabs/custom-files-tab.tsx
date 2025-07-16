@@ -109,7 +109,6 @@ export function CustomFilesTab() {
       const totalFiles = sortedTargets.length;
       setTotalChunks(totalFiles); // Track at file level
       setTotalCustomFiles(totalFiles);
-      console.log(`CustomFilesTab: Set totalCustomFiles to ${totalFiles} for custom files-level progress tracking`);
       
       // Create jobs for all files
       const jobs: Array<{
