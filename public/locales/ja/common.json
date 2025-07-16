@@ -217,9 +217,13 @@
     "noHistory": "翻訳履歴はまだありません",
     "noResultsFound": "検索にマッチする結果が見つかりません",
     "sessionDate": "セッション日時",
+    "targetLanguage": "対象言語",
     "totalItems": "総アイテム数",
     "success": "成功",
-    "successRate": "成功率"
+    "successCount": "成功数",
+    "successRate": "成功率",
+    "translationDetails": "翻訳詳細",
+    "keyCount": "キー数"
   },
   "update": {
     "title": "アップデートが利用可能",

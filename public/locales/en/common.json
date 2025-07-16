@@ -217,9 +217,13 @@
     "noHistory": "No translation history yet",
     "noResultsFound": "No results found matching your search",
     "sessionDate": "Session Date",
+    "targetLanguage": "Target Language",
     "totalItems": "Total Items",
     "success": "Success",
-    "successRate": "Success Rate"
+    "successCount": "Success Count",
+    "successRate": "Success Rate",
+    "translationDetails": "Translation Details",
+    "keyCount": "Keys"
   },
   "update": {
     "title": "Update Available",

@@ -91,22 +91,27 @@ function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary 
   
   return (
     <TableRow className="bg-muted/30">
-      <TableCell colSpan={5} className="p-4">
-        <div className="space-y-3">
-          <div className="text-sm font-medium">{t('tables.translations', 'Translations')}:</div>
-          <div className="grid gap-2">
+      <TableCell colSpan={5} className="p-6">
+        <div className="space-y-4">
+          <div className="text-sm font-medium border-b pb-2">{t('history.translationDetails', 'Translation Details')}:</div>
+          <div className="grid gap-3">
             {summary.translations.map((translation, index) => (
-              <div key={index} className="flex items-center justify-between text-sm pl-4 py-1">
-                <div className="flex items-center space-x-2">
+              <div key={index} className="flex items-center justify-between text-sm py-2 px-4 rounded-lg bg-background border">
+                <div className="flex items-center space-x-3">
                   {translation.status === 'completed' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                   ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
+                    <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
                   )}
-                  <span className="capitalize">{translation.type}:</span>
-                  <span>{translation.name}</span>
+                  <div className="flex flex-col space-y-1">
+                    <span className="font-medium">{translation.name}</span>
+                    <span className="text-xs text-muted-foreground capitalize">{translation.type}</span>
+                  </div>
                 </div>
-                <span className="text-muted-foreground">({translation.keys})</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-muted-foreground text-xs">{t('history.keyCount', 'Keys')}:</span>
+                  <span className="font-mono text-sm">{translation.keys}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -299,7 +304,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[80vh]">
+      <DialogContent className="max-w-[90vw] w-full max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
         </DialogHeader>
@@ -326,23 +331,23 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
           )}
 
           {!loading && !error && sessions.length > 0 && (
-            <ScrollArea className="h-[500px]">
+            <ScrollArea className="h-[60vh] min-h-[400px]">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">
+                    <TableHead className="w-[250px]">
                       <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
                     </TableHead>
-                    <TableHead className="w-[120px]">
-                      <SortButton field="language">{t('tables.targetLanguage', 'Target Language')}</SortButton>
+                    <TableHead className="w-[150px]">
+                      <SortButton field="language">{t('history.targetLanguage', 'Target Language')}</SortButton>
                     </TableHead>
-                    <TableHead className="w-[100px]">
+                    <TableHead className="w-[120px]">
                       <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
                     </TableHead>
-                    <TableHead className="w-[120px]">
-                      {t('history.success', 'Success')}
-                    </TableHead>
                     <TableHead className="w-[150px]">
+                      {t('history.successCount', 'Success Count')}
+                    </TableHead>
+                    <TableHead className="w-[200px]">
                       <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
                     </TableHead>
                   </TableRow>
