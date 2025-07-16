@@ -36,8 +36,18 @@ export interface AppConfig {
   paths: PathsConfig;
   /** Update configuration */
   update?: UpdateConfig;
-  /** Backup configuration */
-  backup?: BackupConfig;
+}
+
+/**
+ * Provider-specific API keys
+ */
+export interface ApiKeys {
+  /** OpenAI API key */
+  openai?: string;
+  /** Anthropic API key */
+  anthropic?: string;
+  /** Google API key */
+  google?: string;
 }
 
 /**
@@ -46,8 +56,10 @@ export interface AppConfig {
 export interface LLMProviderConfig {
   /** Provider ID */
   provider: string;
-  /** API key */
-  apiKey: string;
+  /** API key (deprecated - use apiKeys instead) */
+  apiKey?: string;
+  /** Provider-specific API keys */
+  apiKeys: ApiKeys;
   /** Base URL (optional for some providers) */
   baseUrl?: string;
   /** Model to use */
@@ -123,27 +135,18 @@ export interface UpdateConfig {
 }
 
 /**
- * Backup configuration
- */
-export interface BackupConfig {
-  /** Whether automatic backup is enabled */
-  enabled: boolean;
-  /** Retention period in days (0 means keep forever) */
-  retentionDays: number;
-  /** Maximum number of backups to keep per translation type (0 means unlimited) */
-  maxBackupsPerType: number;
-  /** Whether to automatically prune old backups on startup */
-  autoPruneOnStartup: boolean;
-}
-
-/**
  * Default application configuration
  * Unified configuration with all default values in one place
  */
 export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: DEFAULT_PROVIDER,
-    apiKey: "",
+    apiKey: "", // Deprecated - kept for backward compatibility
+    apiKeys: {
+      openai: "",
+      anthropic: "",
+      google: ""
+    },
     model: DEFAULT_MODELS.openai,
     maxRetries: API_DEFAULTS.maxRetries,
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,
@@ -173,12 +176,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   update: {
     checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
-  },
-  backup: {
-    enabled: true,
-    retentionDays: 30,
-    maxBackupsPerType: 10,
-    autoPruneOnStartup: false
   }
 };
 

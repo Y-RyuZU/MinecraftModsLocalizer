@@ -1,5 +1,7 @@
 import { TranslationService, TranslationJob } from "./translation-service";
 import { TranslationResult, TranslationTargetType } from "../types/minecraft";
+import { invoke } from '@tauri-apps/api/core';
+import { useAppStore } from '@/lib/store';
 
 export interface RunTranslationJobsOptions<T extends TranslationJob = TranslationJob> {
     jobs: T[];
@@ -10,6 +12,7 @@ export interface RunTranslationJobsOptions<T extends TranslationJob = Translatio
     onJobInterrupted?: (job: T, index: number) => void;
     onResult?: (result: TranslationResult) => void;
     setCurrentJobId?: (jobId: string | null) => void;
+    setProgress?: (progress: number) => void;
     incrementCompletedChunks?: () => void;
     incrementCompletedMods?: () => void;
     incrementWholeProgress?: () => void;
@@ -35,6 +38,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         onJobInterrupted,
         onResult,
         setCurrentJobId,
+        setProgress,
         incrementCompletedChunks,
         incrementCompletedMods,
         incrementWholeProgress,
@@ -47,6 +51,10 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         enableBackup = true
     } = options;
 
+    console.log(`[TranslationRunner] Starting ${jobs.length} jobs`);
+    console.log(`[TranslationRunner] setProgress function exists: ${!!setProgress}`);
+    console.log(`[TranslationRunner] incrementCompletedMods function exists: ${!!incrementCompletedMods}`);
+
     for (let i = 0; i < jobs.length; i++) {
         const job = jobs[i];
         if (onJobStart) onJobStart(job, i);
@@ -55,6 +63,13 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         // Start the translation job chunk-by-chunk, checking for interruption
         job.status = "processing";
         job.startTime = Date.now();
+        
+        // Reset individual file progress
+        if (setProgress) {
+            console.log(`[Job ${i + 1}/${jobs.length}] Starting job with ${job.chunks.length} chunks`);
+            setProgress(0);
+        }
+        const jobTotalChunks = job.chunks.length;
 
         for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
             // Check for cancellation
@@ -79,7 +94,25 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 chunk.error = error instanceof Error ? error.message : String(error);
             }
             
-            // Increment chunk-level progress once per chunk (only if chunk tracking is used)
+            // Update individual file progress
+            const fileProgress = Math.round(((chunkIndex + 1) / jobTotalChunks) * 100);
+            if (setProgress) {
+                console.log(`[Job ${i + 1}/${jobs.length}] Chunk ${chunkIndex + 1}/${jobTotalChunks} completed, progress: ${fileProgress}%`);
+                setProgress(fileProgress);
+            }
+            
+            // Manually update TranslationService job progress to trigger onProgress callback
+            const completedChunks = job.chunks.filter(c => c.status === "completed" || c.status === "failed").length;
+            const serviceProgress = Math.round((completedChunks / job.chunks.length) * 100);
+            (job as any).progress = serviceProgress;
+            
+            // Trigger the onProgress callback manually if it exists
+            if ((translationService as any).onProgress) {
+                console.log(`[Job ${i + 1}/${jobs.length}] Triggering onProgress callback with ${serviceProgress}%`);
+                (translationService as any).onProgress(job);
+            }
+            
+            // Increment overall chunk-level progress
             if (incrementCompletedChunks) incrementCompletedChunks();
             if (onJobChunkComplete) onJobChunkComplete(job, chunkIndex);
         }
@@ -120,12 +153,44 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                 enableBackup
             });
         }
+        
+        // Update translation summary if session ID is provided
+        if (sessionId) {
+            try {
+                const chunks = (job as any).chunks || [];
+                const translatedKeys = chunks.filter((c: any) => c.status === "completed")
+                    .reduce((sum: number, chunk: any) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
+                const totalKeys = Object.keys((job as any).sourceContent || {}).length;
+                
+                const config = useAppStore.getState().config;
+                
+                await invoke('update_translation_summary', {
+                    minecraftDir: config.paths.minecraftDir || '',
+                    sessionId,
+                    translationType: type,
+                    name: job.currentFileName || job.id,
+                    status: job.status === "completed" ? "completed" : "failed",
+                    translatedKeys,
+                    totalKeys,
+                    targetLanguage
+                });
+            } catch (error) {
+                console.error('Failed to update translation summary:', error);
+                // Don't fail the translation if summary update fails
+            }
+        }
 
         // Increment mod-level progress if applicable
-        if (incrementCompletedMods) incrementCompletedMods();
+        if (incrementCompletedMods) {
+            console.log(`[Job ${i + 1}/${jobs.length}] Job completed, incrementing mod progress`);
+            incrementCompletedMods();
+        }
         
-        // Increment whole progress
-        if (incrementWholeProgress) incrementWholeProgress();
+        // Increment whole progress (for backward compatibility with other tabs)
+        if (incrementWholeProgress && incrementWholeProgress !== incrementCompletedMods) {
+            console.log(`[Job ${i + 1}/${jobs.length}] Job completed, incrementing whole progress`);
+            incrementWholeProgress();
+        }
     }
 
     if (setCurrentJobId) setCurrentJobId(null);

@@ -24,6 +24,10 @@ export function QuestsTab() {
         setTotalChunks,
         setCompletedChunks,
         incrementCompletedChunks,
+        // Quest-level progress tracking
+        setTotalQuests,
+        setCompletedQuests,
+        incrementCompletedQuests,
         addTranslationResult,
         error,
         setError,
@@ -131,10 +135,41 @@ export function QuestsTab() {
             setCompletedChunks(0);
             setWholeProgress(0);
             setProgress(0);
+            setCompletedQuests(0);
             
             // Set total quests for progress tracking
+            setTotalQuests(sortedTargets.length);
+            console.log(`QuestsTab: Set totalQuests to ${sortedTargets.length} for quest-level progress tracking`);
             const totalQuests = sortedTargets.length;
             setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
+            
+            // Generate session ID for this translation
+            const sessionId = await invoke<string>('generate_session_id');
+            
+            // Create logs directory with session ID
+            const minecraftDir = selectedDirectory;
+            const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+                minecraftDir: minecraftDir,
+                sessionId: sessionId
+            });
+            
+            // Backup SNBT files before translation (only for FTB quests)
+            const snbtFiles = sortedTargets
+                .filter(target => target.questFormat === 'ftb' && target.path.endsWith('.snbt'))
+                .map(target => target.path);
+            
+            if (snbtFiles.length > 0) {
+                try {
+                    await invoke('backup_snbt_files', {
+                        files: snbtFiles,
+                        sessionPath: sessionPath
+                    });
+                    console.log(`Backed up ${snbtFiles.length} SNBT files`);
+                } catch (error) {
+                    console.error('Failed to backup SNBT files:', error);
+                    // Continue with translation even if backup fails
+                }
+            }
             
             // Create jobs for all quests
             const jobs: Array<{
@@ -187,9 +222,10 @@ export function QuestsTab() {
                 translationService,
                 setCurrentJobId,
                 incrementCompletedChunks, // Track at chunk level for real-time progress
-                incrementWholeProgress: incrementCompletedChunks, // Track at quest level
+                incrementWholeProgress: incrementCompletedQuests, // Track at quest level
                 targetLanguage,
                 type: "quest",
+                sessionId,
                 getOutputPath: () => selectedDirectory,
                 getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
                 writeOutput: async (job, outputPath, content) => {

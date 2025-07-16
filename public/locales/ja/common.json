@@ -34,10 +34,14 @@
     "systemPrompt": "システムプロンプト",
     "systemPromptPlaceholder": "AIの振る舞いを定義するシステムプロンプトを入力",
     "userPrompt": "ユーザープロンプト",
-    "userPromptPlaceholder": "{language}, {line_count}, {content} 変数を含むユーザープロンプトテンプレートを入力",
-    "availableVariables": "利用可能な変数: {language}, {line_count}, {content}",
+    "userPromptPlaceholder": "{{language}}, {{line_count}}, {{content}} 変数を含むユーザープロンプトテンプレートを入力",
+    "availableVariables": "利用可能な変数: {{language}}, {{line_count}}, {{content}}",
     "temperature": "温度",
     "temperatureHint": "ランダム性を制御します (0.0-2.0)。値が高いほど出力がよりクリエイティブになります。",
+    "apiKeyProviderHint": "このAPIキーは{{provider}}専用です",
+    "modelProviderHint": "{{provider}}のデフォルトモデル: {{defaultModel}}",
+    "advancedSettings": "詳細設定",
+    "prompts": "プロンプト",
     "providers": {
       "openai": "OpenAI",
       "anthropic": "Anthropic",
@@ -76,7 +80,30 @@
     "saveSuccess": "設定を保存しました",
     "saveSuccessDescription": "設定が正常に保存されました",
     "saveError": "設定の保存に失敗しました",
-    "saveErrorDescription": "設定の保存中にエラーが発生しました"
+    "saveErrorDescription": "設定の保存中にエラーが発生しました",
+    "backup": {
+      "title": "バックアップ設定",
+      "description": "翻訳ファイルの自動バックアップを設定",
+      "enabled": "自動バックアップを有効化",
+      "enabledDescription": "翻訳ファイルを上書きする前にバックアップを作成",
+      "retentionDays": "保存期間（日数）",
+      "keepForever": "永久保存",
+      "days": "日",
+      "retentionDescription": "この期間より古いバックアップは自動的に削除されます。0に設定すると永久保存されます。",
+      "maxBackupsPerType": "タイプごとの最大バックアップ数",
+      "unlimited": "無制限",
+      "backups": "個",
+      "maxBackupsDescription": "各翻訳タイプごとに保持する最大バックアップ数。0に設定すると無制限になります。",
+      "autoPrune": "起動時に自動削除",
+      "autoPruneDescription": "アプリケーション起動時に古いバックアップを自動的に削除",
+      "storageUsed": "使用容量",
+      "pruning": "削除中...",
+      "pruneNow": "古いバックアップを削除",
+      "viewHistory": "翻訳履歴を表示",
+      "simpleBackupDescription": "バックアップは翻訳中に自動的に作成されます。翻訳前に元のファイルが保存され、完了後に結果が保存されます。",
+      "translationHistory": "翻訳履歴",
+      "noHistory": "翻訳履歴が見つかりません"
+    }
   },
   "tabs": {
     "mods": "Mod",
@@ -85,7 +112,8 @@
     "customFiles": "カスタムファイル",
     "settings": "設定",
     "targetLanguage": "対象言語",
-    "selectLanguage": "対象言語を選択"
+    "selectLanguage": "対象言語を選択",
+    "translations": "翻訳"
   },
   "cards": {
     "modTranslation": "Mod翻訳",
@@ -144,7 +172,10 @@
     "noFilesSelected": "翻訳するファイルが選択されていません",
     "selectDirectoryFirst": "最初にディレクトリを選択してください",
     "selectProfileDirectoryFirst": "最初にプロファイルディレクトリを選択してください",
-    "noTargetLanguageSelected": "対象言語が選択されていません。翻訳タブのドロップダウンから対象言語を選択してください。"
+    "noTargetLanguageSelected": "対象言語が選択されていません。翻訳タブのドロップダウンから対象言語を選択してください。",
+    "translationInProgress": "翻訳中",
+    "cannotSwitchTabs": "翻訳中はタブを切り替えることができません。現在の翻訳が完了するまでお待ちいただくか、キャンセルしてください。",
+    "failedToLoad": "読み込みに失敗しました"
   },
   "info": {
     "translationCancelled": "翻訳はユーザーによってキャンセルされました"
@@ -203,7 +234,7 @@
     "installNow": "今すぐインストール",
     "downloading": "アップデートをダウンロード中...",
     "installing": "アップデートをインストール中...",
-    "progressSize": "{downloaded}MB / {total}MB",
+    "progressSize": "{{downloaded}}MB / {{total}}MB",
     "restartPrompt": "アップデートがインストールされました。今すぐアプリケーションを再起動しますか？",
     "updateComplete": "アップデート完了",
     "restartNow": "今すぐ再起動",
@@ -216,7 +247,11 @@
     }
   },
   "common": {
-    "close": "閉じる"
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "refresh": "更新",
+    "viewDetails": "詳細を表示",
+    "hideDetails": "詳細を非表示"
   },
   "header": {
     "downloadReleases": "リリースをダウンロード",
