@@ -57,6 +57,10 @@
       "fallback": "エントリベースへのフォールバック",
       "fallbackHint": "トークン推定が失敗した場合、エントリベースのチャンク分割を使用"
     },
+    "skipExistingTranslations": {
+      "title": "既存の翻訳がある場合スキップ",
+      "hint": "対象言語ファイルが既に存在するアイテムをスキップします（Mod、クエスト、ガイドブックのみ）"
+    },
     "typicalLocation": "一般的な場所",
     "pathSettings": "パス設定",
     "minecraftDirectory": "Minecraftディレクトリ",
@@ -173,8 +177,17 @@
     "selectProfileDirectoryFirst": "最初にプロファイルディレクトリを選択してください",
     "noTargetLanguageSelected": "対象言語が選択されていません。翻訳タブのドロップダウンから対象言語を選択してください。",
     "translationInProgress": "翻訳中",
-    "cannotSwitchTabs": "翻訳中はタブを切り替えることができません。現在の翻訳が完了するまでお待ちいただくか、キャンセルしてください。",
-    "failedToLoad": "読み込みに失敗しました"
+    "scanInProgress": "スキャン中",
+    "cannotSwitchTabs": "処理中はタブを切り替えることができません。処理が完了するまでお待ちください。",
+    "failedToLoad": "読み込みに失敗しました",
+    "directoryNotFound": "ディレクトリが見つかりません: {{path}}",
+    "modsDirectoryNotFound": "Modsディレクトリが見つかりません: {{path}}。有効なMinecraftプロファイルディレクトリを選択してください。",
+    "questsDirectoryNotFound": "クエストディレクトリが見つかりません: {{path}}。クエストファイルを含む有効なMinecraftプロファイルディレクトリを選択してください。",
+    "guidebooksDirectoryNotFound": "ガイドブックディレクトリが見つかりません: {{path}}。ガイドブックファイルを含む有効なMinecraftプロファイルディレクトリを選択してください。",
+    "customFilesDirectoryNotFound": "カスタムファイルディレクトリが見つかりません: {{path}}。JSONまたはSNBTファイルを含む有効なディレクトリを選択してください。",
+    "profileDirectoryNotFound": "プロファイルディレクトリが見つかりません: {{path}}。有効なMinecraftプロファイルディレクトリを選択してください。",
+    "failedToLoadLogs": "セッションログの読み込みに失敗しました",
+    "noMinecraftDir": "Minecraftディレクトリが設定されていません。設定で設定してください。"
   },
   "info": {
     "translationCancelled": "翻訳はユーザーによってキャンセルされました"
@@ -240,7 +253,11 @@
       "failed": "失敗",
       "pending": "保留中",
       "in_progress": "進行中"
-    }
+    },
+    "sessionDetails": "セッション詳細",
+    "viewLogs": "ログを見る",
+    "sessionLogs": "セッションログ",
+    "noLogsFound": "このセッションのログが見つかりません"
   },
   "update": {
     "title": "アップデートが利用可能",
