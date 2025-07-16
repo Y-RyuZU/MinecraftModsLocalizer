@@ -2,11 +2,8 @@
 
 import { useAppTranslation } from "@/lib/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { History, HardDrive } from "lucide-react";
+import { HardDrive } from "lucide-react";
 import { type AppConfig } from "@/lib/types/config";
-import { useState } from "react";
-import { TranslationHistoryDialog } from "@/components/ui/translation-history-dialog";
 
 interface BackupSettingsProps {
   config: AppConfig;
@@ -15,7 +12,6 @@ interface BackupSettingsProps {
 
 export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
   const { t } = useAppTranslation();
-  const [isTranslationHistoryOpen, setTranslationHistoryOpen] = useState(false);
 
   return (
     <Card>
@@ -33,20 +29,6 @@ export function BackupSettings({ config, setConfig }: BackupSettingsProps) {
           <p className="text-sm text-muted-foreground">
             {t('settings.backup.simpleBackupDescription', 'Backups are created automatically during translation. Original files are preserved before translation, and results are saved after completion.')}
           </p>
-          
-          <Button 
-            variant="outline"
-            onClick={() => setTranslationHistoryOpen(true)}
-            className="w-full justify-start"
-          >
-            <History className="h-4 w-4 mr-2" />
-            {t('settings.backup.viewHistory', 'View Translation History')}
-          </Button>
-
-          <TranslationHistoryDialog
-            open={isTranslationHistoryOpen}
-            onOpenChange={setTranslationHistoryOpen}
-          />
         </div>
       </CardContent>
     </Card>

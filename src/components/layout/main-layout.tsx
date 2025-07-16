@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { LogDialog } from '@/components/ui/log-dialog';
-import { HistoryDialog } from '@/components/ui/history-dialog';
+import { TranslationHistoryDialog } from '@/components/ui/translation-history-dialog';
 import { DebugLogDialog } from '@/components/debug-log-dialog';
 import { Header } from './header';
 import { useAppStore } from '@/lib/store';
@@ -37,7 +37,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           onOpenChange={setLogDialogOpen} 
         />
         {/* History Dialog */}
-        <HistoryDialog
+        <TranslationHistoryDialog
           open={isHistoryDialogOpen}
           onOpenChange={setHistoryDialogOpen}
         />

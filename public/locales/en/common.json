@@ -99,7 +99,6 @@
       "storageUsed": "Storage Used",
       "pruning": "Pruning...",
       "pruneNow": "Prune Old Backups",
-      "viewHistory": "View Translation History",
       "simpleBackupDescription": "Backups are created automatically during translation. Original files are preserved before translation, and results are saved after completion.",
       "translationHistory": "Translation History",
       "noHistory": "No translation history found"
@@ -223,7 +222,25 @@
     "successCount": "Success Count",
     "successRate": "Success Rate",
     "translationDetails": "Translation Details",
-    "keyCount": "Keys"
+    "keyCount": "Keys",
+    "fileName": "File Name",
+    "type": "Type",
+    "status": "Status",
+    "completed": "Completed",
+    "failed": "Failed",
+    "types": {
+      "quest": "Quest",
+      "mod": "Mod",
+      "guidebook": "Guidebook",
+      "customFiles": "Custom Files",
+      "resource_pack": "Resource Pack"
+    },
+    "statuses": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "pending": "Pending",
+      "in_progress": "In Progress"
+    }
   },
   "update": {
     "title": "Update Available",

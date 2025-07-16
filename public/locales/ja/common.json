@@ -99,7 +99,6 @@
       "storageUsed": "使用容量",
       "pruning": "削除中...",
       "pruneNow": "古いバックアップを削除",
-      "viewHistory": "翻訳履歴を表示",
       "simpleBackupDescription": "バックアップは翻訳中に自動的に作成されます。翻訳前に元のファイルが保存され、完了後に結果が保存されます。",
       "translationHistory": "翻訳履歴",
       "noHistory": "翻訳履歴が見つかりません"
@@ -223,7 +222,25 @@
     "successCount": "成功数",
     "successRate": "成功率",
     "translationDetails": "翻訳詳細",
-    "keyCount": "キー数"
+    "keyCount": "キー数",
+    "fileName": "ファイル名",
+    "type": "タイプ",
+    "status": "ステータス",
+    "completed": "完了",
+    "failed": "失敗",
+    "types": {
+      "quest": "クエスト",
+      "mod": "Mod",
+      "guidebook": "ガイドブック",
+      "customFiles": "カスタムファイル",
+      "resource_pack": "リソースパック"
+    },
+    "statuses": {
+      "completed": "完了",
+      "failed": "失敗",
+      "pending": "保留中",
+      "in_progress": "進行中"
+    }
   },
   "update": {
     "title": "アップデートが利用可能",

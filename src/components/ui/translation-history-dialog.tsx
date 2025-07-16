@@ -89,31 +89,66 @@ function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary 
   
   if (!summary) return null;
   
+  // Helper function to get localized type name
+  const getLocalizedType = (type: string) => {
+    const typeKey = `history.types.${type}`;
+    return t(typeKey, type);
+  };
+  
+  // Helper function to get localized status
+  const getLocalizedStatus = (status: string) => {
+    const statusKey = `history.statuses.${status}`;
+    return t(statusKey, status);
+  };
+  
+  // Helper function to render status with icon and text
+  const renderStatus = (status: string) => {
+    const localizedStatus = getLocalizedStatus(status);
+    
+    if (status === 'completed') {
+      return (
+        <div className="flex items-center space-x-2">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <span className="text-sm text-green-700 dark:text-green-400">{localizedStatus}</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center space-x-2">
+          <XCircle className="h-4 w-4 text-red-500" />
+          <span className="text-sm text-red-700 dark:text-red-400">{localizedStatus}</span>
+        </div>
+      );
+    }
+  };
+  
   return (
     <TableRow className="bg-muted/30">
       <TableCell colSpan={5} className="p-6">
         <div className="space-y-4">
-          <div className="text-sm font-medium border-b pb-2">{t('history.translationDetails', 'Translation Details')}:</div>
-          <div className="grid gap-3">
-            {summary.translations.map((translation, index) => (
-              <div key={index} className="flex items-center justify-between text-sm py-2 px-4 rounded-lg bg-background border">
-                <div className="flex items-center space-x-3">
-                  {translation.status === 'completed' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                  )}
-                  <div className="flex flex-col space-y-1">
-                    <span className="font-medium">{translation.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">{translation.type}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-muted-foreground text-xs">{t('history.keyCount', 'Keys')}:</span>
-                  <span className="font-mono text-sm">{translation.keys}</span>
-                </div>
-              </div>
-            ))}
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[140px]">{t('history.status', 'Status')}</TableHead>
+                  <TableHead>{t('history.fileName', 'File Name')}</TableHead>
+                  <TableHead className="w-[120px]">{t('history.type', 'Type')}</TableHead>
+                  <TableHead className="w-[100px]">{t('history.keyCount', 'Keys')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.translations.map((translation, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      {renderStatus(translation.status)}
+                    </TableCell>
+                    <TableCell className="font-medium">{translation.name}</TableCell>
+                    <TableCell>{getLocalizedType(translation.type)}</TableCell>
+                    <TableCell className="font-mono text-sm">{translation.keys}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </TableCell>
@@ -304,12 +339,12 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] w-full max-h-[85vh]">
+      <DialogContent className="max-w-[95vw] w-full max-h-[85vh] overflow-hidden sm:max-w-[95vw]">
         <DialogHeader>
           <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-hidden">
           {loading && (
             <div className="text-center py-8">
               <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-2" />
@@ -331,40 +366,44 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
           )}
 
           {!loading && !error && sessions.length > 0 && (
-            <ScrollArea className="h-[60vh] min-h-[400px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[250px]">
-                      <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
-                    </TableHead>
-                    <TableHead className="w-[150px]">
-                      <SortButton field="language">{t('history.targetLanguage', 'Target Language')}</SortButton>
-                    </TableHead>
-                    <TableHead className="w-[120px]">
-                      <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
-                    </TableHead>
-                    <TableHead className="w-[150px]">
-                      {t('history.successCount', 'Success Count')}
-                    </TableHead>
-                    <TableHead className="w-[200px]">
-                      <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedSessions.map((sessionSummary) => (
-                    <SessionRow
-                      key={sessionSummary.sessionId}
-                      sessionSummary={sessionSummary}
-                      onToggle={() => handleToggleSession(sessionSummary.sessionId)}
-                      minecraftDir={config.paths.minecraftDir || ''}
-                      updateSession={updateSession}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
+            <div className="border rounded-lg overflow-hidden">
+              <ScrollArea className="h-[60vh] min-h-[400px] w-full overflow-auto">
+                <div className="min-w-[1000px]">
+                  <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[250px]">
+                        <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
+                      </TableHead>
+                      <TableHead className="min-w-[150px]">
+                        <SortButton field="language">{t('history.targetLanguage', 'Target Language')}</SortButton>
+                      </TableHead>
+                      <TableHead className="min-w-[120px]">
+                        <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
+                      </TableHead>
+                      <TableHead className="min-w-[150px]">
+                        {t('history.successCount', 'Success Count')}
+                      </TableHead>
+                      <TableHead className="min-w-[200px]">
+                        <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedSessions.map((sessionSummary) => (
+                      <SessionRow
+                        key={sessionSummary.sessionId}
+                        sessionSummary={sessionSummary}
+                        onToggle={() => handleToggleSession(sessionSummary.sessionId)}
+                        minecraftDir={config.paths.minecraftDir || ''}
+                        updateSession={updateSession}
+                      />
+                    ))}
+                  </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
+            </div>
           )}
         </div>
 
