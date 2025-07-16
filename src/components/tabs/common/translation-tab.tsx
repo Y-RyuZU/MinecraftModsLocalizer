@@ -219,8 +219,11 @@ export function TranslationTab({
             console.error(`Failed to scan ${tabType}:`, error);
             const errorMessage = error instanceof Error ? error.message : String(error);
             
-            // Check if the error is a translation key
-            if (errorMessage.startsWith('errors.')) {
+            // Check if the error is a translation key with path
+            if (errorMessage.startsWith('errors.') && errorMessage.includes(':::')) {
+                const [translationKey, path] = errorMessage.split(':::');
+                setError(t(translationKey, { path }));
+            } else if (errorMessage.startsWith('errors.')) {
                 setError(t(errorMessage));
             } else {
                 setError(`Failed to scan ${tabType}: ${errorMessage}`);
@@ -556,14 +559,14 @@ export function TranslationTab({
                                                     <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
                                                 </div>
                                                 
-                                                <div className="space-y-3 text-center">
-                                                    <p className="text-lg 2xl:text-xl font-medium">
+                                                <div className="space-y-3">
+                                                    <p className="text-lg 2xl:text-xl font-medium text-left">
                                                         {scanProgress?.currentFile ? 
                                                             `Scanning: ${scanProgress.currentFile}` : 
                                                             t(scanningForItemsLabel)
                                                         }
                                                     </p>
-                                                    <p className="text-sm 2xl:text-base text-muted-foreground">
+                                                    <p className="text-sm 2xl:text-base text-muted-foreground text-center">
                                                         {(scanProgress?.processedCount ?? 0) > 0 ? 
                                                             scanProgress?.totalCount ? 
                                                                 `(${scanProgress.processedCount} / ${scanProgress.totalCount} files - ${Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)}%)` :
@@ -572,9 +575,9 @@ export function TranslationTab({
                                                         }
                                                     </p>
                                                     
-                                                    {/* Small progress bar for scan progress */}
+                                                    {/* Small progress bar for scan progress - fixed width */}
                                                     {scanProgress?.totalCount && (scanProgress?.processedCount ?? 0) > 0 && (
-                                                        <div className="w-full max-w-md mx-auto">
+                                                        <div className="w-80 mx-auto">
                                                             <Progress 
                                                                 value={Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)} 
                                                                 className="h-1.5" 
