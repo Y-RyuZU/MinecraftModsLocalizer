@@ -200,19 +200,21 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Clear existing results before scanning
-            setTranslationTargets([]);
-            setFilterText("");
-            
-            // Reset translation state if exists
-            if (translationResults.length > 0) {
-                setTranslationResults([]);
-            }
-
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
                 ? selectedDirectory.substring("NATIVE_DIALOG:".length)
                 : selectedDirectory;
+
+            // Clear existing results asynchronously to avoid blocking UI
+            setTimeout(() => {
+                setTranslationTargets([]);
+                setFilterText("");
+                
+                // Reset translation state if exists
+                if (translationResults.length > 0) {
+                    setTranslationResults([]);
+                }
+            }, 0);
 
             await onScan(actualPath);
         } catch (error) {

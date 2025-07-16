@@ -99,7 +99,7 @@ export function QuestsTab() {
             
             // Set initial scan progress immediately
             setScanProgress({
-                currentFile: '',
+                currentFile: 'Initializing scan...',
                 processedCount: 0,
                 totalCount: undefined,
                 scanType: 'quests',

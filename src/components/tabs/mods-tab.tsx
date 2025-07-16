@@ -96,7 +96,7 @@ export function ModsTab() {
       
       // Set initial scan progress immediately
       setScanProgress({
-        currentFile: '',
+        currentFile: 'Initializing scan...',
         processedCount: 0,
         totalCount: undefined,
         scanType: 'mods',
