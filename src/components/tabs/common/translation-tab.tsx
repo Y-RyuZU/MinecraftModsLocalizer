@@ -119,8 +119,6 @@ export function TranslationTab({
                                    setTranslating,
                                    setProgress,
                                    setWholeProgress,
-                                   setTotalChunks,
-                                   setCompletedChunks,
                                    addTranslationResult,
                                    error,
                                    setError,
@@ -252,10 +250,7 @@ export function TranslationTab({
             setTranslating(true);
             setProgress(0);
             setWholeProgress(0);
-            setTotalChunks(0);
-            setCompletedChunks(0);
             setError(null);
-            setCurrentJobId(null);
 
             const selectedTargets = translationTargets.filter(target => target.selected);
 
@@ -273,11 +268,15 @@ export function TranslationTab({
                 return;
             }
 
+            // Get provider-specific API key
+            const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
+            const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+            
             // Create a translation service
             const translationService = new TranslationService({
                 llmConfig: {
                     provider: config.llm.provider,
-                    apiKey: config.llm.apiKey,
+                    apiKey: apiKey,
                     baseUrl: config.llm.baseUrl,
                     model: config.llm.model,
                 },
@@ -291,6 +290,7 @@ export function TranslationTab({
                 onProgress: (job) => {
                     // Update individual job progress (bounded 0-100)
                     const boundedProgress = Math.max(0, Math.min(100, job.progress || 0));
+                    console.log(`[TranslationTab] onProgress called: ${boundedProgress}%`);
                     setProgress(boundedProgress);
                 }
             });
@@ -466,6 +466,11 @@ export function TranslationTab({
                                 <p className="text-sm text-muted-foreground">
                                     {t('progress.wholeProgress')} {wholeProgress}%
                                 </p>
+                                {process.env.NODE_ENV === 'development' && (
+                                    <p className="text-xs text-gray-500">
+                                        Debug: wholeProgress = {wholeProgress}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
