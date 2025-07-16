@@ -109,6 +109,14 @@ export function CustomFilesTab() {
     for (let i = 0; i < allFiles.length; i++) {
       const filePath = allFiles[i];
       try {
+        // Update progress for file analysis phase
+        setScanProgress({
+          currentFile: filePath.split('/').pop() || filePath,
+          processedCount: i + 1,
+          totalCount: allFiles.length,
+          scanType: 'custom-files',
+        });
+
         // Get file name (cross-platform)
         const fileName = getFileName(filePath);
         
@@ -131,6 +139,8 @@ export function CustomFilesTab() {
     setCustomFilesTranslationTargets(targets);
     } finally {
       setScanning(false);
+      // Reset scan progress after completion
+      resetScanProgress();
     }
   };
 

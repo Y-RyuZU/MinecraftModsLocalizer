@@ -103,8 +103,17 @@ export function ModsTab() {
       // Create translation targets
       const targets: TranslationTarget[] = [];
     
-    for (const modFile of modFiles) {
+    for (let i = 0; i < modFiles.length; i++) {
+      const modFile = modFiles[i];
       try {
+        // Update progress for JAR analysis phase
+        setScanProgress({
+          currentFile: modFile.split('/').pop() || modFile,
+          processedCount: i + 1,
+          totalCount: modFiles.length,
+          scanType: 'mods',
+        });
+
         const modInfo = await FileService.invoke<ModInfo>("analyze_mod_jar", { jarPath: modFile });
 
         if (modInfo.langFiles && modInfo.langFiles.length > 0) {
@@ -163,6 +172,8 @@ export function ModsTab() {
     setModTranslationTargets(targets);
     } finally {
       setScanning(false);
+      // Reset scan progress after completion
+      resetScanProgress();
     }
   };
 

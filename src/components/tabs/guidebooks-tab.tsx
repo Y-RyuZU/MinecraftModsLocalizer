@@ -103,8 +103,17 @@ export function GuidebooksTab() {
       // Create translation targets
       const targets: TranslationTarget[] = [];
 
-    for (const modFile of modFiles) {
+    for (let i = 0; i < modFiles.length; i++) {
+      const modFile = modFiles[i];
       try {
+        // Update progress for mod analysis phase
+        setScanProgress({
+          currentFile: modFile.split('/').pop() || modFile,
+          processedCount: i + 1,
+          totalCount: modFiles.length,
+          scanType: 'guidebooks',
+        });
+
         // Extract Patchouli books
         const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", {
           jarPath: modFile,
@@ -146,6 +155,8 @@ export function GuidebooksTab() {
     setGuidebookTranslationTargets(targets);
     } finally {
       setScanning(false);
+      // Reset scan progress after completion
+      resetScanProgress();
     }
   };
 

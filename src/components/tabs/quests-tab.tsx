@@ -113,6 +113,14 @@ export function QuestsTab() {
         for (let i = 0; i < ftbQuestFiles.length; i++) {
             const questFile = ftbQuestFiles[i];
             try {
+                // Update progress for FTB quest analysis phase
+                setScanProgress({
+                    currentFile: questFile.split('/').pop() || questFile,
+                    processedCount: i + 1,
+                    totalCount: ftbQuestFiles.length + betterQuestFiles.length,
+                    scanType: 'quests',
+                });
+
                 // Extract just the filename for the quest name (cross-platform)
                 const fileName = getFileName(questFile);
                 const questNumber = i + 1;
@@ -138,6 +146,14 @@ export function QuestsTab() {
         for (let i = 0; i < betterQuestFiles.length; i++) {
             const questFile = betterQuestFiles[i];
             try {
+                // Update progress for Better quest analysis phase
+                setScanProgress({
+                    currentFile: questFile.split('/').pop() || questFile,
+                    processedCount: ftbQuestFiles.length + i + 1,
+                    totalCount: ftbQuestFiles.length + betterQuestFiles.length,
+                    scanType: 'quests',
+                });
+
                 // Extract just the filename for the quest name (cross-platform)
                 const fileName = getFileName(questFile);
                 const questNumber = i + 1;
@@ -168,6 +184,8 @@ export function QuestsTab() {
         setQuestTranslationTargets(targets);
         } finally {
             setScanning(false);
+            // Reset scan progress after completion
+            resetScanProgress();
         }
     };
 
