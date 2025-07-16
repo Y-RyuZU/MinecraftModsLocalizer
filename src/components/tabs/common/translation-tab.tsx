@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useRef, ReactNode} from "react";
+import {useState, useRef, ReactNode, useCallback, useMemo} from "react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
@@ -189,8 +189,8 @@ export function TranslationTab({
         }
     };
 
-    // Scan for items
-    const handleScan = async () => {
+    // Scan for items - memoized to prevent unnecessary re-creation
+    const handleScan = useCallback(async () => {
         if (!selectedDirectory) {
             setError(t('errors.selectDirectoryFirst'));
             return;
@@ -200,21 +200,21 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
+            // Clear existing results immediately - but only if necessary
+            if (translationTargets.length > 0) {
+                setTranslationTargets([]);
+            }
+            if (filterText) {
+                setFilterText("");
+            }
+            if (translationResults.length > 0) {
+                setTranslationResults([]);
+            }
+
             // Extract the actual path from the NATIVE_DIALOG prefix if present
             const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
                 ? selectedDirectory.substring("NATIVE_DIALOG:".length)
                 : selectedDirectory;
-
-            // Clear existing results asynchronously to avoid blocking UI
-            setTimeout(() => {
-                setTranslationTargets([]);
-                setFilterText("");
-                
-                // Reset translation state if exists
-                if (translationResults.length > 0) {
-                    setTranslationResults([]);
-                }
-            }, 0);
 
             await onScan(actualPath);
         } catch (error) {
@@ -233,7 +233,7 @@ export function TranslationTab({
         } finally {
             setIsScanning(false);
         }
-    };
+    }, [selectedDirectory, t, onScan]);
 
     // Select all items
     const handleSelectAll = (checked: boolean) => {
