@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { ScrollArea } from './scroll-area';
@@ -325,23 +325,25 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     setSortConfig({ field, direction });
   };
 
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const { field, direction } = sortConfig;
-    const multiplier = direction === 'asc' ? 1 : -1;
-    
-    switch (field) {
-      case 'sessionId':
-        return (a.timestamp.getTime() - b.timestamp.getTime()) * multiplier;
-      case 'language':
-        return a.language.localeCompare(b.language) * multiplier;
-      case 'totalTranslations':
-        return (a.totalTranslations - b.totalTranslations) * multiplier;
-      case 'successRate':
-        return (a.successRate - b.successRate) * multiplier;
-      default:
-        return 0;
-    }
-  });
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      const { field, direction } = sortConfig;
+      const multiplier = direction === 'asc' ? 1 : -1;
+      
+      switch (field) {
+        case 'sessionId':
+          return (a.timestamp.getTime() - b.timestamp.getTime()) * multiplier;
+        case 'language':
+          return a.language.localeCompare(b.language) * multiplier;
+        case 'totalTranslations':
+          return (a.totalTranslations - b.totalTranslations) * multiplier;
+        case 'successRate':
+          return (a.successRate - b.successRate) * multiplier;
+        default:
+          return 0;
+      }
+    });
+  }, [sessions, sortConfig]);
 
   const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <button

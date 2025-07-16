@@ -151,7 +151,7 @@ export class ConfigService {
       }
       
       // Migrate legacy apiKey to provider-specific keys
-      this.config = this.migrateApiKeys(this.config);
+      this.config = ConfigService.migrateApiKeys(this.config);
       
       this.loaded = true;
     } catch (error) {
