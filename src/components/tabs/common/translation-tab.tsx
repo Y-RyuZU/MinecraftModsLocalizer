@@ -559,8 +559,8 @@ export function TranslationTab({
                                                     <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
                                                 </div>
                                                 
-                                                <div className="space-y-3">
-                                                    <p className="text-lg 2xl:text-xl font-medium text-left">
+                                                <div className="w-96 space-y-3">
+                                                    <p className="text-lg 2xl:text-xl font-medium text-left truncate">
                                                         {scanProgress?.currentFile ? 
                                                             `Scanning: ${scanProgress.currentFile}` : 
                                                             t(scanningForItemsLabel)
