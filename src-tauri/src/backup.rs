@@ -187,9 +187,9 @@ pub fn backup_snbt_files(
             if let Some(file_name) = source.file_name() {
                 let dest = backup_dir.join(file_name);
 
-                if let Err(e) = fs::copy(&source, &dest) {
+                if let Err(e) = fs::copy(source, &dest) {
                     logger.warning(
-                        &format!("Failed to backup SNBT file {}: {e}", file_path),
+                        &format!("Failed to backup SNBT file {file_path}: {e}"),
                         Some("BACKUP"),
                     );
                 } else {
@@ -202,14 +202,14 @@ pub fn backup_snbt_files(
             }
         } else {
             logger.warning(
-                &format!("SNBT file not found for backup: {}", file_path),
+                &format!("SNBT file not found for backup: {file_path}"),
                 Some("BACKUP"),
             );
         }
     }
 
     logger.info(
-        &format!("SNBT backup completed: {} files backed up", backed_up_count),
+        &format!("SNBT backup completed: {backed_up_count} files backed up"),
         Some("BACKUP"),
     );
 
@@ -224,14 +224,14 @@ pub fn backup_resource_pack(
     logger: State<Arc<AppLogger>>,
 ) -> Result<(), String> {
     logger.info(
-        &format!("Backing up resource pack: {}", pack_path),
+        &format!("Backing up resource pack: {pack_path}"),
         Some("BACKUP"),
     );
 
     let source = Path::new(&pack_path);
 
     if !source.exists() {
-        return Err(format!("Resource pack not found: {}", pack_path));
+        return Err(format!("Resource pack not found: {pack_path}"));
     }
 
     // Extract pack name from path
@@ -254,7 +254,7 @@ pub fn backup_resource_pack(
     // Copy entire resource pack directory
     let dest = backup_dir.join(pack_name);
 
-    if let Err(e) = copy_dir_all(&source, &dest) {
+    if let Err(e) = copy_dir_all(source, &dest) {
         let error_msg = format!("Failed to backup resource pack: {e}");
         logger.error(&error_msg, Some("BACKUP"));
         return Err(error_msg);
@@ -299,10 +299,10 @@ pub async fn list_translation_sessions(minecraft_dir: String) -> Result<Vec<Stri
 
     // Read directory entries
     let entries =
-        fs::read_dir(&logs_path).map_err(|e| format!("Failed to read logs directory: {}", e))?;
+        fs::read_dir(&logs_path).map_err(|e| format!("Failed to read logs directory: {e}"))?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {e}"))?;
         let path = entry.path();
 
         // Only include directories that match session ID format
@@ -338,23 +338,23 @@ pub async fn get_translation_summary(
 
     if !summary_path.exists() {
         return Err(format!(
-            "Translation summary not found for session: {}",
-            session_id
+            "Translation summary not found for session: {session_id}"
         ));
     }
 
     // Read and parse the JSON file
     let content = fs::read_to_string(&summary_path)
-        .map_err(|e| format!("Failed to read summary file: {}", e))?;
+        .map_err(|e| format!("Failed to read summary file: {e}"))?;
 
-    let summary: TranslationSummary = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse summary JSON: {}", e))?;
+    let summary: TranslationSummary =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse summary JSON: {e}"))?;
 
     Ok(summary)
 }
 
 /// Update translation summary with a new entry
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn update_translation_summary(
     minecraft_dir: String,
     session_id: String,
@@ -372,17 +372,17 @@ pub async fn update_translation_summary(
 
     // Ensure session directory exists
     fs::create_dir_all(&session_dir)
-        .map_err(|e| format!("Failed to create session directory: {}", e))?;
+        .map_err(|e| format!("Failed to create session directory: {e}"))?;
 
     let summary_path = session_dir.join("translation_summary.json");
 
     // Read existing summary or create new one
     let mut summary = if summary_path.exists() {
         let content = fs::read_to_string(&summary_path)
-            .map_err(|e| format!("Failed to read existing summary: {}", e))?;
+            .map_err(|e| format!("Failed to read existing summary: {e}"))?;
 
         serde_json::from_str::<TranslationSummary>(&content)
-            .map_err(|e| format!("Failed to parse existing summary: {}", e))?
+            .map_err(|e| format!("Failed to parse existing summary: {e}"))?
     } else {
         TranslationSummary {
             lang: target_language.clone(),
@@ -395,16 +395,16 @@ pub async fn update_translation_summary(
         translation_type,
         name,
         status,
-        keys: format!("{}/{}", translated_keys, total_keys),
+        keys: format!("{translated_keys}/{total_keys}"),
     };
 
     summary.translations.push(entry);
 
     // Write updated summary back to file
     let json = serde_json::to_string_pretty(&summary)
-        .map_err(|e| format!("Failed to serialize summary: {}", e))?;
+        .map_err(|e| format!("Failed to serialize summary: {e}"))?;
 
-    fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {}", e))?;
+    fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
     Ok(())
 }
