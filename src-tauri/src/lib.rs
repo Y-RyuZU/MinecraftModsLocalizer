@@ -23,10 +23,12 @@ use logging::{
     create_temp_directory_with_session, generate_session_id, get_logs, init_logger,
     log_api_request, log_error, log_file_operation, log_file_progress, log_performance_metrics,
     log_translation_completion, log_translation_process, log_translation_start,
-    log_translation_statistics,
+    log_translation_statistics, read_session_log,
 };
 use minecraft::{
-    analyze_mod_jar, extract_lang_files, extract_patchouli_books, write_patchouli_book,
+    analyze_mod_jar, check_guidebook_translation_exists, check_mod_translation_exists,
+    check_quest_translation_exists, extract_lang_files, extract_patchouli_books,
+    write_patchouli_book,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -78,6 +80,9 @@ pub fn run() {
             extract_lang_files,
             extract_patchouli_books,
             write_patchouli_book,
+            check_mod_translation_exists,
+            check_quest_translation_exists,
+            check_guidebook_translation_exists,
             // File system operations
             get_mod_files,
             get_ftb_quest_files,
@@ -113,6 +118,7 @@ pub fn run() {
             log_file_progress,
             log_translation_completion,
             log_performance_metrics,
+            read_session_log,
             // Backup operations
             create_backup,
             backup_snbt_files,

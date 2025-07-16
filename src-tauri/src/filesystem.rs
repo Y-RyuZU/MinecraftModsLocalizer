@@ -68,7 +68,7 @@ pub async fn get_mod_files(
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {dir}"));
+        return Err(format!("errors.profileDirectoryNotFound:::{}", dir));
     }
 
     let mut mod_files = Vec::new();
@@ -173,13 +173,13 @@ pub async fn get_ftb_quest_files(
         Ok(canonical_path) => {
             // Ensure the path is actually a directory
             if !canonical_path.is_dir() {
-                return Err(format!("Path is not a directory: {dir}"));
+                return Err(format!("errors.questsDirectoryNotFound:::{}", dir));
             }
             canonical_path
         }
         Err(e) => {
             error!("Failed to canonicalize path {dir}: {e}");
-            return Err(format!("Invalid directory path: {dir}"));
+            return Err(format!("errors.questsDirectoryNotFound:::{}", dir));
         }
     };
 
@@ -399,7 +399,7 @@ pub async fn get_better_quest_files(
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {dir}"));
+        return Err(format!("errors.guidebooksDirectoryNotFound:::{}", dir));
     }
 
     let mut quest_files = Vec::new();
@@ -563,7 +563,7 @@ pub async fn get_files_with_extension(
 
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
-        return Err(format!("Directory not found: {dir}"));
+        return Err(format!("errors.customFilesDirectoryNotFound:::{}", dir));
     }
 
     let mut files = Vec::new();

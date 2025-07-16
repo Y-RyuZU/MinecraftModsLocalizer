@@ -1,3 +1,4 @@
+use crate::filesystem::serialize_json_sorted;
 use log::{debug, error};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -343,7 +344,7 @@ pub fn write_patchouli_book(
         return Err(format!("Failed to start language file in archive: {e}"));
     }
 
-    let json_content = match serde_json::to_string_pretty(&content_map) {
+    let json_content = match serialize_json_sorted(&content_map) {
         Ok(json) => json,
         Err(e) => return Err(format!("Failed to serialize content: {e}")),
     };
@@ -838,4 +839,106 @@ fn extract_patchouli_books_from_archive(
     }
 
     Ok(patchouli_books)
+}
+
+/// Check if a translation file exists in a mod JAR
+#[tauri::command]
+pub async fn check_mod_translation_exists(
+    mod_path: &str,
+    mod_id: &str,
+    target_language: &str,
+) -> Result<bool, String> {
+    let path = PathBuf::from(mod_path);
+
+    // Open the mod file
+    let file = File::open(&path).map_err(|e| format!("Failed to open mod file: {}", e))?;
+    let mut archive =
+        ZipArchive::new(file).map_err(|e| format!("Failed to read mod as archive: {}", e))?;
+
+    // Check both JSON and .lang formats
+    let json_path = format!(
+        "assets/{}/lang/{}.json",
+        mod_id,
+        target_language.to_lowercase()
+    );
+    let lang_path = format!(
+        "assets/{}/lang/{}.lang",
+        mod_id,
+        target_language.to_lowercase()
+    );
+
+    // Check if either file exists in the archive
+    for i in 0..archive.len() {
+        if let Ok(file) = archive.by_index(i) {
+            let name = file.name();
+            if name == json_path || name == lang_path {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+/// Check if a translation file exists for quests
+#[tauri::command]
+pub async fn check_quest_translation_exists(
+    quest_path: &str,
+    target_language: &str,
+) -> Result<bool, String> {
+    let path = PathBuf::from(quest_path);
+    let parent = path.parent().ok_or("Failed to get parent directory")?;
+    let file_stem = path
+        .file_stem()
+        .ok_or("Failed to get file stem")?
+        .to_string_lossy();
+
+    // Check for translated file with language suffix
+    let translated_snbt = parent.join(format!(
+        "{}.{}.snbt",
+        file_stem,
+        target_language.to_lowercase()
+    ));
+    let translated_json = parent.join(format!(
+        "{}.{}.json",
+        file_stem,
+        target_language.to_lowercase()
+    ));
+
+    Ok(translated_snbt.exists() || translated_json.exists())
+}
+
+/// Check if a translation exists for a Patchouli guidebook
+#[tauri::command]
+pub async fn check_guidebook_translation_exists(
+    guidebook_path: &str,
+    mod_id: &str,
+    book_id: &str,
+    target_language: &str,
+) -> Result<bool, String> {
+    let path = PathBuf::from(guidebook_path);
+
+    // Open the mod file
+    let file = File::open(&path).map_err(|e| format!("Failed to open guidebook file: {}", e))?;
+    let mut archive =
+        ZipArchive::new(file).map_err(|e| format!("Failed to read guidebook as archive: {}", e))?;
+
+    // Check for translation file in Patchouli book structure
+    let book_lang_path = format!(
+        "assets/{}/patchouli_books/{}/{}.json",
+        mod_id,
+        book_id,
+        target_language.to_lowercase()
+    );
+
+    // Check if the translation file exists in the archive
+    for i in 0..archive.len() {
+        if let Ok(file) = archive.by_index(i) {
+            if file.name() == book_lang_path {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
 }
