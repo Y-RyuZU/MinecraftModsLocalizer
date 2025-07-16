@@ -6,8 +6,11 @@ import {FileService} from "@/lib/services/file-service";
 import {TranslationService, TranslationJob} from "@/lib/services/translation-service";
 import {TranslationTab} from "@/components/tabs/common/translation-tab";
 import {invoke} from "@tauri-apps/api/core";
+import {listen} from "@tauri-apps/api/event";
+import {useEffect} from "react";
 import {runTranslationJobs} from "@/lib/services/translation-runner";
 import {parseLangFile} from "@/lib/utils/lang-parser";
+import {getFileName, getRelativePath} from "@/lib/utils/path-utils";
 
 export function QuestsTab() {
     const {
@@ -36,16 +39,69 @@ export function QuestsTab() {
         isCompletionDialogOpen,
         setCompletionDialogOpen,
         setLogDialogOpen,
-        resetTranslationState
+        resetTranslationState,
+        // Scanning state
+        setScanning,
+        // Scan progress state
+        scanProgress,
+        setScanProgress,
+        resetScanProgress
     } = useAppStore();
+
+    // Listen for scan progress events
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const setupScanProgressListener = async () => {
+            try {
+                const unlisten = await listen<{
+                    currentFile: string;
+                    processedCount: number;
+                    totalCount?: number;
+                    scanType: string;
+                    completed: boolean;
+                }>('scan_progress', (event) => {
+                    const progress = event.payload;
+                    
+                    // Only process events for quests scan
+                    if (progress.scanType === 'quests') {
+                        setScanProgress({
+                            currentFile: progress.currentFile,
+                            processedCount: progress.processedCount,
+                            totalCount: progress.totalCount,
+                            scanType: progress.scanType,
+                        });
+                        
+                        // Reset progress after completion
+                        if (progress.completed) {
+                            setTimeout(() => resetScanProgress(), 500);
+                        }
+                    }
+                });
+                
+                return unlisten;
+            } catch (error) {
+                console.error('Failed to set up scan progress listener:', error);
+                return () => {};
+            }
+        };
+
+        const unlistenPromise = setupScanProgressListener();
+        return () => {
+            unlistenPromise.then(unlisten => unlisten());
+        };
+    }, [setScanProgress, resetScanProgress]);
 
     // Scan for quests
     const handleScan = async (directory: string) => {
-        // Clear existing targets before scanning
-        setQuestTranslationTargets([]);
-        
-        // Get FTB quest files
-        const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
+        try {
+            setScanning(true);
+            
+            // Clear existing targets before scanning
+            setQuestTranslationTargets([]);
+            
+            // Get FTB quest files
+            const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
 
         // Get Better Quests files
         const betterQuestFiles = await FileService.getBetterQuestFiles(directory);
@@ -57,14 +113,12 @@ export function QuestsTab() {
         for (let i = 0; i < ftbQuestFiles.length; i++) {
             const questFile = ftbQuestFiles[i];
             try {
-                // Extract just the filename for the quest name
-                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
+                // Extract just the filename for the quest name (cross-platform)
+                const fileName = getFileName(questFile);
                 const questNumber = i + 1;
 
-                // Calculate relative path by removing the selected directory part
-                const relativePath = questFile.startsWith(directory)
-                    ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
-                    : questFile;
+                // Calculate relative path (cross-platform)
+                const relativePath = getRelativePath(questFile, directory);
 
                 targets.push({
                     type: "quest",
@@ -84,14 +138,12 @@ export function QuestsTab() {
         for (let i = 0; i < betterQuestFiles.length; i++) {
             const questFile = betterQuestFiles[i];
             try {
-                // Extract just the filename for the quest name
-                const fileName = questFile.split(/[/\\]/).pop() || "unknown";
+                // Extract just the filename for the quest name (cross-platform)
+                const fileName = getFileName(questFile);
                 const questNumber = i + 1;
 
-                // Calculate relative path by removing the selected directory part
-                const relativePath = questFile.startsWith(directory)
-                    ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
-                    : questFile;
+                // Calculate relative path (cross-platform)
+                const relativePath = getRelativePath(questFile, directory);
 
                 // Determine if it's a DefaultQuests.lang file (direct mode)
                 const isDirectMode = fileName === "DefaultQuests.lang";
@@ -114,6 +166,9 @@ export function QuestsTab() {
         }
 
         setQuestTranslationTargets(targets);
+        } finally {
+            setScanning(false);
+        }
     };
 
     // Translate quests
@@ -175,9 +230,31 @@ export function QuestsTab() {
                 job: TranslationJob;
                 content: string;
             }> = [];
+            let skippedCount = 0;
             
             for (const target of sortedTargets) {
                 try {
+                    // Check if translation already exists when skipExistingTranslations is enabled
+                    if (config.translation.skipExistingTranslations ?? true) {
+                        const exists = await FileService.invoke<boolean>("check_quest_translation_exists", {
+                            questPath: target.path,
+                            targetLanguage: targetLanguage
+                        });
+                        
+                        if (exists) {
+                            console.log(`Skipping quest ${target.name} - translation already exists`);
+                            try {
+                                await invoke('log_translation_process', { 
+                                    message: `Skipped: ${target.name} - translation already exists`, 
+                                    processType: "TRANSLATION" 
+                                });
+                            } catch {
+                                // ignore logging errors
+                            }
+                            skippedCount++;
+                            continue;
+                        }
+                    }
                     // Read quest file
                     const content = await FileService.readTextFile(target.path);
                     
@@ -317,6 +394,18 @@ export function QuestsTab() {
                     } catch {}
                 }
             });
+            
+            // Log skipped items summary
+            if (skippedCount > 0) {
+                try {
+                    await invoke('log_translation_process', { 
+                        message: `Translation completed. Skipped ${skippedCount} quests that already have translations.`, 
+                        processType: "TRANSLATION" 
+                    });
+                } catch {
+                    // ignore logging errors
+                }
+            }
         } finally {
             setTranslating(false);
         }
@@ -364,8 +453,7 @@ export function QuestsTab() {
                 {
                     key: "relativePath",
                     label: "tables.path",
-                    className: "truncate max-w-[300px]",
-                    render: (target) => target.relativePath || target.path
+                    render: (target) => target.relativePath || getFileName(target.path)
                 }
             ]}
             config={config}
@@ -389,6 +477,7 @@ export function QuestsTab() {
             setCompletionDialogOpen={setCompletionDialogOpen}
             setLogDialogOpen={setLogDialogOpen}
             resetTranslationState={resetTranslationState}
+            scanProgress={scanProgress}
             onScan={handleScan}
             onTranslate={handleTranslate}
         />

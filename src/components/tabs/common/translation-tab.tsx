@@ -79,6 +79,14 @@ export interface TranslationTabProps {
     setCompletionDialogOpen: (isOpen: boolean) => void;
     setLogDialogOpen: (isOpen: boolean) => void;
     resetTranslationState: () => void;
+    
+    // Scan progress state
+    scanProgress?: {
+        currentFile: string;
+        processedCount: number;
+        totalCount?: number;
+        scanType?: string;
+    };
 
     // Custom handlers
     onScan: (directory: string) => Promise<void>;
@@ -128,6 +136,9 @@ export function TranslationTab({
                                    setCompletionDialogOpen,
                                    setLogDialogOpen,
                                    resetTranslationState,
+                                   
+                                   // Scan progress state
+                                   scanProgress,
 
                                    // Custom handlers
                                    onScan,
@@ -483,9 +494,10 @@ export function TranslationTab({
             )}
 
             <div className="border rounded-md">
-                <ScrollArea className="h-[500px]">
-                    <Table>
-                        <TableHeader>
+                <ScrollArea className="h-[500px]" orientation="both">
+                    <div className="w-max">
+                        <Table>
+                            <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[50px] sticky top-0 bg-background z-10">
                                     <Checkbox
@@ -538,9 +550,17 @@ export function TranslationTab({
                                                 </div>
                                                 
                                                 <div className="space-y-2 text-center">
-                                                    <p className="text-lg font-medium">{t(scanningForItemsLabel)}</p>
-                                                    <p className="text-sm text-muted-foreground animate-pulse">
-                                                        {t('misc.pleaseWait')}
+                                                    <p className="text-lg font-medium">
+                                                        {scanProgress?.currentFile ? 
+                                                            `Scanning: ${scanProgress.currentFile}` : 
+                                                            t(scanningForItemsLabel)
+                                                        }
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {(scanProgress?.processedCount ?? 0) > 0 ? 
+                                                            `(${scanProgress?.processedCount} files)` : 
+                                                            t('misc.pleaseWait')
+                                                        }
                                                     </p>
                                                 </div>
                                                 
@@ -608,6 +628,7 @@ export function TranslationTab({
                             )}
                         </TableBody>
                     </Table>
+                    </div>
                 </ScrollArea>
             </div>
 

@@ -7,6 +7,9 @@ import { TranslationService, TranslationJob } from "@/lib/services/translation-s
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { runTranslationJobs } from "@/lib/services/translation-runner";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect } from "react";
+import { getFileName, getRelativePath, getDirectoryPath, joinPath } from "@/lib/utils/path-utils";
 
 export function CustomFilesTab() {
   const { 
@@ -35,31 +38,82 @@ export function CustomFilesTab() {
     isCompletionDialogOpen,
     setCompletionDialogOpen,
     setLogDialogOpen,
-    resetTranslationState
+    resetTranslationState,
+    // Scanning state
+    setScanning,
+    // Scan progress state
+    scanProgress,
+    setScanProgress,
+    resetScanProgress
   } = useAppStore();
+
+  // Listen for scan progress events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const setupScanProgressListener = async () => {
+      try {
+        const unlisten = await listen<{
+          currentFile: string;
+          processedCount: number;
+          totalCount?: number;
+          scanType: string;
+          completed: boolean;
+        }>('scan_progress', (event) => {
+          const progress = event.payload;
+          
+          // Only process events for custom-files scan
+          if (progress.scanType === 'custom-files') {
+            setScanProgress({
+              currentFile: progress.currentFile,
+              processedCount: progress.processedCount,
+              totalCount: progress.totalCount,
+              scanType: progress.scanType,
+            });
+            
+            // Reset progress after completion
+            if (progress.completed) {
+              setTimeout(() => resetScanProgress(), 500);
+            }
+          }
+        });
+        
+        return unlisten;
+      } catch (error) {
+        console.error('Failed to set up scan progress listener:', error);
+        return () => {};
+      }
+    };
+
+    const unlistenPromise = setupScanProgressListener();
+    return () => {
+      unlistenPromise.then(unlisten => unlisten());
+    };
+  }, [setScanProgress, resetScanProgress]);
 
   // Scan for custom files
   const handleScan = async (directory: string) => {
-    // Get JSON and SNBT files
-    const jsonFiles = await FileService.getFilesWithExtension(directory, ".json");
-    const snbtFiles = await FileService.getFilesWithExtension(directory, ".snbt");
-    
-    // Combine files
-    const allFiles = [...jsonFiles, ...snbtFiles];
-    
-    // Create translation targets
+    try {
+      setScanning(true);
+      
+      // Get JSON and SNBT files
+      const jsonFiles = await FileService.getFilesWithExtension(directory, ".json");
+      const snbtFiles = await FileService.getFilesWithExtension(directory, ".snbt");
+      
+      // Combine files
+      const allFiles = [...jsonFiles, ...snbtFiles];
+      
+      // Create translation targets
     const targets: TranslationTarget[] = [];
     
     for (let i = 0; i < allFiles.length; i++) {
       const filePath = allFiles[i];
       try {
-        // Get file name
-        const fileName = filePath.split('/').pop() || "unknown";
+        // Get file name (cross-platform)
+        const fileName = getFileName(filePath);
         
-        // Calculate relative path by removing the selected directory part
-        const relativePath = filePath.startsWith(directory) 
-          ? filePath.substring(directory.length).replace(/^[/\\]+/, '') 
-          : filePath;
+        // Calculate relative path (cross-platform)
+        const relativePath = getRelativePath(filePath, directory);
         
         targets.push({
           type: "custom",
@@ -75,6 +129,9 @@ export function CustomFilesTab() {
     }
     
     setCustomFilesTranslationTargets(targets);
+    } finally {
+      setScanning(false);
+    }
   };
 
   // Translate custom files
@@ -89,11 +146,11 @@ export function CustomFilesTab() {
     try {
       setTranslating(true);
       
-      // Get the directory from the first target
-      const directory = selectedTargets[0]?.path.split('/').slice(0, -1).join('/');
+      // Get the directory from the first target (cross-platform)
+      const directory = selectedTargets[0] ? getDirectoryPath(selectedTargets[0].path) : '';
       
-      // Create output directory
-      const outputDir = `${directory}/translated`;
+      // Create output directory (cross-platform)
+      const outputDir = joinPath(directory, 'translated');
       await FileService.createDirectory(outputDir);
       
       // Sort targets alphabetically for consistent processing
@@ -208,8 +265,8 @@ export function CustomFilesTab() {
           const fileData = jobs.find(j => j.job.id === job.id);
           if (!fileData) return;
           
-          const fileName = fileData.target.path.split('/').pop() || "unknown";
-          const outputFilePath = `${outputPath}/${targetLanguage}_${fileName}`;
+          const fileName = getFileName(fileData.target.path);
+          const outputFilePath = joinPath(outputPath, `${targetLanguage}_${fileName}`);
           
           if (fileData.fileType === 'json' && fileData.jsonData) {
             // Reconstruct JSON from flattened content
@@ -333,7 +390,6 @@ export function CustomFilesTab() {
         { 
           key: "relativePath", 
           label: "tables.path", 
-          className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
         }
       ]}
@@ -358,6 +414,7 @@ export function CustomFilesTab() {
       setCompletionDialogOpen={setCompletionDialogOpen}
       setLogDialogOpen={setLogDialogOpen}
       resetTranslationState={resetTranslationState}
+      scanProgress={scanProgress}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />
