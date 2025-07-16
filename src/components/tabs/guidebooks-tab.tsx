@@ -108,6 +108,14 @@ export function GuidebooksTab() {
       // Get mod files
       const modFiles = await FileService.getModFiles(modsDirectory);
 
+      // Update progress immediately after file discovery
+      setScanProgress({
+        currentFile: 'Analyzing mod files...',
+        processedCount: 0,
+        totalCount: modFiles.length,
+        scanType: 'guidebooks',
+      });
+
       // Create translation targets
       const targets: TranslationTarget[] = [];
 

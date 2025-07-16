@@ -111,6 +111,14 @@ export function CustomFilesTab() {
       // Combine files
       const allFiles = [...jsonFiles, ...snbtFiles];
       
+      // Update progress immediately after file discovery
+      setScanProgress({
+        currentFile: 'Analyzing custom files...',
+        processedCount: 0,
+        totalCount: allFiles.length,
+        scanType: 'custom-files',
+      });
+      
       // Create translation targets
     const targets: TranslationTarget[] = [];
     

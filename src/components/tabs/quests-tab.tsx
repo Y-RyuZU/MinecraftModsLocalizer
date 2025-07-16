@@ -114,6 +114,14 @@ export function QuestsTab() {
         // Get Better Quests files
         const betterQuestFiles = await FileService.getBetterQuestFiles(directory);
 
+        // Update progress immediately after file discovery
+        setScanProgress({
+            currentFile: 'Analyzing quest files...',
+            processedCount: 0,
+            totalCount: ftbQuestFiles.length + betterQuestFiles.length,
+            scanType: 'quests',
+        });
+
         // Create translation targets
         const targets: TranslationTarget[] = [];
 
