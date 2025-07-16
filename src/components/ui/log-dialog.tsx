@@ -327,7 +327,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[900px] 2xl:max-w-[1400px] max-h-[80vh] 2xl:max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>{t('logs.translationLogs')}</DialogTitle>
         </DialogHeader>
@@ -342,7 +342,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
             onMouseDown={handleUserScroll}
             onTouchStart={handleUserScroll}
           >
-            <div className="p-4 font-mono text-sm whitespace-pre-wrap">
+            <div className="p-4 2xl:p-6 font-mono text-sm 2xl:text-base whitespace-pre-wrap">
               {filteredLogs.length === 0 ? (
                 <div className="text-gray-500 dark:text-gray-400">
                   {t('logs.noLogs')}

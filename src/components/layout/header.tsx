@@ -76,9 +76,9 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background">
-        <div className="container max-w-5xl mx-auto px-4 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">
+        <div className="container max-w-5xl 2xl:max-w-7xl mx-auto px-4 xl:px-6 2xl:px-8 flex h-16 2xl:h-20 items-center justify-between">
+          <div className="flex items-center gap-2 2xl:gap-3">
+            <h1 className="text-xl 2xl:text-2xl font-bold">
               {mounted ? t('app.title') : 'Minecraft Mods Localizer'}
             </h1>
           </div>
