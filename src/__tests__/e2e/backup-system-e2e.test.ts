@@ -64,7 +64,7 @@ describe('Backup System E2E Tests', () => {
         case 'generate_session_id':
           return sessionId;
           
-        case 'backup_snbt_files':
+        case 'backup_snbt_files': {
           // Simulate SNBT backup
           const backupDir = path.join(args.sessionPath, 'backup', 'snbt_original');
           await fs.mkdir(backupDir, { recursive: true });
@@ -73,15 +73,17 @@ describe('Backup System E2E Tests', () => {
             await fs.writeFile(path.join(backupDir, fileName), 'original content');
           }
           return;
+        }
           
-        case 'backup_resource_pack':
+        case 'backup_resource_pack': {
           // Simulate resource pack backup
           const packBackupDir = path.join(args.sessionPath, 'backup', 'resource_pack');
           await fs.mkdir(packBackupDir, { recursive: true });
           await fs.writeFile(path.join(packBackupDir, 'pack.mcmeta'), '{}');
           return;
+        }
           
-        case 'update_translation_summary':
+        case 'update_translation_summary': {
           // Simulate summary update
           const summaryPath = path.join(logsDir, 'localizer', args.sessionId, 'translation_summary.json');
           await fs.mkdir(path.dirname(summaryPath), { recursive: true });
@@ -101,6 +103,7 @@ describe('Backup System E2E Tests', () => {
           
           await fs.writeFile(summaryPath, JSON.stringify(summary, null, 2));
           return;
+        }
           
         case 'list_translation_sessions':
           // Return mock sessions

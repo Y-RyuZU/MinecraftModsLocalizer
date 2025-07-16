@@ -21,19 +21,26 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
   const [showApiKey, setShowApiKey] = useState(false);
   
   // Initialize apiKeys if not present
-  if (!config.llm.apiKeys) {
-    config.llm.apiKeys = {
-      openai: "",
-      anthropic: "",
-      google: ""
-    };
-  }
+  useEffect(() => {
+    if (!config.llm.apiKeys) {
+      const newConfig = { ...config };
+      newConfig.llm = {
+        ...newConfig.llm,
+        apiKeys: {
+          openai: "",
+          anthropic: "",
+          google: ""
+        }
+      };
+      setConfig(newConfig);
+    }
+  }, [config, setConfig]);
   
   // Get current API key based on selected provider
   const getCurrentApiKey = () => {
     const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
     // Use provider-specific key if available, fallback to legacy apiKey
-    return config.llm.apiKeys[provider] || config.llm.apiKey || "";
+    return config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
   };
   
   // Set API key for current provider

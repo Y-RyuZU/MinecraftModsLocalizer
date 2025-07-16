@@ -65,8 +65,11 @@ const parseSessionId = (id: string): Date => {
   const match = id.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
   if (match) {
     const [, year, month, day, hour, minute, second] = match;
-    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+    const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+    // Return current date if parsing resulted in invalid date
+    return isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   }
+  // Return current date for invalid format
   return new Date();
 };
 
@@ -202,7 +205,20 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: {
   
   return (
     <>
-      <TableRow className="cursor-pointer" onClick={onToggle}>
+      <TableRow 
+        className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:outline-none" 
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        tabIndex={0}
+        role="button"
+        aria-expanded={sessionSummary.expanded}
+        aria-label={`${sessionSummary.expanded ? 'Collapse' : 'Expand'} session ${formatSessionId(sessionSummary.sessionId)}`}
+      >
         <TableCell>
           <div className="flex items-center space-x-2">
             {sessionSummary.expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}

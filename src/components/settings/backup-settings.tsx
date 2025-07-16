@@ -3,14 +3,8 @@
 import { useAppTranslation } from "@/lib/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardDrive } from "lucide-react";
-import { type AppConfig } from "@/lib/types/config";
 
-interface BackupSettingsProps {
-  config: AppConfig;
-  setConfig: (config: AppConfig) => void;
-}
-
-export function BackupSettings({ }: BackupSettingsProps) {
+export function BackupSettings() {
   const { t } = useAppTranslation();
 
   return (
