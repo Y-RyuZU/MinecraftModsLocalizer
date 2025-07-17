@@ -108,7 +108,7 @@ pub async fn get_mod_files(
 
         if entry_path.is_file() {
             processed_count += 1;
-            
+
             let current_file = entry_path
                 .file_name()
                 .unwrap_or_default()
@@ -116,8 +116,8 @@ pub async fn get_mod_files(
                 .to_string();
 
             // Emit progress: every 10 files OR every 200ms OR when finding JAR files
-            let should_emit = processed_count % 10 == 0 
-                || last_emit.elapsed() >= EMIT_INTERVAL 
+            let should_emit = processed_count % 10 == 0
+                || last_emit.elapsed() >= EMIT_INTERVAL
                 || entry_path.extension().is_some_and(|ext| ext == "jar");
 
             if should_emit {
@@ -298,8 +298,8 @@ pub async fn get_ftb_quest_files(
                                 .to_string();
 
                             // Emit progress: every 10 files OR every 200ms
-                            let should_emit = processed_count % 10 == 0 
-                                || last_emit.elapsed() >= EMIT_INTERVAL;
+                            let should_emit =
+                                processed_count % 10 == 0 || last_emit.elapsed() >= EMIT_INTERVAL;
 
                             if should_emit {
                                 let _ = app_handle.emit(
@@ -450,8 +450,7 @@ pub async fn get_better_quest_files(
                 .to_string();
 
             // Emit progress: every 10 files OR every 200ms
-            let should_emit = processed_count % 10 == 0 
-                || last_emit.elapsed() >= EMIT_INTERVAL;
+            let should_emit = processed_count % 10 == 0 || last_emit.elapsed() >= EMIT_INTERVAL;
 
             if should_emit {
                 let _ = app_handle.emit(
@@ -510,7 +509,7 @@ pub async fn get_better_quest_files(
             default_quests_file.display()
         );
         processed_count += 1;
-        
+
         // Emit progress for DefaultQuests.lang file
         let _ = app_handle.emit(
             "scan_progress",
@@ -522,7 +521,7 @@ pub async fn get_better_quest_files(
                 completed: false,
             },
         );
-        
+
         if let Some(path_str) = default_quests_file.to_str() {
             quest_files.push(path_str.to_string());
         }
@@ -595,8 +594,7 @@ pub async fn get_files_with_extension(
             .to_string();
 
         // Emit progress: every 10 files OR every 200ms
-        let should_emit = processed_count % 10 == 0 
-            || last_emit.elapsed() >= EMIT_INTERVAL;
+        let should_emit = processed_count % 10 == 0 || last_emit.elapsed() >= EMIT_INTERVAL;
 
         if should_emit {
             let _ = app_handle.emit(

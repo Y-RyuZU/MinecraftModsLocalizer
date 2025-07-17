@@ -5,10 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './button';
 import { ScrollArea } from './scroll-area';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './table';
-import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw, ArrowUpDown, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw, ArrowUpDown, FileText, FolderOpen } from 'lucide-react';
 import { useAppTranslation } from '@/lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@/lib/store';
+import { FileService } from '@/lib/services/file-service';
 
 interface TranslationHistoryDialogProps {
   open: boolean;
@@ -275,7 +276,7 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession, onV
 
 export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHistoryDialogProps) {
   const { t } = useAppTranslation();
-  const config = useAppStore(state => state.config);
+  const profileDirectory = useAppStore(state => state.profileDirectory);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -285,21 +286,28 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
   const [sessionLogContent, setSessionLogContent] = useState<string>('');
   const [loadingSessionLog, setLoadingSessionLog] = useState(false);
   const [sessionLogError, setSessionLogError] = useState<string | null>(null);
+  const [historyDirectory, setHistoryDirectory] = useState<string>('');
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const minecraftDir = config.paths.minecraftDir || '';
+      // Use historyDirectory if set, otherwise fall back to profileDirectory
+      const minecraftDir = historyDirectory || profileDirectory;
       
       if (!minecraftDir) {
-        setError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please configure it in settings.'));
+        setError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
         return;
       }
       
+      // Extract the actual path if it has the NATIVE_DIALOG prefix
+      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
+        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
+        : minecraftDir;
+      
       const sessionList = await invoke<string[]>('list_translation_sessions', {
-        minecraftDir
+        minecraftDir: actualPath
       });
       
       const sessionSummaries: SessionSummary[] = sessionList.map(sessionId => ({
@@ -320,13 +328,41 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     } finally {
       setLoading(false);
     }
-  }, [config.paths.minecraftDir, t]);
+  }, [historyDirectory, profileDirectory, t]);
 
   useEffect(() => {
     if (open) {
+      // Use existing profileDirectory as fallback if historyDirectory is not set
+      if (!historyDirectory && profileDirectory) {
+        setHistoryDirectory(profileDirectory);
+      }
       loadSessions();
     }
-  }, [open, loadSessions]);
+  }, [open, loadSessions, historyDirectory, profileDirectory]);
+  
+  // Handle directory selection for history
+  const handleSelectHistoryDirectory = async () => {
+    try {
+      const selected = await FileService.openDirectoryDialog('Select Profile Directory for History');
+      if (selected) {
+        // Validate the directory path
+        if (!selected.trim()) {
+          setError(t('errors.invalidDirectory', 'Invalid directory selected'));
+          return;
+        }
+        
+        setHistoryDirectory(selected);
+        setError(null);
+        
+        // Automatically reload sessions with new directory
+        loadSessions();
+      }
+    } catch (error) {
+      console.error('Failed to select history directory:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+    }
+  };
 
   const handleToggleSession = (sessionId: string) => {
     setSessions(prev => prev.map(session => 
@@ -352,15 +388,21 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     setSessionLogContent('');
 
     try {
-      const minecraftDir = config.paths.minecraftDir || '';
+      // Use historyDirectory if set, otherwise fall back to profileDirectory
+      const minecraftDir = historyDirectory || profileDirectory;
       
       if (!minecraftDir) {
-        setSessionLogError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please configure it in settings.'));
+        setSessionLogError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
         return;
       }
       
+      // Extract the actual path if it has the NATIVE_DIALOG prefix
+      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
+        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
+        : minecraftDir;
+      
       const logContent = await invoke<string>('read_session_log', {
-        minecraftDir,
+        minecraftDir: actualPath,
         sessionId
       });
       setSessionLogContent(logContent);
@@ -370,7 +412,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     } finally {
       setLoadingSessionLog(false);
     }
-  }, [config.paths.minecraftDir, t]);
+  }, [historyDirectory, profileDirectory, t]);
 
   const handleSort = (field: SortField) => {
     const direction = sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -411,7 +453,27 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] w-full max-h-[85vh] 2xl:max-h-[90vh] overflow-hidden sm:max-w-[95vw] 2xl:max-w-[98vw]">
         <DialogHeader>
-          <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
+          <div className="flex flex-col space-y-4">
+            <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectHistoryDirectory}
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="h-4 w-4" />
+                {t('buttons.selectProfileDirectory', 'Select Profile Directory')}
+              </Button>
+              {(historyDirectory || profileDirectory) && (
+                <div className="text-sm text-muted-foreground">
+                  {t('misc.selectedDirectory')} {((historyDirectory || profileDirectory) || '').startsWith('NATIVE_DIALOG:')
+                    ? ((historyDirectory || profileDirectory) || '').substring('NATIVE_DIALOG:'.length)
+                    : (historyDirectory || profileDirectory)}
+                </div>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 overflow-hidden">
@@ -465,7 +527,9 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
                         key={sessionSummary.sessionId}
                         sessionSummary={sessionSummary}
                         onToggle={() => handleToggleSession(sessionSummary.sessionId)}
-                        minecraftDir={config.paths.minecraftDir || ''}
+                        minecraftDir={(historyDirectory || profileDirectory || '').startsWith('NATIVE_DIALOG:') 
+                          ? (historyDirectory || profileDirectory || '').substring('NATIVE_DIALOG:'.length)
+                          : (historyDirectory || profileDirectory || '')}
                         updateSession={updateSession}
                         onViewLogs={handleViewLogs}
                       />

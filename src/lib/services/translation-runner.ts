@@ -157,10 +157,10 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
                     .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
                 const totalKeys = Object.keys((job as { sourceContent?: Record<string, unknown> }).sourceContent || {}).length;
                 
-                const config = useAppStore.getState().config;
+                const profileDirectory = useAppStore.getState().profileDirectory;
                 
                 await invoke('update_translation_summary', {
-                    minecraftDir: config.paths.minecraftDir || '',
+                    minecraftDir: profileDirectory || '',
                     sessionId,
                     translationType: type,
                     name: job.currentFileName || job.id,

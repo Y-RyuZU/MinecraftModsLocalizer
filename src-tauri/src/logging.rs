@@ -554,22 +554,19 @@ pub fn log_performance_metrics(
 
 /// Read session log file for a specific session
 #[tauri::command]
-pub fn read_session_log(
-    minecraft_dir: String,
-    session_id: String,
-) -> Result<String, String> {
+pub fn read_session_log(minecraft_dir: String, session_id: String) -> Result<String, String> {
     // Construct path to session log file
     let log_path = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id)
         .join("localizer.log");
-    
+
     // Check if log file exists
     if !log_path.exists() {
         return Err(format!("Log file not found for session: {session_id}"));
     }
-    
+
     // Read the log file
     match fs::read_to_string(&log_path) {
         Ok(content) => Ok(content),

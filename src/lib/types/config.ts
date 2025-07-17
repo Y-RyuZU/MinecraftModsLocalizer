@@ -5,7 +5,6 @@ import {
   DEFAULT_PROVIDER,
   API_DEFAULTS,
   TRANSLATION_DEFAULTS,
-  PATH_DEFAULTS,
   UI_DEFAULTS,
   UPDATE_DEFAULTS,
   STORAGE_KEYS as IMPORTED_STORAGE_KEYS,
@@ -24,22 +23,6 @@ export const DEFAULT_API_URLS = IMPORTED_DEFAULT_API_URLS;
 export const STORAGE_KEYS = IMPORTED_STORAGE_KEYS;
 
 /**
- * Path configuration
- */
-export interface PathsConfig {
-  /** Minecraft directory path */
-  minecraftDir: string;
-  /** Mods directory path */
-  modsDir: string;
-  /** Resource packs directory path */
-  resourcePacksDir: string;
-  /** Config directory path */
-  configDir: string;
-  /** Logs directory path */
-  logsDir: string;
-}
-
-/**
  * Application configuration
  */
 export interface AppConfig {
@@ -51,8 +34,6 @@ export interface AppConfig {
   ui: UIConfig;
   /** Update configuration */
   update?: UpdateConfig;
-  /** Path configuration */
-  paths: PathsConfig;
 }
 
 /**
@@ -174,13 +155,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   update: {
     checkOnStartup: UPDATE_DEFAULTS.checkOnStartup
-  },
-  paths: {
-    minecraftDir: PATH_DEFAULTS.minecraftDir,
-    modsDir: PATH_DEFAULTS.modsDir,
-    resourcePacksDir: PATH_DEFAULTS.resourcePacksDir,
-    configDir: PATH_DEFAULTS.configDir,
-    logsDir: PATH_DEFAULTS.logsDir
   }
 };
 

@@ -11,6 +11,10 @@ interface AppState {
   setConfig: (config: AppConfig) => void;
   updateConfig: (partialConfig: Partial<AppConfig>) => void;
   
+  // Profile directory
+  profileDirectory: string;
+  setProfileDirectory: (directory: string) => void;
+  
   // Translation targets - separated by type
   modTranslationTargets: TranslationTarget[];
   questTranslationTargets: TranslationTarget[];
@@ -121,6 +125,10 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ 
       config: { ...state.config, ...partialConfig } 
     })),
+  
+  // Profile directory
+  profileDirectory: '',
+  setProfileDirectory: (directory) => set({ profileDirectory: directory }),
   
   // Translation targets - separated by type
   modTranslationTargets: [],

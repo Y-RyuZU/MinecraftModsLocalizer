@@ -18,6 +18,8 @@ import {TargetLanguageSelector} from "@/components/tabs/target-language-selector
 import {TranslationService} from "@/lib/services/translation-service";
 import {invoke} from "@tauri-apps/api/core";
 import type {AppConfig} from "@/lib/types/config";
+import {useAppStore} from "@/lib/store";
+import {toast} from "sonner";
 
 // Helper function to get the chunk size for a specific tab type
 const getChunkSizeForTabType = (config: AppConfig, tabType: 'mods' | 'quests' | 'guidebooks' | 'custom-files'): number => {
@@ -147,12 +149,15 @@ export function TranslationTab({
     const [isScanning, setIsScanning] = useState(false);
     const [filterText, setFilterText] = useState("");
     const [tempTargetLanguage, setTempTargetLanguage] = useState<string | null>(null);
-    const [selectedDirectory, setSelectedDirectory] = useState<string | null>(null);
     const [sortColumn, setSortColumn] = useState<string>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [translationResults, setTranslationResults] = useState<TranslationResult[]>([]);
     const [totalTargets, setTotalTargets] = useState(0);
     const {t} = useAppTranslation();
+    
+    // Get shared profile directory from store
+    const profileDirectory = useAppStore(state => state.profileDirectory);
+    const setProfileDirectory = useAppStore(state => state.setProfileDirectory);
 
     // Reference to the translation service
     const translationServiceRef = useRef<TranslationService | null>(null);
@@ -165,8 +170,14 @@ export function TranslationTab({
             const selected = await FileService.openDirectoryDialog(t(directorySelectLabel));
 
             if (selected) {
-                // Store the full path including any prefix
-                setSelectedDirectory(selected);
+                // Validate the directory path
+                if (!selected.trim()) {
+                    setError(t('errors.invalidDirectory', 'Invalid directory selected'));
+                    return;
+                }
+
+                // Store the full path including any prefix in shared state
+                setProfileDirectory(selected);
 
                 // Clear any previous errors
                 setError(null);
@@ -185,14 +196,19 @@ export function TranslationTab({
             }
         } catch (error) {
             console.error("Failed to select directory:", error);
-            setError(`Failed to select directory: ${error}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+            toast.error(t('errors.directorySelectionFailed', 'Failed to select directory'), {
+                description: errorMessage
+            });
         }
     };
 
     // Scan for items
     const handleScan = async () => {
-        if (!selectedDirectory) {
-            setError(t('errors.selectDirectoryFirst'));
+        if (!profileDirectory) {
+            setError(t('errors.selectProfileDirectoryFirst'));
+            toast.error(t('errors.selectProfileDirectoryFirst', 'Please select a profile directory first'));
             return;
         }
 
@@ -201,9 +217,9 @@ export function TranslationTab({
             setError(null);
             
             // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
-                ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                : selectedDirectory;
+            const actualPath = profileDirectory.startsWith("NATIVE_DIALOG:")
+                ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                : profileDirectory;
 
             // Clear existing results after UI has updated
             requestAnimationFrame(() => {
@@ -225,6 +241,9 @@ export function TranslationTab({
                 setError(t(errorMessage));
             } else {
                 setError(`Failed to scan ${tabType}: ${errorMessage}`);
+                toast.error(t('errors.scanFailed', 'Scan failed'), {
+                    description: errorMessage
+                });
             }
         } finally {
             setIsScanning(false);
@@ -320,9 +339,9 @@ export function TranslationTab({
             }
 
             // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = selectedDirectory && selectedDirectory.startsWith("NATIVE_DIALOG:")
-                ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                : selectedDirectory || "";
+            const actualPath = profileDirectory && profileDirectory.startsWith("NATIVE_DIALOG:")
+                ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                : profileDirectory || "";
 
             // Clear existing logs and create a new logs directory for the entire translation session
             try {
@@ -333,10 +352,8 @@ export function TranslationTab({
                 const sessionId = await invoke<string>('generate_session_id');
 
                 // Create a new logs directory using the session ID for uniqueness
-                // Ensure we use the selected directory if minecraftDir is not set or empty
-                const minecraftDir = (config.paths.minecraftDir && config.paths.minecraftDir.trim() !== "") 
-                    ? config.paths.minecraftDir 
-                    : actualPath;
+                // Use the shared profile directory
+                const minecraftDir = actualPath;
                 
                 const logsDir = await invoke<string>('create_logs_directory_with_session', {
                     minecraftDir: minecraftDir,
@@ -400,8 +417,8 @@ export function TranslationTab({
                     </Button>
                     <Button
                         onClick={handleScan}
-                        disabled={isScanning || isTranslating || !selectedDirectory}
-                        title={!selectedDirectory ? t('errors.selectDirectoryFirst') : ''}
+                        disabled={isScanning || isTranslating || !profileDirectory}
+                        title={!profileDirectory ? t('errors.selectProfileDirectoryFirst') : ''}
                         className={isScanning ? 'animate-pulse' : ''}
                     >
                         {isScanning && (
@@ -455,11 +472,11 @@ export function TranslationTab({
                 )}
             </div>
 
-            {selectedDirectory && (
+            {profileDirectory && (
                 <div className="text-sm text-muted-foreground">
-                    {t('misc.selectedDirectory')} {selectedDirectory.startsWith("NATIVE_DIALOG:")
-                    ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                    : selectedDirectory}
+                    {t('misc.selectedDirectory')} {profileDirectory.startsWith("NATIVE_DIALOG:")
+                    ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                    : profileDirectory}
                 </div>
             )}
 

@@ -16,21 +16,21 @@ fn validate_session_id_format(session_id: &str) -> bool {
     if session_id.len() != 19 {
         return false;
     }
-    
+
     let chars: Vec<char> = session_id.chars().collect();
-    
+
     // Check pattern: YYYY-MM-DD_HH-MM-SS
-    chars[4] == '-' && 
-    chars[7] == '-' && 
-    chars[10] == '_' && 
-    chars[13] == '-' && 
-    chars[16] == '-' &&
-    chars[0..4].iter().all(|c| c.is_ascii_digit()) &&
-    chars[5..7].iter().all(|c| c.is_ascii_digit()) &&
-    chars[8..10].iter().all(|c| c.is_ascii_digit()) &&
-    chars[11..13].iter().all(|c| c.is_ascii_digit()) &&
-    chars[14..16].iter().all(|c| c.is_ascii_digit()) &&
-    chars[17..19].iter().all(|c| c.is_ascii_digit())
+    chars[4] == '-'
+        && chars[7] == '-'
+        && chars[10] == '_'
+        && chars[13] == '-'
+        && chars[16] == '-'
+        && chars[0..4].iter().all(|c| c.is_ascii_digit())
+        && chars[5..7].iter().all(|c| c.is_ascii_digit())
+        && chars[8..10].iter().all(|c| c.is_ascii_digit())
+        && chars[11..13].iter().all(|c| c.is_ascii_digit())
+        && chars[14..16].iter().all(|c| c.is_ascii_digit())
+        && chars[17..19].iter().all(|c| c.is_ascii_digit())
 }
 
 /// Backup metadata structure matching TypeScript interface

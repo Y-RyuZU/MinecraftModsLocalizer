@@ -100,16 +100,6 @@ export const MODEL_TOKEN_LIMITS = {
   fallback: 3000, // Conservative default for unknown models
 } as const;
 
-// ============================================
-// Path Configuration Defaults
-// ============================================
-export const PATH_DEFAULTS = {
-  minecraftDir: "",
-  modsDir: "",
-  resourcePacksDir: "",
-  configDir: "",
-  logsDir: "",
-} as const;
 
 // ============================================
 // UI Configuration Defaults

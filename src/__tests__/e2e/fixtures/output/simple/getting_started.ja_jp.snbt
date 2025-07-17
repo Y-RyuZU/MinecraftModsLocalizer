@@ -1,0 +1,82 @@
+{
+	title: "[JP] Getting Started"
+	icon: "minecraft:grass_block"
+	default_quest_shape: ""
+	quests: [
+		{
+			title: "Welcome!"
+			x: 0.0d
+			y: 0.0d
+			description: [
+				"Welcome to this modpack!"
+				"This quest will guide you through the basics."
+				""
+				"Let's start by gathering some basic resources."
+			]
+			id: "0000000000000001"
+			tasks: [{
+				id: "0000000000000002"
+				type: "item"
+				item: "minecraft:oak_log"
+				count: 16L
+			}]
+			rewards: [{
+				id: "0000000000000003"
+				type: "item"
+				item: "minecraft:apple"
+				count: 5
+			}]
+		}
+		{
+			title: "First Tools"
+			x: 2.0d
+			y: 0.0d
+			description: ["Time to craft your first set of tools!"]
+			dependencies: ["0000000000000001"]
+			id: "0000000000000004"
+			tasks: [
+				{
+					id: "0000000000000005"
+					type: "item"
+					item: "minecraft:wooden_pickaxe"
+				}
+				{
+					id: "0000000000000006"
+					type: "item"
+					item: "minecraft:wooden_axe"
+				}
+			]
+			rewards: [{
+				id: "0000000000000007"
+				type: "xp_levels"
+				xp_levels: 5
+			}]
+		}
+		{
+			title: "Mining Time"
+			x: 4.0d
+			y: 0.0d
+			subtitle: "Dig deeper!"
+			description: [
+				"Now that you have tools, it's time to start mining."
+				"Find some stone and coal to progress."
+			]
+			dependencies: ["0000000000000004"]
+			id: "0000000000000008"
+			tasks: [
+				{
+					id: "0000000000000009"
+					type: "item"
+					item: "minecraft:cobblestone"
+					count: 64L
+				}
+				{
+					id: "000000000000000A"
+					type: "item"
+					item: "minecraft:coal"
+					count: 8L
+				}
+			]
+		}
+	]
+}
