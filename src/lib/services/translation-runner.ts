@@ -152,12 +152,13 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
         // Update translation summary if session ID is provided
         if (sessionId) {
             try {
-                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown> }> }).chunks || [];
+                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown>; content?: Record<string, unknown> }> }).chunks || [];
                 const translatedKeys = chunks.filter((c) => c.status === "completed")
                     .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
-                const totalKeys = Object.keys((job as { sourceContent?: Record<string, unknown> }).sourceContent || {}).length;
+                const totalKeys = chunks.reduce((sum: number, chunk) => sum + Object.keys(chunk.content || {}).length, 0);
                 
                 const profileDirectory = useAppStore.getState().profileDirectory;
+                console.log(`[TranslationRunner] Updating summary for job ${job.id}: sessionId=${sessionId}, profileDirectory=${profileDirectory}, translatedKeys=${translatedKeys}, totalKeys=${totalKeys}`);
                 
                 await invoke('update_translation_summary', {
                     minecraftDir: profileDirectory || '',

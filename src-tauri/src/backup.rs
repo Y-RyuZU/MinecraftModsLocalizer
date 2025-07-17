@@ -400,10 +400,15 @@ pub async fn update_translation_summary(
     total_keys: i32,
     target_language: String,
 ) -> Result<(), String> {
+    println!("[update_translation_summary] Called with: minecraft_dir={}, session_id={}, translation_type={}, name={}, status={}, translated_keys={}, total_keys={}, target_language={}", 
+             minecraft_dir, session_id, translation_type, name, status, translated_keys, total_keys, target_language);
+    
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id);
+    
+    println!("[update_translation_summary] Session directory: {}", session_dir.display());
 
     // Ensure session directory exists
     fs::create_dir_all(&session_dir)
@@ -441,5 +446,6 @@ pub async fn update_translation_summary(
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
+    println!("[update_translation_summary] Successfully wrote summary to: {}", summary_path.display());
     Ok(())
 }

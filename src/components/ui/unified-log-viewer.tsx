@@ -338,9 +338,7 @@ export function UnifiedLogViewer({
         setError(null);
         
         try {
-          const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
-            ? minecraftDir.substring('NATIVE_DIALOG:'.length)
-            : minecraftDir;
+          const actualPath = minecraftDir;
           
           const logContent = await FileService.invoke<string>('read_session_log', {
             minecraftDir: actualPath,

@@ -183,6 +183,8 @@ export function GuidebooksTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string,
+    sessionId: string
   ) => {
     // Sort targets alphabetically for consistent processing
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
@@ -283,18 +285,13 @@ export function GuidebooksTab() {
       setCurrentJobId(jobs[0].id);
     }
 
-    // Generate session ID for this translation
-    const sessionId = await invoke<string>('generate_session_id');
-    
-    // Create logs directory with session ID  
-    const minecraftDir = useAppStore.getState().profileDirectory;
-    if (minecraftDir) {
-      const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+    // Use the session ID provided by the common translation tab
+    const minecraftDir = selectedDirectory;
+    const sessionPath = await invoke<string>('create_logs_directory_with_session', {
         minecraftDir: minecraftDir,
         sessionId: sessionId
-      });
-      console.log(`Guidebooks translation session created: ${sessionPath}`);
-    }
+    });
+    console.log(`Guidebooks translation session created: ${sessionPath}`);
 
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");

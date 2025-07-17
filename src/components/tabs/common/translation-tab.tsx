@@ -98,7 +98,8 @@ export interface TranslationTabProps {
         translationService: TranslationService,
         setCurrentJobId: (jobId: string | null) => void,
         addTranslationResult: (result: TranslationResult) => void,
-        selectedDirectory: string
+        selectedDirectory: string,
+        sessionId: string
     ) => Promise<void>;
 }
 
@@ -182,16 +183,9 @@ export function TranslationTab({
                 // Clear any previous errors
                 setError(null);
 
-                // Log the selection type for debugging
-                if (selected.startsWith("NATIVE_DIALOG:")) {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log("Native dialog was used!");
-                    }
-                } else {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log("Mock dialog was used!");
-                        setError("Warning: Mock dialog was used instead of native dialog");
-                    }
+                // Log the selection for debugging
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Directory selected:", selected);
                 }
             }
         } catch (error) {
@@ -216,10 +210,8 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = profileDirectory.startsWith("NATIVE_DIALOG:")
-                ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                : profileDirectory;
+            // Use the profile directory path directly
+            const actualPath = profileDirectory;
 
             // Clear existing results after UI has updated
             requestAnimationFrame(() => {
@@ -338,10 +330,8 @@ export function TranslationTab({
                 setTranslationServiceRef(translationService);
             }
 
-            // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = profileDirectory && profileDirectory.startsWith("NATIVE_DIALOG:")
-                ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                : profileDirectory || "";
+            // Use the profile directory path directly
+            const actualPath = profileDirectory || "";
 
             // Create a new logs directory for the entire translation session
             try {
@@ -391,7 +381,8 @@ export function TranslationTab({
                 translationService,
                 setCurrentJobId,
                 collectResults,
-                actualPath
+                actualPath,
+                sessionId
             ).finally(() => {
                 // Show completion dialog only if translation was not cancelled
                 if (!wasCancelledRef.current) {
@@ -474,9 +465,7 @@ export function TranslationTab({
 
             {profileDirectory && (
                 <div className="text-sm text-muted-foreground">
-                    {t('misc.selectedDirectory')} {profileDirectory.startsWith("NATIVE_DIALOG:")
-                    ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                    : profileDirectory}
+                    {t('misc.selectedDirectory')} {profileDirectory}
                 </div>
             )}
 

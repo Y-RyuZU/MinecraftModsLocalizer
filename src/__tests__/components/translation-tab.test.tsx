@@ -126,7 +126,7 @@ describe('TranslationTab', () => {
         };
 
         // Mock FileService
-        (FileService.openDirectoryDialog as Mock).mockResolvedValue('NATIVE_DIALOG:/test/directory');
+        (FileService.openDirectoryDialog as Mock).mockResolvedValue('/test/directory');
     });
 
     describe('Initial rendering', () => {
@@ -342,7 +342,7 @@ describe('TranslationTab', () => {
 
     describe('Translation process', () => {
         beforeEach(() => {
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('NATIVE_DIALOG:/test/directory');
+            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/test/directory');
             vi.mocked(TranslationService).mockImplementation(() => ({
                 createJob: vi.fn(),
                 startJob: vi.fn(),

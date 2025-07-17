@@ -299,10 +299,8 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
         return;
       }
       
-      // Extract the actual path if it has the NATIVE_DIALOG prefix
-      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
-        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
-        : minecraftDir;
+      // Use the minecraft directory path directly
+      const actualPath = minecraftDir;
       
       const sessionList = await invoke<string[]>('list_translation_sessions', {
         minecraftDir: actualPath
@@ -436,9 +434,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
               </Button>
               {(historyDirectory || profileDirectory) && (
                 <div className="text-sm text-muted-foreground">
-                  {t('misc.selectedDirectory')} {((historyDirectory || profileDirectory) || '').startsWith('NATIVE_DIALOG:')
-                    ? ((historyDirectory || profileDirectory) || '').substring('NATIVE_DIALOG:'.length)
-                    : (historyDirectory || profileDirectory)}
+                  {t('misc.selectedDirectory')} {(historyDirectory || profileDirectory)}
                 </div>
               )}
             </div>
@@ -496,9 +492,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
                         key={sessionSummary.sessionId}
                         sessionSummary={sessionSummary}
                         onToggle={() => handleToggleSession(sessionSummary.sessionId)}
-                        minecraftDir={(historyDirectory || profileDirectory || '').startsWith('NATIVE_DIALOG:') 
-                          ? (historyDirectory || profileDirectory || '').substring('NATIVE_DIALOG:'.length)
-                          : (historyDirectory || profileDirectory || '')}
+                        minecraftDir={historyDirectory || profileDirectory || ''}
                         updateSession={updateSession}
                         onViewLogs={handleViewLogs}
                       />

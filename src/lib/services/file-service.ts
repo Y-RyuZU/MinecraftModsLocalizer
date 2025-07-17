@@ -90,9 +90,13 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
   
   switch (command) {
     case "open_directory_dialog":
-      // Return a mock path with the NATIVE_DIALOG prefix to match what the Rust backend would return
+      // Return a realistic test minecraft path for development
       console.log("[MOCK] Simulating native dialog selection");
-      return `NATIVE_DIALOG:/mock/path` as unknown as T;
+      // Use a path that resembles actual Minecraft installations
+      const testPath = process.platform === 'win32' 
+        ? 'C:\\Users\\Test\\AppData\\Roaming\\.minecraft'
+        : '/home/test/.minecraft';
+      return testPath as unknown as T;
       
     case "get_mod_files":
       return [

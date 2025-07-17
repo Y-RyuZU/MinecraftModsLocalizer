@@ -200,7 +200,8 @@ export function ModsTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    selectedDirectory: string
+    selectedDirectory: string,
+    sessionId: string
   ) => {
     // Sort targets alphabetically by name for predictable processing order
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
@@ -306,10 +307,7 @@ export function ModsTab() {
       setCurrentJobId(jobs[0].id);
     }
     
-    // Generate session ID for this translation
-    const sessionId = await invoke<string>('generate_session_id');
-    
-    // Create logs directory with session ID  
+    // Use the session ID provided by the common translation tab
     const minecraftDir = selectedDirectory;
     const sessionPath = await invoke<string>('create_logs_directory_with_session', {
       minecraftDir: minecraftDir,

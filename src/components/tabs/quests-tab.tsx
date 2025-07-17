@@ -212,7 +212,8 @@ export function QuestsTab() {
         translationService: TranslationService,
         setCurrentJobId: (jobId: string | null) => void,
         addTranslationResult: (result: TranslationResult) => void,
-        selectedDirectory: string
+        selectedDirectory: string,
+        sessionId: string
     ) => {
         try {
             setTranslating(true);
@@ -231,10 +232,7 @@ export function QuestsTab() {
                 const totalQuests = sortedTargets.length;
             setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
             
-            // Generate session ID for this translation
-            const sessionId = await invoke<string>('generate_session_id');
-            
-            // Create logs directory with session ID
+            // Use the session ID provided by the common translation tab
             const minecraftDir = selectedDirectory;
             const sessionPath = await invoke<string>('create_logs_directory_with_session', {
                 minecraftDir: minecraftDir,

@@ -724,10 +724,8 @@ pub async fn open_directory_dialog(
 
     if let Some(path_str) = folder.to_str() {
         info!("RUST: Selected directory: {path_str}");
-        // Add a prefix to indicate that this is from the native dialog
-        let result = format!("NATIVE_DIALOG:{path_str}");
-        info!("RUST: Returning result: {result}");
-        Ok(Some(result))
+        // Return the clean path without any prefix
+        Ok(Some(path_str.to_string()))
     } else {
         error!("RUST: Invalid directory path");
         Err("Invalid directory path".to_string())

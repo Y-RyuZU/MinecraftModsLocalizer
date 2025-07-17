@@ -202,6 +202,7 @@
     "translationLogs": "Translation Logs",
     "viewLogs": "View Logs",
     "openLogs": "Open Logs",
+    "clearLogs": "Clear Logs",
     "noLogs": "No logs available",
     "autoScroll": "Auto-scroll"
   },

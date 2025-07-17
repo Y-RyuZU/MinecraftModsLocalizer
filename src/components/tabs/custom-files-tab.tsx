@@ -167,7 +167,8 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    _selectedDirectory: string // eslint-disable-line @typescript-eslint/no-unused-vars
+    selectedDirectory: string,
+    sessionId: string
   ) => {
     try {
       setTranslating(true);
@@ -275,18 +276,13 @@ export function CustomFilesTab() {
         }
       }
       
-      // Generate session ID for this translation
-      const sessionId = await invoke<string>('generate_session_id');
-      
-      // Create logs directory with session ID  
-      const minecraftDir = useAppStore.getState().profileDirectory;
-      if (minecraftDir) {
-        const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+      // Use the session ID provided by the common translation tab
+      const minecraftDir = selectedDirectory;
+      const sessionPath = await invoke<string>('create_logs_directory_with_session', {
           minecraftDir: minecraftDir,
           sessionId: sessionId
-        });
-        console.log(`Custom files translation session created: ${sessionPath}`);
-      }
+      });
+      console.log(`Custom files translation session created: ${sessionPath}`);
       
       // Use runTranslationJobs for consistent processing
       await runTranslationJobs({

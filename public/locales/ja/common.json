@@ -202,6 +202,7 @@
     "translationLogs": "翻訳ログ",
     "viewLogs": "ログを表示",
     "openLogs": "ログを開く",
+    "clearLogs": "ログをクリア",
     "noLogs": "ログはありません",
     "autoScroll": "自動スクロール"
   },

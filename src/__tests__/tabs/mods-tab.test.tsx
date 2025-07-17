@@ -110,7 +110,7 @@ describe('ModsTab', () => {
             expect(selectButton).toBeTruthy();
             
             // Mock directory selection
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('NATIVE_DIALOG:/minecraft');
+            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
             selectButton?.click();
 
             // Wait for directory selection
@@ -162,7 +162,7 @@ describe('ModsTab', () => {
             const { container } = render(<ModsTab />);
             
             // Select directory
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('NATIVE_DIALOG:/minecraft');
+            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
             const selectButton = container.querySelector('button');
             selectButton?.click();
 
@@ -348,7 +348,7 @@ describe('ModsTab', () => {
             const { container } = render(<ModsTab />);
             
             // Select directory and scan
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('NATIVE_DIALOG:/minecraft');
+            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
             const selectButton = container.querySelector('button');
             selectButton?.click();
 
