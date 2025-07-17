@@ -333,13 +333,13 @@ export function TranslationTab({
             // Use the profile directory path directly
             const actualPath = profileDirectory || "";
 
+            // Generate a unique session ID for this translation job
+            const sessionId = await invoke<string>('generate_session_id');
+
             // Create a new logs directory for the entire translation session
             try {
                 // Clear log viewer for new session (file logs from previous sessions are preserved)
                 await invoke('clear_logs');
-
-                // Generate a unique session ID for this translation job
-                const sessionId = await invoke<string>('generate_session_id');
 
                 // Create a new logs directory using the session ID for uniqueness
                 // Use the shared profile directory
