@@ -27,8 +27,8 @@ use logging::{
 };
 use minecraft::{
     analyze_mod_jar, check_guidebook_translation_exists, check_mod_translation_exists,
-    check_quest_translation_exists, extract_lang_files, extract_patchouli_books,
-    write_patchouli_book,
+    check_quest_translation_exists, detect_snbt_content_type, extract_lang_files, 
+    extract_patchouli_books, write_patchouli_book,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -83,6 +83,7 @@ pub fn run() {
             check_mod_translation_exists,
             check_quest_translation_exists,
             check_guidebook_translation_exists,
+            detect_snbt_content_type,
             // File system operations
             get_mod_files,
             get_ftb_quest_files,

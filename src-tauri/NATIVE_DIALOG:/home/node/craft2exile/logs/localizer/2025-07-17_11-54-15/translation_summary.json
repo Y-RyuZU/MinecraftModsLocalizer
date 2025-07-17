@@ -1068,6 +1068,546 @@
       "name": "FTB Quest 259: cooking_starter_kit.ja_jp.snbt",
       "status": "failed",
       "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 26: campaign_talent_rewards.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 260: aura_gem_shop_i.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 261: aura_gems_2.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 262: aura_gem_shop_iii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 263: support_gems_7.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 264: first_offhand.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 265: skill_gems_2.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 266: support_gems_4.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 267: first_weapon.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 268: support_gem_shop_iv.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 269: support_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 27: act_i.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 270: test.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 271: skill_gem_shop_i.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 272: support_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 273: skill_gems_3.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 274: skill_gems_1.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 275: reset_potion_package.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 276: data.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 277: data.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 278: chapter_groups.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 279: chapter_groups.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 28: act_i.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 280: act_iv.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 281: campaign_talent_rewards.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 282: decorations.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 283: act_iv.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 284: professions.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 285: jolly_cooperation.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 286: storage_solutions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 287: culinary_delights.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 288: test.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 289: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 29: tutorial_island.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 290: other_hobbies.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 291: jolly_cooperation.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 292: act_iv_2.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 293: other_hobbies.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 294: act_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 295: act_ii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 296: act_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 297: completionist.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 298: act_ii.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 299: act_iv_2.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 3: campaign_talent_rewards.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 30: act_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 300: professions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 301: decorations.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 302: fishing.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 303: jolly_cooperation.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 304: campaign_talent_rewards.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 305: act_i.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 306: act_i.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 307: tutorial_island.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 308: act_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 309: act_iv.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 31: act_iv.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 310: fishing.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 311: gem_shop.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 312: exploration.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 313: test.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 314: act_iii.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 315: campaign_talent_rewards.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 316: jolly_cooperation.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 317: completionist.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 318: tutorial_island.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 319: completionist.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 32: fishing.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 320: act_i.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 321: storage_solutions.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 322: professions.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 323: storage_solutions.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 324: culinary_delights.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 325: act_iv_2.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 326: jolly_cooperation.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 327: other_hobbies.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 328: campaign_talent_rewards.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 329: fishing.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 33: gem_shop.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 330: completionist.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 331: storage_solutions.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 332: professions.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 333: test.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 334: campaign_talent_rewards.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 335: culinary_delights.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 336: exploration.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 337: act_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 338: culinary_delights.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 339: completionist.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 34: exploration.snbt",
+      "status": "failed",
+      "type": "quest"
     }
   ]
 }
