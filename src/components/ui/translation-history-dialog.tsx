@@ -148,7 +148,7 @@ function SessionDetailsRow({ sessionSummary, onViewLogs }: { sessionSummary: Ses
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[140px]">{t('history.status', 'Status')}</TableHead>
-                  <TableHead>{t('history.fileName', 'File Name')}</TableHead>
+                  <TableHead className="w-[200px] min-w-[200px] max-w-[300px]">{t('history.fileName', 'File Name')}</TableHead>
                   <TableHead className="w-[120px]">{t('history.type', 'Type')}</TableHead>
                   <TableHead className="w-[100px]">{t('history.keyCount', 'Keys')}</TableHead>
                 </TableRow>
@@ -159,7 +159,7 @@ function SessionDetailsRow({ sessionSummary, onViewLogs }: { sessionSummary: Ses
                     <TableCell>
                       {renderStatus(translation.status)}
                     </TableCell>
-                    <TableCell className="font-medium">{translation.name}</TableCell>
+                    <TableCell className="font-medium w-[200px] min-w-[200px] max-w-[300px] truncate" title={translation.name}>{translation.name}</TableCell>
                     <TableCell>{getLocalizedType(translation.type)}</TableCell>
                     <TableCell className="font-mono text-sm">{translation.keys}</TableCell>
                   </TableRow>
