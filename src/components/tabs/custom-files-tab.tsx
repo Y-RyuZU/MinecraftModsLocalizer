@@ -275,6 +275,19 @@ export function CustomFilesTab() {
         }
       }
       
+      // Generate session ID for this translation
+      const sessionId = await invoke<string>('generate_session_id');
+      
+      // Create logs directory with session ID  
+      const minecraftDir = profileDirectory;
+      if (minecraftDir) {
+        const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+          minecraftDir: minecraftDir,
+          sessionId: sessionId
+        });
+        console.log(`Custom files translation session created: ${sessionPath}`);
+      }
+      
       // Use runTranslationJobs for consistent processing
       await runTranslationJobs({
         jobs: jobs.map(({ job }) => job),
@@ -284,6 +297,7 @@ export function CustomFilesTab() {
         incrementWholeProgress: incrementCompletedCustomFiles, // Track at file level
         targetLanguage,
         type: "custom",
+        sessionId,
         getOutputPath: () => outputDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {

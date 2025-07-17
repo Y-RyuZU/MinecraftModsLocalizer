@@ -270,6 +270,25 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     };
   }, []);
   
+  // Reload logs when dialog opens
+  useEffect(() => {
+    if (open) {
+      const reloadLogs = async () => {
+        try {
+          if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+            const freshLogs = await FileService.invoke<LogEntry[]>('get_logs');
+            console.log('[LogDialog] Reloading logs on dialog open:', freshLogs);
+            setLogs(freshLogs || []);
+          }
+        } catch (error) {
+          console.error('Failed to reload logs:', error);
+        }
+      };
+      
+      reloadLogs();
+    }
+  }, [open]);
+  
   // Handle user interaction detection
   const handleUserScroll = () => {
     setUserInteracting(true);
@@ -433,14 +452,6 @@ export function LogViewer({
       }
     }
   }, []);
-  
-  // Reset logs when translation starts
-  useEffect(() => {
-    if (isTranslating) {
-      // Reset logs when translation starts
-      setLogs([]);
-    }
-  }, [isTranslating]);
   
   // Function to get log level string
   const getLogLevelString = (level: LogEntry['level']): string => {

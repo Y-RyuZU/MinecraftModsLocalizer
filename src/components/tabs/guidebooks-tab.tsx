@@ -283,6 +283,19 @@ export function GuidebooksTab() {
       setCurrentJobId(jobs[0].id);
     }
 
+    // Generate session ID for this translation
+    const sessionId = await invoke<string>('generate_session_id');
+    
+    // Create logs directory with session ID  
+    const minecraftDir = profileDirectory;
+    if (minecraftDir) {
+      const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+        minecraftDir: minecraftDir,
+        sessionId: sessionId
+      });
+      console.log(`Guidebooks translation session created: ${sessionPath}`);
+    }
+
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");
     try {
@@ -294,6 +307,7 @@ export function GuidebooksTab() {
         incrementWholeProgress: incrementCompletedGuidebooks, // Track at guidebook level
         targetLanguage,
         type: "patchouli",
+        sessionId,
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,
         getResultContent: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job: import("@/lib/types/minecraft").PatchouliTranslationJob, outputPath, content) => {
