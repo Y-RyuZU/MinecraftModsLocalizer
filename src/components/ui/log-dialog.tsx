@@ -302,7 +302,20 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     };
   }, []);
   
-  // Note: Removed auto-close behavior to keep logs visible after translation completes
+  // Keep dialog open for a few seconds after translation completes to show final logs
+  useEffect(() => {
+    if (!isTranslating && open) {
+      // Keep the dialog open for a few seconds after translation completes
+      const timer = setTimeout(() => {
+        // Don't auto-close if there was an error
+        if (!useAppStore.getState().error) {
+          onOpenChange(false);
+        }
+      }, UI_DEFAULTS.dialog.autoCloseDelay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isTranslating, open, onOpenChange]);
   
   // Filter logs
   const filteredLogs = filterLogs(logs);
