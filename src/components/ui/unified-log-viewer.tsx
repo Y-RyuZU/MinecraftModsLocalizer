@@ -321,8 +321,8 @@ export function UnifiedLogViewer({
           if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
             const initialLogs = await FileService.invoke<LogEntry[]>('get_logs');
             console.log('[UnifiedLogViewer] Initial logs loaded:', initialLogs);
-            // Only set logs if we don't have any yet
-            setLogs(prevLogs => prevLogs.length === 0 ? (initialLogs || []) : prevLogs);
+            // Always update logs to reflect current backend state
+            setLogs(initialLogs || []);
           }
         } catch (error) {
           console.error('Failed to load initial logs:', error);
@@ -359,6 +359,27 @@ export function UnifiedLogViewer({
       loadHistoricalLogs();
     }
   }, [open, mode, sessionId, minecraftDir]);
+  
+  // Refresh logs when translation starts (for realtime mode)
+  useEffect(() => {
+    if (mode === 'realtime' && isTranslating && open) {
+      // When translation starts, refresh logs to ensure they're cleared
+      const refreshLogs = async () => {
+        try {
+          if (typeof window !== 'undefined' && typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined') {
+            const freshLogs = await FileService.invoke<LogEntry[]>('get_logs');
+            console.log('[UnifiedLogViewer] Refreshing logs on translation start:', freshLogs);
+            setLogs(freshLogs || []);
+          }
+        } catch (error) {
+          console.error('Failed to refresh logs on translation start:', error);
+        }
+      };
+      
+      // Small delay to ensure clear_logs has been processed
+      setTimeout(refreshLogs, 100);
+    }
+  }, [mode, isTranslating, open]);
   
   // Listen for real-time log events (only in realtime mode)
   useEffect(() => {
