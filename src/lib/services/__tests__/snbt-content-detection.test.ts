@@ -25,7 +25,7 @@ describe('SNBT Content Type Detection', () => {
 
       mockInvoke.mockResolvedValue('direct_text');
 
-      const result = await FileService.invoke<string>('detect_snbt_content_type', {
+      const result = await invoke('detect_snbt_content_type', {
         filePath: '/test/quest.snbt'
       });
 
@@ -45,7 +45,7 @@ describe('SNBT Content Type Detection', () => {
 
       mockInvoke.mockResolvedValue('json_keys');
 
-      const result = await FileService.invoke<string>('detect_snbt_content_type', {
+      const result = await invoke('detect_snbt_content_type', {
         filePath: '/test/quest.snbt'
       });
 
@@ -65,7 +65,7 @@ describe('SNBT Content Type Detection', () => {
 
       mockInvoke.mockResolvedValue('direct_text');
 
-      const result = await FileService.invoke<string>('detect_snbt_content_type', {
+      const result = await invoke('detect_snbt_content_type', {
         filePath: '/test/quest.snbt'
       });
 
@@ -76,7 +76,7 @@ describe('SNBT Content Type Detection', () => {
       mockInvoke.mockRejectedValue(new Error('Failed to read SNBT file: File not found'));
 
       await expect(
-        FileService.invoke<string>('detect_snbt_content_type', {
+        invoke<string>('detect_snbt_content_type', {
           filePath: '/nonexistent/quest.snbt'
         })
       ).rejects.toThrow('Failed to read SNBT file: File not found');
@@ -142,7 +142,7 @@ describe('SNBT Content Type Detection', () => {
       it(`should detect ${testCase.expected} for ${testCase.name}`, async () => {
         mockInvoke.mockResolvedValue(testCase.expected);
 
-        const result = await FileService.invoke<string>('detect_snbt_content_type', {
+        const result = await invoke<string>('detect_snbt_content_type', {
           filePath: '/test/quest.snbt'
         });
 
@@ -171,7 +171,7 @@ describe('SNBT Content Type Detection', () => {
       });
 
       // Simulate quest translation flow
-      const contentType = await FileService.invoke<string>('detect_snbt_content_type', {
+      const contentType = await invoke('detect_snbt_content_type', {
         filePath: '/test/quest.snbt'
       });
 
@@ -180,14 +180,14 @@ describe('SNBT Content Type Detection', () => {
       // Verify the content type would be used to determine translation strategy
       if (contentType === 'direct_text') {
         // For direct text, the file would be translated in-place
-        const content = await FileService.invoke<string>('read_text_file', {
+        const content = await invoke<string>('read_text_file', {
           path: '/test/quest.snbt'
         });
         
         expect(content).toContain('Welcome Quest');
         
         // Simulate writing translated content back to the same file
-        await FileService.invoke<boolean>('write_text_file', {
+        await invoke<boolean>('write_text_file', {
           path: '/test/quest.snbt',
           content: content.replace('Welcome Quest', 'ようこそクエスト')
         });
@@ -222,7 +222,7 @@ describe('SNBT Content Type Detection', () => {
         }
       });
 
-      const contentType = await FileService.invoke<string>('detect_snbt_content_type', {
+      const contentType = await invoke('detect_snbt_content_type', {
         filePath: '/test/quest.snbt'
       });
 
@@ -230,14 +230,14 @@ describe('SNBT Content Type Detection', () => {
 
       // For JSON keys, the file should be preserved with language suffix
       if (contentType === 'json_keys') {
-        const content = await FileService.invoke<string>('read_text_file', {
+        const content = await invoke<string>('read_text_file', {
           path: '/test/quest.snbt'
         });
         
         expect(content).toContain('ftbquests.quest.starter.title');
         
         // Simulate writing to language-suffixed file
-        await FileService.invoke<boolean>('write_text_file', {
+        await invoke<boolean>('write_text_file', {
           path: '/test/quest.ja_jp.snbt',
           content: content // Keys should remain unchanged
         });
