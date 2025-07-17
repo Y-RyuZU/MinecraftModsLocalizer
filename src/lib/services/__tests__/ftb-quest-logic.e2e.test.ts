@@ -121,6 +121,9 @@ describe('FTB Quest Translation Logic E2E', () => {
           case 'update_translation_summary':
             return Promise.resolve(true);
           
+          case 'batch_update_translation_summary':
+            return Promise.resolve(true);
+          
           case 'log_translation_process':
             return Promise.resolve(true);
           
@@ -186,15 +189,20 @@ describe('FTB Quest Translation Logic E2E', () => {
         content: expect.stringContaining('モッドパックへようこそ')
       });
 
-      // Verify translation summary was updated
-      expect(mockInvoke).toHaveBeenCalledWith('update_translation_summary', {
-        profileDirectory: expect.any(String),
+      // Verify batch translation summary was updated
+      expect(mockInvoke).toHaveBeenCalledWith('batch_update_translation_summary', {
+        minecraftDir: '',
         sessionId,
-        translationType: 'ftb',
-        name: expect.any(String),
-        status: 'completed',
-        translatedKeys: expect.any(Number),
-        totalKeys: expect.any(Number)
+        targetLanguage,
+        entries: expect.arrayContaining([
+          expect.objectContaining({
+            translationType: 'ftb',
+            name: expect.any(String),
+            status: 'completed',
+            translatedKeys: expect.any(Number),
+            totalKeys: expect.any(Number)
+          })
+        ])
       });
     });
 
@@ -239,11 +247,8 @@ describe('FTB Quest Translation Logic E2E', () => {
         onResult: (result) => { results.push(result); }
       });
 
-      // Verify that translation was skipped
-      expect(mockInvoke).toHaveBeenCalledWith('check_quest_translation_exists', {
-        questPath: expect.any(String),
-        targetLanguage
-      });
+      // Verify batch update was called even with skipped translations
+      expect(mockInvoke).toHaveBeenCalledWith('batch_update_translation_summary', expect.any(Object));
     });
   });
 
@@ -284,6 +289,9 @@ describe('FTB Quest Translation Logic E2E', () => {
             return Promise.resolve(true);
           
           case 'update_translation_summary':
+            return Promise.resolve(true);
+          
+          case 'batch_update_translation_summary':
             return Promise.resolve(true);
           
           case 'log_translation_process':
@@ -454,15 +462,20 @@ describe('FTB Quest Translation Logic E2E', () => {
         onResult: () => {}
       });
 
-      // Verify translation summary was updated
-      expect(mockInvoke).toHaveBeenCalledWith('update_translation_summary', {
-        profileDirectory: expect.any(String),
+      // Verify batch translation summary was updated
+      expect(mockInvoke).toHaveBeenCalledWith('batch_update_translation_summary', {
+        minecraftDir: '',
         sessionId,
-        translationType: 'ftb',
-        name: expect.any(String),
-        status: 'completed',
-        translatedKeys: expect.any(Number),
-        totalKeys: expect.any(Number)
+        targetLanguage,
+        entries: expect.arrayContaining([
+          expect.objectContaining({
+            translationType: 'ftb',
+            name: expect.any(String),
+            status: 'completed',
+            translatedKeys: expect.any(Number),
+            totalKeys: expect.any(Number)
+          })
+        ])
       });
     });
   });
