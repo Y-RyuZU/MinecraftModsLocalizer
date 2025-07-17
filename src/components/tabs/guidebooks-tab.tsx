@@ -194,15 +194,12 @@ export function GuidebooksTab() {
     setWholeProgress(0);
     setCompletedGuidebooks(0);
     
-    // Set total guidebooks for progress tracking
-    setTotalGuidebooks(sortedTargets.length);
-
     // Prepare jobs and count total chunks
     let totalChunksCount = 0;
     const jobs = [];
     let skippedCount = 0;
     
-    for (const target of selectedTargets) {
+    for (const target of sortedTargets) {
       try {
         // Extract Patchouli books first to get mod ID
         const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", {
@@ -275,6 +272,10 @@ export function GuidebooksTab() {
         console.error(`Failed to analyze guidebook for chunk counting: ${target.name}`, error);
       }
     }
+
+    // Set total guidebooks for progress tracking: denominator = actual jobs, numerator = completed guidebooks
+    // This ensures progress reaches 100% when all translatable guidebooks are processed
+    setTotalGuidebooks(jobs.length);
 
     // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
     const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;

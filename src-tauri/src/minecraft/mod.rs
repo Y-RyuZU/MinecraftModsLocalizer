@@ -946,28 +946,28 @@ pub async fn check_guidebook_translation_exists(
 #[tauri::command]
 pub async fn detect_snbt_content_type(file_path: &str) -> Result<String, String> {
     use std::fs;
-    
-    let content = fs::read_to_string(file_path)
-        .map_err(|e| format!("Failed to read SNBT file: {e}"))?;
-    
+
+    let content =
+        fs::read_to_string(file_path).map_err(|e| format!("Failed to read SNBT file: {e}"))?;
+
     // Simple heuristic: check if the content contains typical JSON key patterns
     // JSON keys usually contain dots (e.g., "item.minecraft.stick") or colons (e.g., "minecraft:stick")
-    let has_json_key_patterns = content.contains("minecraft:") || 
-                                content.contains("ftbquests:") ||
-                                content.contains(".minecraft.") ||
-                                content.contains("item.") ||
-                                content.contains("block.") ||
-                                content.contains("entity.") ||
-                                content.contains("gui.") ||
-                                content.contains("quest.");
-    
+    let has_json_key_patterns = content.contains("minecraft:")
+        || content.contains("ftbquests:")
+        || content.contains(".minecraft.")
+        || content.contains("item.")
+        || content.contains("block.")
+        || content.contains("entity.")
+        || content.contains("gui.")
+        || content.contains("quest.");
+
     // Check if the content has direct readable text (not just IDs and keys)
     // Look for typical quest text patterns
-    let has_direct_text = content.contains("description:") ||
-                         content.contains("title:") ||
-                         content.contains("subtitle:") ||
-                         content.contains("text:");
-    
+    let has_direct_text = content.contains("description:")
+        || content.contains("title:")
+        || content.contains("subtitle:")
+        || content.contains("text:");
+
     if has_json_key_patterns && !has_direct_text {
         Ok("json_keys".to_string())
     } else if has_direct_text {

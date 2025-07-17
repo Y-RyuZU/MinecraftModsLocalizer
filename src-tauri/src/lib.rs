@@ -9,7 +9,7 @@ pub mod minecraft;
 mod tests;
 
 use backup::{
-    backup_resource_pack, backup_snbt_files, batch_update_translation_summary, create_backup, 
+    backup_resource_pack, backup_snbt_files, batch_update_translation_summary, create_backup,
     get_translation_summary, list_translation_sessions, update_translation_summary,
 };
 use config::{load_config, save_config};
@@ -27,7 +27,7 @@ use logging::{
 };
 use minecraft::{
     analyze_mod_jar, check_guidebook_translation_exists, check_mod_translation_exists,
-    check_quest_translation_exists, detect_snbt_content_type, extract_lang_files, 
+    check_quest_translation_exists, detect_snbt_content_type, extract_lang_files,
     extract_patchouli_books, write_patchouli_book,
 };
 

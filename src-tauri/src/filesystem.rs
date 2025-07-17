@@ -233,11 +233,12 @@ pub async fn get_ftb_quest_files_with_language(
                                     debug!("Skipping already translated file: {file_name}");
                                     continue;
                                 }
-                                
+
                                 // If target language is specified, check if translation already exists
                                 if let Some(target_lang) = target_language {
                                     if file_name == "en_us.json" {
-                                        let target_file = kubejs_assets_dir.join(format!("{}.json", target_lang));
+                                        let target_file =
+                                            kubejs_assets_dir.join(format!("{}.json", target_lang));
                                         if target_file.exists() && target_file.is_file() {
                                             debug!("Skipping {} - target language file already exists: {}", file_name, target_file.display());
                                             continue;
@@ -340,7 +341,6 @@ pub async fn get_ftb_quest_files_with_language(
                             if entry_path.is_file()
                                 && entry_path.extension().is_some_and(|ext| ext == "snbt")
                             {
-
                                 match entry_path.to_str() {
                                     Some(path_str) => quest_files.push(path_str.to_string()),
                                     None => {

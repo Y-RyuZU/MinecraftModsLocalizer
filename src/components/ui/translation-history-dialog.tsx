@@ -147,21 +147,21 @@ function SessionDetailsRow({ sessionSummary, onViewLogs }: { sessionSummary: Ses
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">{t('history.status', 'Status')}</TableHead>
-                  <TableHead className="w-[200px] min-w-[200px] max-w-[300px]">{t('history.fileName', 'File Name')}</TableHead>
-                  <TableHead className="w-[120px]">{t('history.type', 'Type')}</TableHead>
-                  <TableHead className="w-[100px]">{t('history.keyCount', 'Keys')}</TableHead>
+                  <TableHead className="min-w-[120px] max-w-[180px] w-[15%]">{t('history.status', 'Status')}</TableHead>
+                  <TableHead className="min-w-[180px] w-[50%]">{t('history.fileName', 'File Name')}</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[150px] w-[20%]">{t('history.type', 'Type')}</TableHead>
+                  <TableHead className="min-w-[80px] max-w-[120px] w-[15%]">{t('history.keyCount', 'Keys')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {summary.translations.map((translation, index) => (
                   <TableRow key={index}>
-                    <TableCell>
+                    <TableCell className="min-w-[120px] max-w-[180px] w-[15%]">
                       {renderStatus(translation.status)}
                     </TableCell>
-                    <TableCell className="font-medium w-[200px] min-w-[200px] max-w-[300px] truncate" title={translation.name}>{translation.name}</TableCell>
-                    <TableCell>{getLocalizedType(translation.type)}</TableCell>
-                    <TableCell className="font-mono text-sm">{translation.keys}</TableCell>
+                    <TableCell className="font-medium min-w-[180px] w-[50%] truncate" title={translation.name}>{translation.name}</TableCell>
+                    <TableCell className="min-w-[100px] max-w-[150px] w-[20%]">{getLocalizedType(translation.type)}</TableCell>
+                    <TableCell className="font-mono text-sm min-w-[80px] max-w-[120px] w-[15%]">{translation.keys}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -465,23 +465,23 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
           {!loading && !error && sessions.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <ScrollArea className="h-[60vh] min-h-[400px] 2xl:h-[70vh] 2xl:min-h-[500px] w-full overflow-auto">
-                <div className="min-w-[1000px]">
+                <div className="min-w-[800px]">
                   <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[250px]">
+                      <TableHead className="min-w-[200px] w-[30%]">
                         <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[150px]">
+                      <TableHead className="min-w-[120px] max-w-[180px] w-[15%]">
                         <SortButton field="language">{t('history.targetLanguage', 'Target Language')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[120px]">
+                      <TableHead className="min-w-[100px] max-w-[140px] w-[15%]">
                         <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[150px]">
+                      <TableHead className="min-w-[120px] max-w-[160px] w-[15%]">
                         {t('history.successCount', 'Success Count')}
                       </TableHead>
-                      <TableHead className="min-w-[200px]">
+                      <TableHead className="min-w-[180px] w-[25%]">
                         <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
                       </TableHead>
                     </TableRow>

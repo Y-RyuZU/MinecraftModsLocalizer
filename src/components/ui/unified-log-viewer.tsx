@@ -53,7 +53,6 @@ export function UnifiedLogViewer({
   const [userInteracting, setUserInteracting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rawLogContent, setRawLogContent] = useState<string>('');
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -345,7 +344,6 @@ export function UnifiedLogViewer({
             sessionId
           });
           
-          setRawLogContent(logContent);
           const parsedLogs = parseRawLogContent(logContent);
           setLogs(parsedLogs);
         } catch (err) {
@@ -358,7 +356,7 @@ export function UnifiedLogViewer({
       
       loadHistoricalLogs();
     }
-  }, [open, mode, sessionId, minecraftDir]);
+  }, [open, mode, sessionId, minecraftDir, parseRawLogContent]);
   
   // Refresh logs when translation starts (for realtime mode)
   useEffect(() => {

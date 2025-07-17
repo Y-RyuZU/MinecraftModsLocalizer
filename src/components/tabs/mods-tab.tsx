@@ -296,8 +296,9 @@ export function ModsTab() {
       }
     }
 
-    // Use mod-level progress tracking: denominator = total mods, numerator = completed mods
-    setTotalMods(sortedTargets.length);
+    // Use mod-level progress tracking: denominator = actual jobs, numerator = completed mods
+    // This ensures progress reaches 100% when all translatable mods are processed
+    setTotalMods(jobs.length);
     
     // Set chunk tracking for progress calculation
     setTotalChunks(totalChunksCount);

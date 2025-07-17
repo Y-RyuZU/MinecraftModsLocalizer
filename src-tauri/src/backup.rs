@@ -371,9 +371,7 @@ pub async fn get_translation_summary(
             });
         } else {
             // Session directory doesn't exist
-            return Err(format!(
-                "Session not found: {session_id}"
-            ));
+            return Err(format!("Session not found: {session_id}"));
         }
     }
 
@@ -402,13 +400,16 @@ pub async fn update_translation_summary(
 ) -> Result<(), String> {
     println!("[update_translation_summary] Called with: minecraft_dir={}, session_id={}, translation_type={}, name={}, status={}, translated_keys={}, total_keys={}, target_language={}", 
              minecraft_dir, session_id, translation_type, name, status, translated_keys, total_keys, target_language);
-    
+
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id);
-    
-    println!("[update_translation_summary] Session directory: {}", session_dir.display());
+
+    println!(
+        "[update_translation_summary] Session directory: {}",
+        session_dir.display()
+    );
 
     // Ensure session directory exists
     fs::create_dir_all(&session_dir)
@@ -446,7 +447,10 @@ pub async fn update_translation_summary(
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
-    println!("[update_translation_summary] Successfully wrote summary to: {}", summary_path.display());
+    println!(
+        "[update_translation_summary] Successfully wrote summary to: {}",
+        summary_path.display()
+    );
     Ok(())
 }
 
@@ -460,13 +464,16 @@ pub async fn batch_update_translation_summary(
 ) -> Result<(), String> {
     println!("[batch_update_translation_summary] Called with: minecraft_dir={}, session_id={}, target_language={}, entries_count={}", 
              minecraft_dir, session_id, target_language, entries.len());
-    
+
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id);
-    
-    println!("[batch_update_translation_summary] Session directory: {}", session_dir.display());
+
+    println!(
+        "[batch_update_translation_summary] Session directory: {}",
+        session_dir.display()
+    );
 
     // Ensure session directory exists
     fs::create_dir_all(&session_dir)
@@ -490,27 +497,34 @@ pub async fn batch_update_translation_summary(
 
     // Add all new translation entries
     for entry_value in entries {
-        if let Ok(entry_data) = serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(entry_value) {
-            let translation_type = entry_data.get("translationType")
+        if let Ok(entry_data) =
+            serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(entry_value)
+        {
+            let translation_type = entry_data
+                .get("translationType")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
                 .to_string();
-            
-            let name = entry_data.get("name")
+
+            let name = entry_data
+                .get("name")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
                 .to_string();
-            
-            let status = entry_data.get("status")
+
+            let status = entry_data
+                .get("status")
                 .and_then(|v| v.as_str())
                 .unwrap_or("failed")
                 .to_string();
-            
-            let translated_keys = entry_data.get("translatedKeys")
+
+            let translated_keys = entry_data
+                .get("translatedKeys")
                 .and_then(|v| v.as_i64())
                 .unwrap_or(0) as i32;
-            
-            let total_keys = entry_data.get("totalKeys")
+
+            let total_keys = entry_data
+                .get("totalKeys")
                 .and_then(|v| v.as_i64())
                 .unwrap_or(0) as i32;
 
@@ -531,6 +545,10 @@ pub async fn batch_update_translation_summary(
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
-    println!("[batch_update_translation_summary] Successfully wrote summary with {} entries to: {}", summary.translations.len(), summary_path.display());
+    println!(
+        "[batch_update_translation_summary] Successfully wrote summary with {} entries to: {}",
+        summary.translations.len(),
+        summary_path.display()
+    );
     Ok(())
 }

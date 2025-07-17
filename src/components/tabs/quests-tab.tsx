@@ -227,11 +227,6 @@ export function QuestsTab() {
             setProgress(0);
             setCompletedQuests(0);
             
-            // Set total quests for progress tracking
-            setTotalQuests(sortedTargets.length);
-                const totalQuests = sortedTargets.length;
-            setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
-            
             // Use the session ID provided by the common translation tab
             const minecraftDir = selectedDirectory;
             const sessionPath = await invoke<string>('create_logs_directory_with_session', {
@@ -342,6 +337,11 @@ export function QuestsTab() {
                     incrementCompletedChunks();
                 }
             }
+            
+            // Set total quests for progress tracking: denominator = actual jobs, numerator = completed quests
+            // This ensures progress reaches 100% when all translatable quests are processed
+            setTotalQuests(jobs.length);
+            setTotalChunks(jobs.length); // For quests, we track at file level instead of chunk level
             
             // Use runTranslationJobs for consistent processing
             await runTranslationJobs({

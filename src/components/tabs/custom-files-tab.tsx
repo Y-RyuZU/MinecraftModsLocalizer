@@ -189,11 +189,6 @@ export function CustomFilesTab() {
       setProgress(0);
       setCompletedCustomFiles(0);
       
-      // Set total files for progress tracking
-      const totalFiles = sortedTargets.length;
-      setTotalChunks(totalFiles); // Track at file level
-      setTotalCustomFiles(totalFiles);
-      
       // Create jobs for all files
       const jobs: Array<{
         target: TranslationTarget;
@@ -275,6 +270,11 @@ export function CustomFilesTab() {
           incrementCompletedChunks();
         }
       }
+      
+      // Set total files for progress tracking: denominator = actual jobs, numerator = completed files
+      // This ensures progress reaches 100% when all translatable files are processed
+      setTotalCustomFiles(jobs.length);
+      setTotalChunks(jobs.length); // Track at file level
       
       // Use the session ID provided by the common translation tab
       const minecraftDir = selectedDirectory;
