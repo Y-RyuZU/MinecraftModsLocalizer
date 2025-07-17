@@ -851,9 +851,9 @@ pub async fn check_mod_translation_exists(
     let path = PathBuf::from(mod_path);
 
     // Open the mod file
-    let file = File::open(&path).map_err(|e| format!("Failed to open mod file: {}", e))?;
+    let file = File::open(&path).map_err(|e| format!("Failed to open mod file: {e}"))?;
     let mut archive =
-        ZipArchive::new(file).map_err(|e| format!("Failed to read mod as archive: {}", e))?;
+        ZipArchive::new(file).map_err(|e| format!("Failed to read mod as archive: {e}"))?;
 
     // Check both JSON and .lang formats
     let json_path = format!(
@@ -919,9 +919,9 @@ pub async fn check_guidebook_translation_exists(
     let path = PathBuf::from(guidebook_path);
 
     // Open the mod file
-    let file = File::open(&path).map_err(|e| format!("Failed to open guidebook file: {}", e))?;
+    let file = File::open(&path).map_err(|e| format!("Failed to open guidebook file: {e}"))?;
     let mut archive =
-        ZipArchive::new(file).map_err(|e| format!("Failed to read guidebook as archive: {}", e))?;
+        ZipArchive::new(file).map_err(|e| format!("Failed to read guidebook as archive: {e}"))?;
 
     // Check for translation file in Patchouli book structure
     let book_lang_path = format!(
