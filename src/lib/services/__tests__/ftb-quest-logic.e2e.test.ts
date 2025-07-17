@@ -68,7 +68,7 @@ describe('FTB Quest Translation Logic E2E', () => {
 
     // Mock translation service to return predictable translations
     jest.spyOn(translationService, 'translateChunk').mockImplementation(
-      async (chunk: Record<string, string>, targetLanguage: string) => {
+      async (chunk: any, targetLanguage: string) => {
         const translations: Record<string, string> = {
           'Welcome to the Modpack': 'モッドパックへようこそ',
           'Complete your first quest to get started.': '最初のクエストを完了して始めましょう。',
@@ -76,7 +76,17 @@ describe('FTB Quest Translation Logic E2E', () => {
           'Collect 64 stone blocks': '64個の石ブロックを集めよう'
         };
         
-        // If chunk is a string (JSON), parse it
+        // Handle SNBT content (raw string)
+        if (typeof chunk === 'string' && chunk.includes('title:')) {
+          // For SNBT, return the translated string
+          let translated = chunk;
+          for (const [en, ja] of Object.entries(translations)) {
+            translated = translated.replace(en, ja);
+          }
+          return translated;
+        }
+        
+        // Handle JSON content
         const content = typeof chunk === 'string' ? JSON.parse(chunk) : chunk;
         const result: Record<string, string> = {};
         
@@ -186,8 +196,8 @@ describe('FTB Quest Translation Logic E2E', () => {
           expect(outputPath).toBe('/test/modpack/kubejs/assets/kubejs/lang/');
           
           // Verify translated content structure
-          expect(content).toHaveProperty('ftbquests.quest.starter.title', 'モッドパックへようこそ');
-          expect(content).toHaveProperty('ftbquests.quest.starter.description', '最初のクエストを完了して始めましょう。');
+          expect(content['ftbquests.quest.starter.title']).toBe('モッドパックへようこそ');
+          expect(content['ftbquests.quest.starter.description']).toBe('最初のクエストを完了して始めましょう。');
           
           // Mock file write
           await invoke('write_text_file', {
@@ -356,13 +366,12 @@ describe('FTB Quest Translation Logic E2E', () => {
         getOutputPath: () => '/test/modpack/config/ftbquests/quests/chapters/starter.snbt',
         getResultContent: (job) => {
           // For SNBT files, return the translated SNBT content as a string
-          let result = job.chunks[0]?.content || '';
-          if (job.chunks[0]?.translatedContent) {
-            // Translate the content
-            result = result.replace('Welcome to the Modpack', 'モッドパックへようこそ');
-            result = result.replace('Complete your first quest to get started.', '最初のクエストを完了して始めましょう。');
+          const translatedContent = job.chunks[0]?.translatedContent;
+          if (translatedContent) {
+            return translatedContent;
           }
-          return result;
+          // Fallback to original content
+          return job.chunks[0]?.content || '';
         },
         writeOutput: async (job, outputPath, content) => {
           // Verify in-place translation (same file path)
