@@ -149,32 +149,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
             });
         }
         
-        // Update translation summary if session ID is provided
-        if (sessionId) {
-            try {
-                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown>; content?: Record<string, unknown> }> }).chunks || [];
-                const translatedKeys = chunks.filter((c) => c.status === "completed")
-                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
-                const totalKeys = chunks.reduce((sum: number, chunk) => sum + Object.keys(chunk.content || {}).length, 0);
-                
-                const profileDirectory = useAppStore.getState().profileDirectory;
-                console.log(`[TranslationRunner] Updating summary for job ${job.id}: sessionId=${sessionId}, profileDirectory=${profileDirectory}, translatedKeys=${translatedKeys}, totalKeys=${totalKeys}`);
-                
-                await invoke('update_translation_summary', {
-                    minecraftDir: profileDirectory || '',
-                    sessionId,
-                    translationType: type,
-                    name: job.currentFileName || job.id,
-                    status: job.status === "completed" ? "completed" : "failed",
-                    translatedKeys,
-                    totalKeys,
-                    targetLanguage
-                });
-            } catch (error) {
-                console.error('Failed to update translation summary:', error);
-                // Don't fail the translation if summary update fails
-            }
-        }
+        // Individual job summary update removed - will be done in batch at the end
 
         // Ensure final progress is set to 100% for completed jobs
         if (setProgress && job.status === "completed") {
@@ -193,4 +168,32 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     }
 
     if (setCurrentJobId) setCurrentJobId(null);
+
+    // Update translation summary once for all jobs at the end
+    if (sessionId && jobs.length > 0) {
+        try {
+            const profileDirectory = useAppStore.getState().profileDirectory;
+            console.log(`[TranslationRunner] Updating batch summary for ${jobs.length} jobs: sessionId=${sessionId}, profileDirectory=${profileDirectory}`);
+            
+            for (const job of jobs) {
+                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown>; content?: Record<string, unknown> }> }).chunks || [];
+                const translatedKeys = chunks.filter((c) => c.status === "completed")
+                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
+                const totalKeys = chunks.reduce((sum: number, chunk) => sum + Object.keys(chunk.content || {}).length, 0);
+                
+                await invoke('update_translation_summary', {
+                    minecraftDir: profileDirectory || '',
+                    sessionId,
+                    translationType: type,
+                    name: job.currentFileName || job.id,
+                    status: job.status === "completed" ? "completed" : "failed",
+                    translatedKeys,
+                    totalKeys,
+                    targetLanguage
+                });
+            }
+        } catch (error) {
+            console.error('Failed to update batch translation summary:', error);
+        }
+    }
 }
