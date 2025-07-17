@@ -51,7 +51,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           onDebugLogClick={() => setDebugLogDialogOpen(true)}
           onHistoryClick={() => setHistoryDialogOpen(true)}
         />
-        <main className="container max-w-5xl 2xl:max-w-7xl mx-auto px-4 xl:px-6 2xl:px-8 py-6 xl:py-8 2xl:py-10">{children}</main>
+        <main className="container max-w-5xl xl:max-w-6xl 2xl:max-w-[1600px] mx-auto px-4 xl:px-6 2xl:px-8 py-6 xl:py-8 2xl:py-10">{children}</main>
       </div>
     </ThemeProvider>
   );

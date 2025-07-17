@@ -451,7 +451,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full max-h-[85vh] 2xl:max-h-[90vh] overflow-hidden sm:max-w-[95vw] 2xl:max-w-[98vw]">
+      <DialogContent className="max-w-[90vw] w-full max-h-[85vh] 2xl:max-h-[90vh] overflow-hidden sm:max-w-[85vw] 2xl:max-w-[1600px]">
         <DialogHeader>
           <div className="flex flex-col space-y-4">
             <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
