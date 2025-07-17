@@ -287,7 +287,7 @@ export function GuidebooksTab() {
     const sessionId = await invoke<string>('generate_session_id');
     
     // Create logs directory with session ID  
-    const minecraftDir = profileDirectory;
+    const minecraftDir = useAppStore.getState().profileDirectory;
     if (minecraftDir) {
       const sessionPath = await invoke<string>('create_logs_directory_with_session', {
         minecraftDir: minecraftDir,

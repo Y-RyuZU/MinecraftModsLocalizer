@@ -263,6 +263,8 @@ export function QuestsTab() {
                 target: TranslationTarget;
                 job: TranslationJob;
                 content: string;
+                contentType?: string;
+                hasKubeJSFiles?: boolean;
             }> = [];
             let skippedCount = 0;
             
@@ -289,6 +291,24 @@ export function QuestsTab() {
                             continue;
                         }
                     }
+                    
+                    // For SNBT files, detect content type
+                    let contentType = "direct_text"; // Default
+                    let hasKubeJSFiles = false;
+                    
+                    if (target.path.endsWith('.snbt')) {
+                        try {
+                            contentType = await FileService.invoke<string>("detect_snbt_content_type", {
+                                filePath: target.path
+                            });
+                            console.log(`SNBT content type for ${target.name}: ${contentType}`);
+                        } catch (error) {
+                            console.warn(`Failed to detect SNBT content type for ${target.name}:`, error);
+                        }
+                        
+                        // Check if this target has KubeJS files
+                        hasKubeJSFiles = target.path.includes('kubejs/assets/kubejs/lang');
+                    }
                     // Read quest file
                     const content = await FileService.readTextFile(target.path);
                     
@@ -309,7 +329,7 @@ export function QuestsTab() {
                         target.name
                     );
                     
-                    jobs.push({ target, job, content: processedContent });
+                    jobs.push({ target, job, content: processedContent, contentType, hasKubeJSFiles });
                 } catch (error) {
                     console.error(`Failed to prepare quest: ${target.name}`, error);
                     // Add failed result immediately
@@ -347,6 +367,16 @@ export function QuestsTab() {
                     // Write translated file with language suffix
                     let fileExtension: string;
                     let outputFilePath: string;
+                    
+                    // Special handling for KubeJS lang files
+                    if (questData.target.path.includes('kubejs/assets/kubejs/lang') && questData.target.path.endsWith('en_us.json')) {
+                        // For KubeJS en_us.json files, create target language file
+                        const kubejsLangDir = questData.target.path.replace('en_us.json', '');
+                        outputFilePath = `${kubejsLangDir}${targetLanguage}.json`;
+                        console.log(`KubeJS lang file translation: ${outputFilePath}`);
+                        await FileService.writeTextFile(outputFilePath, translatedText);
+                        return;
+                    }
                     
                     if (questData.target.questFormat === "ftb") {
                         fileExtension = "snbt";
@@ -391,11 +421,12 @@ export function QuestsTab() {
                         }
                         
                         // For SNBT files with direct content (not using KubeJS), modify the original file
-                        if (fileExtension === 'snbt' && !questData.hasKubeJSFiles) {
-                            // Direct SNBT files should be modified in-place, no suffix needed
+                        if (fileExtension === 'snbt' && questData.contentType === 'direct_text' && !questData.hasKubeJSFiles) {
+                            // Direct SNBT files with real text should be modified in-place
                             outputFilePath = basePath;
+                            console.log(`Direct SNBT translation: ${outputFilePath}`);
                         } else {
-                            // For JSON and lang files, add language suffix
+                            // For JSON key-based SNBT files, lang files, and KubeJS files, add language suffix
                             const lastDotIndex = basePath.lastIndexOf('.');
                             if (lastDotIndex !== -1) {
                                 outputFilePath = basePath.substring(0, lastDotIndex) + `.${targetLanguage}` + basePath.substring(lastDotIndex);
@@ -403,6 +434,7 @@ export function QuestsTab() {
                                 // Fallback if no extension found
                                 outputFilePath = `${basePath}.${targetLanguage}.${fileExtension}`;
                             }
+                            console.log(`Key-based or lang file translation: ${outputFilePath}`);
                         }
                     }
                     

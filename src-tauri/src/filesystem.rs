@@ -166,6 +166,15 @@ pub async fn get_ftb_quest_files(
     app_handle: tauri::AppHandle,
     dir: &str,
 ) -> std::result::Result<Vec<String>, String> {
+    get_ftb_quest_files_with_language(app_handle, dir, None).await
+}
+
+/// Get FTB quest files with optional target language for existence checking
+pub async fn get_ftb_quest_files_with_language(
+    app_handle: tauri::AppHandle,
+    dir: &str,
+    target_language: Option<&str>,
+) -> std::result::Result<Vec<String>, String> {
     info!("Getting FTB quest files from {dir}");
 
     // Validate and canonicalize the path to prevent directory traversal attacks
@@ -199,7 +208,7 @@ pub async fn get_ftb_quest_files(
                 kubejs_assets_dir.display()
             );
             // Walk through the directory and find all JSON files
-            for entry in WalkDir::new(kubejs_assets_dir).max_depth(1).into_iter() {
+            for entry in WalkDir::new(&kubejs_assets_dir).max_depth(1).into_iter() {
                 match entry {
                     Ok(entry) => {
                         let entry_path = entry.path();
@@ -223,6 +232,17 @@ pub async fn get_ftb_quest_files(
                                 {
                                     debug!("Skipping already translated file: {file_name}");
                                     continue;
+                                }
+                                
+                                // If target language is specified, check if translation already exists
+                                if let Some(target_lang) = target_language {
+                                    if file_name == "en_us.json" {
+                                        let target_file = kubejs_assets_dir.join(format!("{}.json", target_lang));
+                                        if target_file.exists() && target_file.is_file() {
+                                            debug!("Skipping {} - target language file already exists: {}", file_name, target_file.display());
+                                            continue;
+                                        }
+                                    }
                                 }
                             }
 
