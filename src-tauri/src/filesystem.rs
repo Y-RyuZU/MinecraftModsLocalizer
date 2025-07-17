@@ -238,7 +238,7 @@ pub async fn get_ftb_quest_files_with_language(
                                 if let Some(target_lang) = target_language {
                                     if file_name == "en_us.json" {
                                         let target_file =
-                                            kubejs_assets_dir.join(format!("{}.json", target_lang));
+                                            kubejs_assets_dir.join(format!("{target_lang}.json"));
                                         if target_file.exists() && target_file.is_file() {
                                             debug!("Skipping {} - target language file already exists: {}", file_name, target_file.display());
                                             continue;

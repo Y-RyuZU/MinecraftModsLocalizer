@@ -398,8 +398,7 @@ pub async fn update_translation_summary(
     total_keys: i32,
     target_language: String,
 ) -> Result<(), String> {
-    println!("[update_translation_summary] Called with: minecraft_dir={}, session_id={}, translation_type={}, name={}, status={}, translated_keys={}, total_keys={}, target_language={}", 
-             minecraft_dir, session_id, translation_type, name, status, translated_keys, total_keys, target_language);
+    println!("[update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, translation_type={translation_type}, name={name}, status={status}, translated_keys={translated_keys}, total_keys={total_keys}, target_language={target_language}");
 
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
@@ -462,8 +461,8 @@ pub async fn batch_update_translation_summary(
     target_language: String,
     entries: Vec<serde_json::Value>, // Array of translation entries
 ) -> Result<(), String> {
-    println!("[batch_update_translation_summary] Called with: minecraft_dir={}, session_id={}, target_language={}, entries_count={}", 
-             minecraft_dir, session_id, target_language, entries.len());
+    println!("[batch_update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, target_language={target_language}, entries_count={}", 
+             entries.len());
 
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
