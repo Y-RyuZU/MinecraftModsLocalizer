@@ -1,0 +1,23 @@
+{
+  "lang": "ja_jp",
+  "translations": [
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 1: storage_solutions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 10: campaign_talent_rewards.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 100: support_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    }
+  ]
+}

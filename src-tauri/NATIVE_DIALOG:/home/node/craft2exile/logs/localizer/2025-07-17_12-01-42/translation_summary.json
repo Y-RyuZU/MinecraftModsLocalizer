@@ -1,0 +1,737 @@
+{
+  "lang": "ja_jp",
+  "translations": [
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 1: storage_solutions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 10: campaign_talent_rewards.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 100: support_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 101: support_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 102: first_support_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 103: first_pants.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 104: aura_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 105: skill_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 106: aura_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 107: first_aura_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 108: first_helmet.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 109: aura_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 11: completionist.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 110: first_skill_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 111: skill_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 112: aura_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 113: support_gems_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 114: first_boots.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 115: archer_package.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 116: support_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 117: skill_gem_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 118: support_gems_7.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 119: first_offhand.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 12: act_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 120: support_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 121: support_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 122: data.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 13: gem_shop.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 14: other_hobbies.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 15: tutorial_island.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 16: act_iv_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 17: decorations.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 18: culinary_delights.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 19: chapter_groups.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 2: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 20: aura_gems_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 21: reset_potion_package.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 22: first_chest.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 23: skill_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 24: randomized_unique_shop.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 25: support_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 26: skill_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 27: gear_crafting_starter_pack.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 28: aura_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 29: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 3: jolly_cooperation.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 30: first_weapon.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 31: support_gem_6.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 32: aura_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 33: big_bitch.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 34: cooking_starter_kit.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 35: support_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 36: aura_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 37: skill_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 38: support_gem_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 39: support_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 4: act_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 40: support_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 41: first_support_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 42: first_pants.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 43: aura_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 44: skill_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 45: aura_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 46: first_aura_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 47: first_helmet.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 48: aura_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 49: first_skill_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 5: act_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 50: skill_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 51: aura_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 52: support_gems_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 53: first_boots.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 54: archer_package.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 55: support_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 56: skill_gem_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 57: support_gems_7.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 58: first_offhand.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 59: support_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 6: professions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 60: support_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 61: data.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 62: storage_solutions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 63: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 64: jolly_cooperation.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 65: act_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 66: act_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 67: professions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 68: fishing.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 69: act_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 7: fishing.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 70: exploration.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 71: campaign_talent_rewards.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 72: completionist.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 73: act_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 74: gem_shop.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 75: other_hobbies.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 76: tutorial_island.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 77: act_iv_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 78: decorations.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 79: culinary_delights.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 8: act_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 80: chapter_groups.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 81: aura_gems_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 82: reset_potion_package.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 83: first_chest.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 84: skill_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 85: randomized_unique_shop.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 86: support_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 87: skill_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 88: gear_crafting_starter_pack.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 89: aura_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 9: exploration.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 90: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 91: first_weapon.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 92: support_gem_6.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 93: aura_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 94: big_bitch.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 95: cooking_starter_kit.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 96: support_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 97: aura_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 98: skill_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 99: support_gem_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    }
+  ]
+}

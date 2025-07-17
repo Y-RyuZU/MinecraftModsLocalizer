@@ -82,10 +82,12 @@ export function UnifiedLogViewer({
     return 'UNKNOWN';
   };
   
-  // Function to get log level color
-  const getLogLevelColor = (level: LogEntry['level']) => {
-    const levelStr = getLogLevelString(level).toLowerCase();
+  // Function to get log level color - enhanced for both level and process_type
+  const getLogLevelColor = (log: LogEntry) => {
+    const levelStr = getLogLevelString(log.level).toLowerCase();
+    const processType = log.process_type?.toLowerCase() || '';
     
+    // Check level first
     switch (levelStr) {
       case 'error':
         return 'text-red-500 dark:text-red-400';
@@ -96,6 +98,20 @@ export function UnifiedLogViewer({
         return 'text-blue-500 dark:text-blue-400';
       case 'debug':
         return 'text-gray-500 dark:text-gray-400';
+    }
+    
+    // Then check process type for more specific coloring
+    switch (processType) {
+      case 'translation':
+      case 'translation_start':
+      case 'translation_stats':
+      case 'translation_progress':
+      case 'translation_complete':
+        return 'text-green-500 dark:text-green-400';
+      case 'api_request':
+        return 'text-purple-500 dark:text-purple-400';
+      case 'file_operation':
+        return 'text-cyan-500 dark:text-cyan-400';
       default:
         return 'text-gray-700 dark:text-gray-300';
     }
@@ -123,6 +139,16 @@ export function UnifiedLogViewer({
   const filterLogs = useCallback((logs: LogEntry[]) => {
     return logs.filter(log => {
       const levelStr = getLogLevelString(log.level).toLowerCase();
+      
+      // NEVER show debug logs to users
+      if (levelStr === 'debug') {
+        return false;
+      }
+      
+      // Filter out verbose backup logs
+      if (log.process_type === 'BACKUP' && log.message.includes('Backed up SNBT:')) {
+        return false;
+      }
       
       // Only show logs that are important for the user to see
       // 1. All error logs
@@ -219,12 +245,25 @@ export function UnifiedLogViewer({
         return true;
       }
       
-      // 7. System logs
+      // 7. Backup logs (only show summary, not individual file backups)
+      if (log.process_type === 'BACKUP') {
+        const message = log.message.toLowerCase();
+        // Show backup start/completion but not individual file backups
+        if (message.includes('backing up') && message.includes('files')) {
+          return true; // "Backing up X files"
+        }
+        if (message.includes('backup completed') || message.includes('backup failed')) {
+          return true; // Backup summaries
+        }
+        return false; // Skip individual file backup logs
+      }
+      
+      // 8. System logs
       if (log.process_type === 'SYSTEM') {
         return true;
       }
       
-      // 8. Warnings that might be important
+      // 9. Warnings that might be important
       if (levelStr === 'warning' || levelStr === 'warn') {
         return true;
       }
@@ -241,32 +280,30 @@ export function UnifiedLogViewer({
     
     lines.forEach(line => {
       // Parse log format: [timestamp] [level] [process_type] message
-      const timestampMatch = line.match(/^\[([^\]]+)\]/);
-      const levelMatch = line.match(/\[([^\]]+)\](?:\s*\[([^\]]*)\])?\s*(.*)$/);
+      // Example: [2025-07-17 12:00:00] [INFO] [TRANSLATION] Starting translation
+      const match = line.match(/^\[([^\]]+)\]\s*\[([^\]]+)\](?:\s*\[([^\]]*)\])?\s*(.*)$/);
       
-      if (timestampMatch && levelMatch) {
-        const timestamp = timestampMatch[1];
-        const parts = levelMatch[0].split('] ');
-        let level = 'INFO';
-        let processType: string | undefined;
-        let message = '';
-        
-        if (parts.length >= 2) {
-          level = parts[0].replace('[', '');
-          if (parts.length >= 3) {
-            processType = parts[1].replace('[', '').replace(']', '');
-            message = parts.slice(2).join('] ');
-          } else {
-            message = parts[1];
-          }
-        }
+      if (match) {
+        const [, timestamp, level, processType, message] = match;
         
         logEntries.push({
-          timestamp,
-          level: level.toUpperCase(),
+          timestamp: timestamp.trim(),
+          level: level.trim().toUpperCase() as string,
           message: message.trim(),
-          process_type: processType
+          process_type: processType?.trim() || undefined
         });
+      } else {
+        // Fallback for simpler format: [level] message
+        const simpleMatch = line.match(/^\[([^\]]+)\]\s*(.*)$/);
+        if (simpleMatch) {
+          const [, level, message] = simpleMatch;
+          logEntries.push({
+            timestamp: new Date().toISOString(),
+            level: level.trim().toUpperCase() as string,
+            message: message.trim(),
+            process_type: undefined
+          });
+        }
       }
     });
     
@@ -463,7 +500,7 @@ export function UnifiedLogViewer({
                   filteredLogs.map((log, index) => (
                     <div 
                       key={`${log.timestamp}-${index}`}
-                      className={`${getLogLevelColor(log.level)} mb-1`}
+                      className={`${getLogLevelColor(log)} mb-1`}
                     >
                       {formatLogMessage(log)}
                     </div>
@@ -475,7 +512,7 @@ export function UnifiedLogViewer({
         )}
         
         <DialogFooter className="flex justify-between items-center">
-          {mode === 'realtime' && (
+          {mode === 'realtime' ? (
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -488,29 +525,13 @@ export function UnifiedLogViewer({
                 {t('logs.autoScroll', 'Auto Scroll')}
               </label>
             </div>
+          ) : (
+            <div />
           )}
           
-          <div className="flex gap-2">
-            {mode === 'realtime' && (
-              <Button 
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    await FileService.invoke('clear_logs');
-                    setLogs([]);
-                    console.log('[UnifiedLogViewer] Logs cleared');
-                  } catch (error) {
-                    console.error('[UnifiedLogViewer] Failed to clear logs:', error);
-                  }
-                }}
-              >
-                {t('logs.clearLogs', 'Clear Logs')}
-              </Button>
-            )}
-            <Button onClick={() => onOpenChange(false)}>
-              {t('common.close', 'Close')}
-            </Button>
-          </div>
+          <Button onClick={() => onOpenChange(false)}>
+            {t('common.close', 'Close')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
