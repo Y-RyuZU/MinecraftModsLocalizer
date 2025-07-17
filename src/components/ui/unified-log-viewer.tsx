@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { ScrollArea } from './scroll-area';
@@ -120,7 +120,7 @@ export function UnifiedLogViewer({
   };
   
   // Function to filter logs - only show important logs in the dialog
-  const filterLogs = (logs: LogEntry[]) => {
+  const filterLogs = useCallback((logs: LogEntry[]) => {
     return logs.filter(log => {
       const levelStr = getLogLevelString(log.level).toLowerCase();
       
@@ -232,10 +232,10 @@ export function UnifiedLogViewer({
       // Filter out debug and info logs that aren't important for users
       return false;
     });
-  };
+  }, [isTranslating]);
 
   // Parse raw log content into LogEntry format for historical logs
-  const parseRawLogContent = (content: string): LogEntry[] => {
+  const parseRawLogContent = useCallback((content: string): LogEntry[] => {
     const lines = content.split('\n').filter(line => line.trim());
     const logEntries: LogEntry[] = [];
     
@@ -271,7 +271,7 @@ export function UnifiedLogViewer({
     });
     
     return logEntries;
-  };
+  }, []);
   
   // Load logs based on mode
   useEffect(() => {
@@ -411,12 +411,16 @@ export function UnifiedLogViewer({
   }, [mode, isTranslating, open, onOpenChange]);
   
   // Filter logs
-  const filteredLogs = mode === 'realtime' ? filterLogs(logs) : logs;
+  const filteredLogs = useMemo(() => {
+    return mode === 'realtime' ? filterLogs(logs) : logs;
+  }, [mode, filterLogs, logs]);
   
   // Generate title
-  const dialogTitle = title || (mode === 'realtime' 
-    ? t('logs.translationLogs', 'Translation Logs')
-    : `${t('history.sessionLogs', 'Session Logs')} - ${sessionId || ''}`);
+  const dialogTitle = useMemo(() => {
+    return title || (mode === 'realtime' 
+      ? t('logs.translationLogs', 'Translation Logs')
+      : `${t('history.sessionLogs', 'Session Logs')} - ${sessionId || ''}`);
+  }, [title, mode, t, sessionId]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

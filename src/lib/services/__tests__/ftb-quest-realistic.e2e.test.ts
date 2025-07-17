@@ -8,12 +8,13 @@ import { invoke } from '@tauri-apps/api/core';
 import { mockSNBTFiles, expectedTranslations, mockFileStructure } from '../../test-utils/mock-snbt-files';
 
 // Mock Tauri API
-jest.mock('@tauri-apps/api/core');
-const mockInvoke = invoke as jest.MockedFunction<typeof invoke>;
+import { vi } from 'vitest';
+vi.mock('@tauri-apps/api/core');
+const mockInvoke = invoke as any;
 
 describe('FTB Quest Translation - Realistic E2E', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('SNBT Content Type Detection', () => {

@@ -1,0 +1,1073 @@
+{
+  "lang": "ja_jp",
+  "translations": [
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 1: chapter_groups.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 10: test.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 100: first_support_gem.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 101: aura_gem_shop_ii.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 102: first_pants.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 103: big_bitch.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 104: aura_gem_shop_iii.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 105: skill_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 106: aura_gem_shop_iv.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 107: support_gem_6.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 108: randomized_unique_shop.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 109: support_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 11: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 110: skill_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 111: first_aura_gem.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 112: gear_crafting_starter_pack.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 113: test.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 114: aura_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 115: skill_gems_5.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 116: test.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 117: support_gems_1.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 118: aura_gems_1.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 119: skill_gem_4.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 12: other_hobbies.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 120: archer_package.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 121: first_offhand.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 122: first_weapon.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 123: first_weapon.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 124: gear_crafting_starter_pack.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 125: first_weapon.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 126: first_helmet.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 127: cooking_starter_kit.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 128: first_skill_gem.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 129: support_gem_6.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 13: jolly_cooperation.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 130: support_gems_4.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 131: randomized_unique_shop.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 132: support_gems_7.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 133: randomized_unique_shop.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 134: skill_gems_3.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 135: aura_gem_shop_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 136: big_bitch.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 137: aura_gems_3.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 138: reset_potion_package.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 139: support_gem_shop_iv.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 14: act_iv_2.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 140: support_gem_6.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 141: cooking_starter_kit.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 142: support_gems_5.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 143: support_gem_2.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 144: support_gem_2.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 145: first_aura_gem.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 146: cooking_starter_kit.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 147: support_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 148: aura_gems_3.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 149: archer_package.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 15: other_hobbies.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 150: aura_gem_shop_iv.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 151: skill_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 152: support_gem_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 153: aura_gem_shop_i.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 154: first_chest.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 155: support_gems_5.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 156: big_bitch.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 157: aura_gems_1.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 158: support_gems_1.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 159: archer_package.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 16: act_ii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 160: big_bitch.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 161: support_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 162: aura_gems_4.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 163: support_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 164: support_gem_6.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 165: support_gem_shop_iii.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 166: aura_gem_shop_iv.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 167: first_chest.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 168: test.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 169: skill_gems_2.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 17: act_ii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 170: skill_gems_1.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 171: support_gems_7.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 172: gear_crafting_starter_pack.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 173: first_boots.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 174: first_support_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 175: first_offhand.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 176: skill_gem_shop_i.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 177: support_gem_shop_ii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 178: aura_gem_shop_ii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 179: support_gems_3.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 18: act_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 180: first_pants.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 181: aura_gems_1.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 182: aura_gem_shop_iii.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 183: skill_gem_shop_i.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 184: support_gem_shop_i.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 185: first_boots.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 186: randomized_unique_shop.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 187: support_gem_2.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 188: support_gem_shop_i.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 189: aura_gems_2.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 19: completionist.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 190: support_gem_shop_iii.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 191: randomized_unique_shop.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 192: support_gem_shop_iii.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 193: aura_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 194: big_bitch.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 195: aura_gem_shop_iii.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 196: gear_crafting_starter_pack.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 197: gear_crafting_starter_pack.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 198: first_aura_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 199: first_helmet.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 2: act_iv.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 20: act_ii.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 200: first_offhand.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 201: first_helmet.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 202: support_gems_3.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 203: support_gems_4.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 204: skill_gems_5.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 205: aura_gems_4.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 206: aura_gems_2.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 207: skill_gems_5.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 208: skill_gems_3.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 209: first_skill_gem.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 21: act_iv_2.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 210: skill_gems_2.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 211: skill_gems_1.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 212: skill_gems_2.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 213: first_pants.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 214: skill_gem_shop_i.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 215: first_support_gem.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 216: skill_gems_1.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 217: support_gem_6.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 218: aura_gems_3.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 219: aura_gems_2.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 22: professions.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 220: support_gem_shop_ii.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 221: support_gems_3.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 222: first_boots.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 223: first_weapon.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 224: aura_gems_4.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 225: support_gem_shop_ii.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 226: test.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 227: support_gems_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 228: skill_gems_3.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 229: aura_gem_shop_ii.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 23: decorations.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 230: skill_gems_5.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 231: first_boots.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 232: aura_gem_shop_i.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 233: support_gem_shop_iv.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 234: aura_gem_shop_iv.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 235: first_aura_gem.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 236: archer_package.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 237: support_gems_7.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 238: first_pants.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 239: aura_gem_shop_ii.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 24: fishing.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 240: support_gem_shop_ii.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 241: first_chest.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 242: support_gems_5.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 243: aura_gem_shop_i.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 244: support_gem_2.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 245: first_helmet.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 246: skill_gem_4.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 247: reset_potion_package.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 248: skill_gem_4.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 249: skill_gem_4.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 25: jolly_cooperation.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 250: aura_gems_4.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 251: cooking_starter_kit.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 252: first_skill_gem.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 253: support_gems_5.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 254: aura_gem_shop_iv.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 255: support_gems_3.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 256: first_skill_gem.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 257: support_gem_shop_iii.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 258: first_chest.ja_jp.ja_jp.ja_jp.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    },
+    {
+      "keys": "0/0",
+      "name": "FTB Quest 259: cooking_starter_kit.ja_jp.snbt",
+      "status": "failed",
+      "type": "quest"
+    }
+  ]
+}
