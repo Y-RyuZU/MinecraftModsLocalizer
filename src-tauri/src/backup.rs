@@ -449,3 +449,88 @@ pub async fn update_translation_summary(
     println!("[update_translation_summary] Successfully wrote summary to: {}", summary_path.display());
     Ok(())
 }
+
+/// Batch update translation summary with multiple entries
+#[tauri::command]
+pub async fn batch_update_translation_summary(
+    minecraft_dir: String,
+    session_id: String,
+    target_language: String,
+    entries: Vec<serde_json::Value>, // Array of translation entries
+) -> Result<(), String> {
+    println!("[batch_update_translation_summary] Called with: minecraft_dir={}, session_id={}, target_language={}, entries_count={}", 
+             minecraft_dir, session_id, target_language, entries.len());
+    
+    let session_dir = PathBuf::from(&minecraft_dir)
+        .join("logs")
+        .join("localizer")
+        .join(&session_id);
+    
+    println!("[batch_update_translation_summary] Session directory: {}", session_dir.display());
+
+    // Ensure session directory exists
+    fs::create_dir_all(&session_dir)
+        .map_err(|e| format!("Failed to create session directory: {e}"))?;
+
+    let summary_path = session_dir.join("translation_summary.json");
+
+    // Read existing summary or create new one
+    let mut summary = if summary_path.exists() {
+        let content = fs::read_to_string(&summary_path)
+            .map_err(|e| format!("Failed to read existing summary: {e}"))?;
+
+        serde_json::from_str::<TranslationSummary>(&content)
+            .map_err(|e| format!("Failed to parse existing summary: {e}"))?
+    } else {
+        TranslationSummary {
+            lang: target_language.clone(),
+            translations: Vec::new(),
+        }
+    };
+
+    // Add all new translation entries
+    for entry_value in entries {
+        if let Ok(entry_data) = serde_json::from_value::<serde_json::Map<String, serde_json::Value>>(entry_value) {
+            let translation_type = entry_data.get("translationType")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let name = entry_data.get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("unknown")
+                .to_string();
+            
+            let status = entry_data.get("status")
+                .and_then(|v| v.as_str())
+                .unwrap_or("failed")
+                .to_string();
+            
+            let translated_keys = entry_data.get("translatedKeys")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32;
+            
+            let total_keys = entry_data.get("totalKeys")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32;
+
+            let entry = TranslationEntry {
+                translation_type,
+                name,
+                status,
+                keys: format!("{translated_keys}/{total_keys}"),
+            };
+
+            summary.translations.push(entry);
+        }
+    }
+
+    // Write updated summary back to file with sorted keys
+    let json =
+        serialize_json_sorted(&summary).map_err(|e| format!("Failed to serialize summary: {e}"))?;
+
+    fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
+
+    println!("[batch_update_translation_summary] Successfully wrote summary with {} entries to: {}", summary.translations.len(), summary_path.display());
+    Ok(())
+}

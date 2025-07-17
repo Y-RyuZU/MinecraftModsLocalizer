@@ -175,23 +175,27 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
             const profileDirectory = useAppStore.getState().profileDirectory;
             console.log(`[TranslationRunner] Updating batch summary for ${jobs.length} jobs: sessionId=${sessionId}, profileDirectory=${profileDirectory}`);
             
-            for (const job of jobs) {
+            const entries = jobs.map(job => {
                 const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown>; content?: Record<string, unknown> }> }).chunks || [];
                 const translatedKeys = chunks.filter((c) => c.status === "completed")
                     .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
                 const totalKeys = chunks.reduce((sum: number, chunk) => sum + Object.keys(chunk.content || {}).length, 0);
                 
-                await invoke('update_translation_summary', {
-                    minecraftDir: profileDirectory || '',
-                    sessionId,
+                return {
                     translationType: type,
                     name: job.currentFileName || job.id,
                     status: job.status === "completed" ? "completed" : "failed",
                     translatedKeys,
-                    totalKeys,
-                    targetLanguage
-                });
-            }
+                    totalKeys
+                };
+            });
+            
+            await invoke('batch_update_translation_summary', {
+                minecraftDir: profileDirectory || '',
+                sessionId,
+                targetLanguage,
+                entries
+            });
         } catch (error) {
             console.error('Failed to update batch translation summary:', error);
         }

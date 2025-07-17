@@ -9,8 +9,8 @@ pub mod minecraft;
 mod tests;
 
 use backup::{
-    backup_resource_pack, backup_snbt_files, create_backup, get_translation_summary,
-    list_translation_sessions, update_translation_summary,
+    backup_resource_pack, backup_snbt_files, batch_update_translation_summary, create_backup, 
+    get_translation_summary, list_translation_sessions, update_translation_summary,
 };
 use config::{load_config, save_config};
 use filesystem::{
@@ -127,7 +127,8 @@ pub fn run() {
             // Translation history operations
             list_translation_sessions,
             get_translation_summary,
-            update_translation_summary
+            update_translation_summary,
+            batch_update_translation_summary
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
