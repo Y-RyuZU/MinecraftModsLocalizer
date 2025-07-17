@@ -18,6 +18,8 @@ import {TargetLanguageSelector} from "@/components/tabs/target-language-selector
 import {TranslationService} from "@/lib/services/translation-service";
 import {invoke} from "@tauri-apps/api/core";
 import type {AppConfig} from "@/lib/types/config";
+import {useAppStore} from "@/lib/store";
+import {toast} from "sonner";
 
 // Helper function to get the chunk size for a specific tab type
 const getChunkSizeForTabType = (config: AppConfig, tabType: 'mods' | 'quests' | 'guidebooks' | 'custom-files'): number => {
@@ -79,6 +81,14 @@ export interface TranslationTabProps {
     setCompletionDialogOpen: (isOpen: boolean) => void;
     setLogDialogOpen: (isOpen: boolean) => void;
     resetTranslationState: () => void;
+    
+    // Scan progress state
+    scanProgress?: {
+        currentFile: string;
+        processedCount: number;
+        totalCount?: number;
+        scanType?: string;
+    };
 
     // Custom handlers
     onScan: (directory: string) => Promise<void>;
@@ -128,6 +138,9 @@ export function TranslationTab({
                                    setCompletionDialogOpen,
                                    setLogDialogOpen,
                                    resetTranslationState,
+                                   
+                                   // Scan progress state
+                                   scanProgress,
 
                                    // Custom handlers
                                    onScan,
@@ -136,12 +149,15 @@ export function TranslationTab({
     const [isScanning, setIsScanning] = useState(false);
     const [filterText, setFilterText] = useState("");
     const [tempTargetLanguage, setTempTargetLanguage] = useState<string | null>(null);
-    const [selectedDirectory, setSelectedDirectory] = useState<string | null>(null);
     const [sortColumn, setSortColumn] = useState<string>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [translationResults, setTranslationResults] = useState<TranslationResult[]>([]);
     const [totalTargets, setTotalTargets] = useState(0);
     const {t} = useAppTranslation();
+    
+    // Get shared profile directory from store
+    const profileDirectory = useAppStore(state => state.profileDirectory);
+    const setProfileDirectory = useAppStore(state => state.setProfileDirectory);
 
     // Reference to the translation service
     const translationServiceRef = useRef<TranslationService | null>(null);
@@ -154,8 +170,14 @@ export function TranslationTab({
             const selected = await FileService.openDirectoryDialog(t(directorySelectLabel));
 
             if (selected) {
-                // Store the full path including any prefix
-                setSelectedDirectory(selected);
+                // Validate the directory path
+                if (!selected.trim()) {
+                    setError(t('errors.invalidDirectory', 'Invalid directory selected'));
+                    return;
+                }
+
+                // Store the full path including any prefix in shared state
+                setProfileDirectory(selected);
 
                 // Clear any previous errors
                 setError(null);
@@ -174,14 +196,19 @@ export function TranslationTab({
             }
         } catch (error) {
             console.error("Failed to select directory:", error);
-            setError(`Failed to select directory: ${error}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+            toast.error(t('errors.directorySelectionFailed', 'Failed to select directory'), {
+                description: errorMessage
+            });
         }
     };
 
     // Scan for items
     const handleScan = async () => {
-        if (!selectedDirectory) {
-            setError(t('errors.selectDirectoryFirst'));
+        if (!profileDirectory) {
+            setError(t('errors.selectProfileDirectoryFirst'));
+            toast.error(t('errors.selectProfileDirectoryFirst', 'Please select a profile directory first'));
             return;
         }
 
@@ -189,24 +216,35 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Clear existing results before scanning
-            setTranslationTargets([]);
-            setFilterText("");
-            
-            // Reset translation state if exists
-            if (translationResults.length > 0) {
-                setTranslationResults([]);
-            }
-
             // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = selectedDirectory.startsWith("NATIVE_DIALOG:")
-                ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                : selectedDirectory;
+            const actualPath = profileDirectory.startsWith("NATIVE_DIALOG:")
+                ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                : profileDirectory;
+
+            // Clear existing results after UI has updated
+            requestAnimationFrame(() => {
+                setTranslationTargets([]);
+                setFilterText("");
+                setTranslationResults([]);
+            });
 
             await onScan(actualPath);
         } catch (error) {
             console.error(`Failed to scan ${tabType}:`, error);
-            setError(`Failed to scan ${tabType}: ${error}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            // Check if the error is a translation key with path
+            if (errorMessage.startsWith('errors.') && errorMessage.includes(':::')) {
+                const [translationKey, path] = errorMessage.split(':::');
+                setError(t(translationKey, { path }));
+            } else if (errorMessage.startsWith('errors.')) {
+                setError(t(errorMessage));
+            } else {
+                setError(`Failed to scan ${tabType}: ${errorMessage}`);
+                toast.error(t('errors.scanFailed', 'Scan failed'), {
+                    description: errorMessage
+                });
+            }
         } finally {
             setIsScanning(false);
         }
@@ -301,9 +339,9 @@ export function TranslationTab({
             }
 
             // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = selectedDirectory && selectedDirectory.startsWith("NATIVE_DIALOG:")
-                ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                : selectedDirectory || "";
+            const actualPath = profileDirectory && profileDirectory.startsWith("NATIVE_DIALOG:")
+                ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                : profileDirectory || "";
 
             // Clear existing logs and create a new logs directory for the entire translation session
             try {
@@ -314,10 +352,8 @@ export function TranslationTab({
                 const sessionId = await invoke<string>('generate_session_id');
 
                 // Create a new logs directory using the session ID for uniqueness
-                // Ensure we use the selected directory if minecraftDir is not set or empty
-                const minecraftDir = (config.paths.minecraftDir && config.paths.minecraftDir.trim() !== "") 
-                    ? config.paths.minecraftDir 
-                    : actualPath;
+                // Use the shared profile directory
+                const minecraftDir = actualPath;
                 
                 const logsDir = await invoke<string>('create_logs_directory_with_session', {
                     minecraftDir: minecraftDir,
@@ -381,20 +417,28 @@ export function TranslationTab({
                     </Button>
                     <Button
                         onClick={handleScan}
-                        disabled={isScanning || isTranslating || !selectedDirectory}
-                        title={!selectedDirectory ? t('errors.selectDirectoryFirst') : ''}
+                        disabled={isScanning || isTranslating || !profileDirectory}
+                        title={!profileDirectory ? t('errors.selectProfileDirectoryFirst') : ''}
+                        className={isScanning ? 'animate-pulse' : ''}
                     >
+                        {isScanning && (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        )}
                         {isScanning ? t(scanningLabel) : t(scanButtonLabel)}
                     </Button>
                     <Button
                         onClick={handleTranslate}
                         disabled={isScanning || isTranslating || translationTargets.length === 0}
+                        className={isTranslating ? 'animate-pulse' : ''}
                     >
+                        {isTranslating && (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                        )}
                         {isTranslating ? t('buttons.translating') : t('buttons.translate')}
                     </Button>
 
                     {/* Target Language Selector */}
-                    <div className="min-w-[200px]">
+                    <div className="min-w-[200px] 2xl:min-w-[250px]">
                         <TargetLanguageSelector
                             labelKey="tabs.targetLanguage"
                             availableLanguages={config.translation.additionalLanguages?.map((lang: {
@@ -413,7 +457,7 @@ export function TranslationTab({
                 </div>
                 {filterPlaceholder && (
                     <div className="flex items-center gap-2 relative">
-                        <div className="relative w-[250px]">
+                        <div className="relative w-[250px] 2xl:w-[350px]">
                             <Search
                                 className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                             <Input
@@ -428,28 +472,28 @@ export function TranslationTab({
                 )}
             </div>
 
-            {selectedDirectory && (
+            {profileDirectory && (
                 <div className="text-sm text-muted-foreground">
-                    {t('misc.selectedDirectory')} {selectedDirectory.startsWith("NATIVE_DIALOG:")
-                    ? selectedDirectory.substring("NATIVE_DIALOG:".length)
-                    : selectedDirectory}
+                    {t('misc.selectedDirectory')} {profileDirectory.startsWith("NATIVE_DIALOG:")
+                    ? profileDirectory.substring("NATIVE_DIALOG:".length)
+                    : profileDirectory}
                 </div>
             )}
 
             {error && (
-                <div className="bg-destructive/20 text-destructive p-2 rounded">
+                <div className="bg-destructive/20 text-destructive p-2 rounded animate-in fade-in-0 slide-in-from-top-2 duration-300">
                     {error}
                 </div>
             )}
 
             {isTranslating && (
-                <div className="space-y-2">
+                <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-2 duration-300">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 mr-4 space-y-4">
                             {/* Job Progress - Single file progress */}
                             <div>
                                 <Progress value={progress} className="h-2"/>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm 2xl:text-base text-muted-foreground">
                                     {t(progressLabel)} {progress}%
                                     {translationServiceRef.current?.getJob(currentJobId || '')?.currentFileName && (
                                         <span className="ml-2">
@@ -462,7 +506,7 @@ export function TranslationTab({
                             {/* Whole Progress - Overall progress across all files */}
                             <div>
                                 <Progress value={wholeProgress} className="h-2"/>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm 2xl:text-base text-muted-foreground">
                                     {t('progress.wholeProgress')} {wholeProgress}%
                                 </p>
                             </div>
@@ -483,11 +527,12 @@ export function TranslationTab({
             )}
 
             <div className="border rounded-md">
-                <ScrollArea className="h-[500px]">
-                    <Table>
-                        <TableHeader>
+                <ScrollArea className="h-[60vh] min-h-[500px] 2xl:h-[70vh] 2xl:min-h-[600px]" orientation="both">
+                    <div className="w-max min-w-full">
+                        <Table>
+                            <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[50px] sticky top-0 bg-background z-10">
+                                <TableHead className="w-[50px] 2xl:w-[60px] sticky top-0 bg-background z-10">
                                     <Checkbox
                                         onCheckedChange={(checked) => handleSelectAll(!!checked)}
                                         disabled={isScanning || isTranslating || translationTargets.length === 0}
@@ -527,21 +572,41 @@ export function TranslationTab({
                                 <TableRow>
                                     <TableCell colSpan={tableColumns.length + 1} className="text-center py-16">
                                         {isScanning ? (
-                                            <div className="flex flex-col items-center gap-4">
+                                            <div className="flex flex-col items-center gap-4 animate-in fade-in-0 duration-300">
                                                 <div className="relative">
                                                     {/* Outer spinning ring */}
                                                     <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                                                    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent transition-all duration-300"></div>
                                                     
                                                     {/* Inner pulsing circle */}
                                                     <div className="absolute inset-2 animate-pulse rounded-full bg-primary/20"></div>
                                                 </div>
                                                 
-                                                <div className="space-y-2 text-center">
-                                                    <p className="text-lg font-medium">{t(scanningForItemsLabel)}</p>
-                                                    <p className="text-sm text-muted-foreground animate-pulse">
-                                                        {t('misc.pleaseWait')}
+                                                <div className="w-96 space-y-3">
+                                                    <p className="text-lg 2xl:text-xl font-medium text-left truncate">
+                                                        {scanProgress?.currentFile ? 
+                                                            `Scanning: ${scanProgress.currentFile}` : 
+                                                            t(scanningForItemsLabel)
+                                                        }
                                                     </p>
+                                                    <p className="text-sm 2xl:text-base text-muted-foreground text-center">
+                                                        {(scanProgress?.processedCount ?? 0) > 0 ? 
+                                                            scanProgress?.totalCount ? 
+                                                                `(${scanProgress.processedCount} / ${scanProgress.totalCount} files - ${Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)}%)` :
+                                                                `(${scanProgress?.processedCount} files)` : 
+                                                            t('misc.pleaseWait')
+                                                        }
+                                                    </p>
+                                                    
+                                                    {/* Small progress bar for scan progress - fixed width */}
+                                                    {scanProgress?.totalCount && (scanProgress?.processedCount ?? 0) > 0 && (
+                                                        <div className="w-80 mx-auto">
+                                                            <Progress 
+                                                                value={Math.round((scanProgress.processedCount / scanProgress.totalCount) * 100)} 
+                                                                className="h-1.5" 
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 {/* Progress dots animation */}
@@ -589,7 +654,7 @@ export function TranslationTab({
                                         return 0;
                                     })
                                     .map((target, index) => (
-                                        <TableRow key={`${target.id}-${index}`}>
+                                        <TableRow key={`${target.id}-${index}`} className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300" style={{ animationDelay: `${index * 50}ms` }}>
                                             <TableCell>
                                                 <Checkbox
                                                     checked={target.selected}
@@ -608,6 +673,7 @@ export function TranslationTab({
                             )}
                         </TableBody>
                     </Table>
+                    </div>
                 </ScrollArea>
             </div>
 

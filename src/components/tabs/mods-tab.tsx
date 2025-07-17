@@ -6,6 +6,9 @@ import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect } from "react";
+import { getRelativePath } from "@/lib/utils/path-utils";
 
 export function ModsTab() {
 
@@ -33,29 +36,105 @@ export function ModsTab() {
     isCompletionDialogOpen,
     setCompletionDialogOpen,
     setLogDialogOpen,
-    resetTranslationState
+    resetTranslationState,
+    // Scanning state
+    setScanning,
+    // Scan progress state
+    scanProgress,
+    setScanProgress,
+    resetScanProgress
   } = useAppStore();
+
+  // Listen for scan progress events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const setupScanProgressListener = async () => {
+      try {
+        const unlisten = await listen<{
+          currentFile: string;
+          processedCount: number;
+          totalCount?: number;
+          scanType: string;
+          completed: boolean;
+        }>('scan_progress', (event) => {
+          const progress = event.payload;
+          
+          // Only process events for mods scan
+          if (progress.scanType === 'mods') {
+            setScanProgress({
+              currentFile: progress.currentFile,
+              processedCount: progress.processedCount,
+              totalCount: progress.totalCount,
+              scanType: progress.scanType,
+            });
+            
+            // Reset progress after completion
+            if (progress.completed) {
+              setTimeout(() => resetScanProgress(), 500);
+            }
+          }
+        });
+        
+        return unlisten;
+      } catch (error) {
+        console.error('Failed to set up scan progress listener:', error);
+        return () => {};
+      }
+    };
+
+    const unlistenPromise = setupScanProgressListener();
+    return () => {
+      unlistenPromise.then(unlisten => unlisten());
+    };
+  }, [setScanProgress, resetScanProgress]);
 
   // Scan for mods
   const handleScan = async (directory: string) => {
-    // Get mods directory
-    const modsDirectory = directory + "/mods";
+    try {
+      setScanning(true);
+      
+      // Set initial scan progress immediately
+      setScanProgress({
+        currentFile: 'Initializing scan...',
+        processedCount: 0,
+        totalCount: undefined,
+        scanType: 'mods',
+      });
+      
+      // Get mods directory
+      const modsDirectory = directory + "/mods";
 
-    // Get mod files
-    const modFiles = await FileService.getModFiles(modsDirectory);
+      // Get mod files
+      const modFiles = await FileService.getModFiles(modsDirectory);
 
-    // Create translation targets
-    const targets: TranslationTarget[] = [];
+      // Update progress immediately after file discovery
+      setScanProgress({
+        currentFile: 'Analyzing mod files...',
+        processedCount: 0,
+        totalCount: modFiles.length,
+        scanType: 'mods',
+      });
+
+      // Create translation targets
+      const targets: TranslationTarget[] = [];
     
-    for (const modFile of modFiles) {
+    for (let i = 0; i < modFiles.length; i++) {
+      const modFile = modFiles[i];
       try {
+        // Update progress for JAR analysis phase
+        setScanProgress({
+          currentFile: modFile.split('/').pop() || modFile,
+          processedCount: i + 1,
+          totalCount: modFiles.length,
+          scanType: 'mods',
+        });
+
         const modInfo = await FileService.invoke<ModInfo>("analyze_mod_jar", { jarPath: modFile });
 
         if (modInfo.langFiles && modInfo.langFiles.length > 0) {
-          // Calculate relative path by removing the selected directory part
-          const relativePath = modFile.startsWith(modsDirectory)
-            ? modFile.substring(modsDirectory.length).replace(/^[/\\]+/, '') 
-            : modFile;
+          // Calculate relative path (cross-platform)
+          const relativePath = getRelativePath(modFile, modsDirectory);
             
           targets.push({
             type: "mod",
@@ -107,6 +186,11 @@ export function ModsTab() {
     }
 
     setModTranslationTargets(targets);
+    } finally {
+      setScanning(false);
+      // Reset scan progress after completion
+      resetScanProgress();
+    }
   };
 
   // Translate mods
@@ -141,8 +225,33 @@ export function ModsTab() {
     // Prepare jobs and count total chunks (using sorted targets)
     let totalChunksCount = 0;
     const jobs = [];
+    let skippedCount = 0;
+    
     for (const target of sortedTargets) {
       try {
+        // Check if translation already exists when skipExistingTranslations is enabled
+        if (config.translation.skipExistingTranslations ?? true) {
+          const exists = await FileService.invoke<boolean>("check_mod_translation_exists", {
+            modPath: target.path,
+            modId: target.id,
+            targetLanguage: targetLanguage
+          });
+          
+          if (exists) {
+            console.log(`Skipping mod ${target.name} (${target.id}) - translation already exists`);
+            try {
+              await invoke('log_translation_process', { 
+                message: `Skipped: ${target.name} (${target.id}) - translation already exists`, 
+                processType: "TRANSLATION" 
+              });
+            } catch {
+              // ignore logging errors
+            }
+            skippedCount++;
+            continue;
+          }
+        }
+        
         // Extract language files
         const langFiles = await FileService.invoke<LangFile[]>("extract_lang_files", {
           jarPath: target.path,
@@ -266,6 +375,18 @@ export function ModsTab() {
         console.error('Failed to backup resource pack:', error);
         // Don't fail the translation if backup fails
       }
+      
+      // Log skipped items summary
+      if (skippedCount > 0) {
+        try {
+          await invoke('log_translation_process', { 
+            message: `Translation completed. Skipped ${skippedCount} mods that already have translations.`, 
+            processType: "TRANSLATION" 
+          });
+        } catch {
+          // ignore logging errors
+        }
+      }
     } finally {
       setTranslating(false);
     }
@@ -287,7 +408,6 @@ export function ModsTab() {
         { 
           key: "relativePath", 
           label: "tables.path", 
-          className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
         },
         {
@@ -326,6 +446,7 @@ export function ModsTab() {
       setCompletionDialogOpen={setCompletionDialogOpen}
       setLogDialogOpen={setLogDialogOpen}
       resetTranslationState={resetTranslationState}
+      scanProgress={scanProgress}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

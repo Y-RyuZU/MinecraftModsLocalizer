@@ -88,7 +88,7 @@ export function CompletionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh] pr-12">
+      <DialogContent className="sm:max-w-[900px] 2xl:max-w-[1400px] max-h-[80vh] 2xl:max-h-[85vh] pr-12">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {getStatusIcon()}
@@ -118,7 +118,7 @@ export function CompletionDialog({
               </span>
             </div>
             <div className="flex items-center gap-2 min-w-fit">
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm 2xl:text-base font-medium text-muted-foreground">
                 {t('completion.total', 'Total')}: 
                 <span className="ml-1 font-bold">{results.length}</span>
               </span>
@@ -129,7 +129,7 @@ export function CompletionDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">{t('completion.results')}:</h4>
-                <div className="relative w-[250px]">
+                <div className="relative w-[250px] 2xl:w-[350px]">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder={t('completion.searchResults', 'Search results...')}
@@ -139,10 +139,10 @@ export function CompletionDialog({
                   />
                 </div>
               </div>
-              <div className="max-h-32 overflow-y-auto border rounded p-2">
+              <div className="max-h-32 2xl:max-h-40 overflow-y-auto border rounded p-2 2xl:p-3">
                 {filteredResults.length > 0 ? (
                   filteredResults.map((result, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
+                    <div key={index} className="flex items-center gap-2 2xl:gap-3 text-sm 2xl:text-base">
                       {result.success ? (
                         <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                       ) : (
@@ -163,7 +163,7 @@ export function CompletionDialog({
           )}
           
           {hasError && (
-            <div className="bg-destructive/20 text-destructive p-3 rounded text-sm">
+            <div className="bg-destructive/20 text-destructive p-3 2xl:p-4 rounded text-sm 2xl:text-base">
               {t('completion.errorHint')}
             </div>
           )}

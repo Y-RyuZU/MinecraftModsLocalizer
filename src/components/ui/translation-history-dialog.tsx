@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
 import { ScrollArea } from './scroll-area';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from './table';
-import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw, ArrowUpDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle, XCircle, RefreshCcw, ArrowUpDown, FileText, FolderOpen } from 'lucide-react';
 import { useAppTranslation } from '@/lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@/lib/store';
+import { FileService } from '@/lib/services/file-service';
 
 interface TranslationHistoryDialogProps {
   open: boolean;
@@ -86,7 +87,7 @@ const calculateSessionStats = (summary: TranslationSummary): { totalTranslations
   };
 };
 
-function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary }) {
+function SessionDetailsRow({ sessionSummary, onViewLogs }: { sessionSummary: SessionSummary; onViewLogs: (sessionId: string) => void }) {
   const { t } = useAppTranslation();
   const { summary } = sessionSummary;
   
@@ -129,6 +130,18 @@ function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary 
     <TableRow className="bg-muted/30">
       <TableCell colSpan={5} className="p-6">
         <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h4 className="text-lg font-semibold">{t('history.sessionDetails', 'Session Details')}</h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewLogs(sessionSummary.sessionId)}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              {t('history.viewLogs', 'View Logs')}
+            </Button>
+          </div>
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
@@ -159,11 +172,12 @@ function SessionDetailsRow({ sessionSummary }: { sessionSummary: SessionSummary 
   );
 }
 
-function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: { 
+function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession, onViewLogs }: { 
   sessionSummary: SessionSummary; 
   onToggle: () => void; 
   minecraftDir: string;
   updateSession: (sessionId: string, updates: Partial<SessionSummary>) => void;
+  onViewLogs: (sessionId: string) => void;
 }) {
   const { t } = useAppTranslation();
   
@@ -254,7 +268,7 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: {
       </TableRow>
       
       {sessionSummary.expanded && (
-        <SessionDetailsRow sessionSummary={sessionSummary} />
+        <SessionDetailsRow sessionSummary={sessionSummary} onViewLogs={onViewLogs} />
       )}
     </>
   );
@@ -262,20 +276,38 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession }: {
 
 export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHistoryDialogProps) {
   const { t } = useAppTranslation();
-  const config = useAppStore(state => state.config);
+  const profileDirectory = useAppStore(state => state.profileDirectory);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'sessionId', direction: 'desc' });
+  const [sessionLogDialogOpen, setSessionLogDialogOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [sessionLogContent, setSessionLogContent] = useState<string>('');
+  const [loadingSessionLog, setLoadingSessionLog] = useState(false);
+  const [sessionLogError, setSessionLogError] = useState<string | null>(null);
+  const [historyDirectory, setHistoryDirectory] = useState<string>('');
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const minecraftDir = config.paths.minecraftDir || '';
+      // Use historyDirectory if set, otherwise fall back to profileDirectory
+      const minecraftDir = historyDirectory || profileDirectory;
+      
+      if (!minecraftDir) {
+        setError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
+        return;
+      }
+      
+      // Extract the actual path if it has the NATIVE_DIALOG prefix
+      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
+        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
+        : minecraftDir;
+      
       const sessionList = await invoke<string[]>('list_translation_sessions', {
-        minecraftDir
+        minecraftDir: actualPath
       });
       
       const sessionSummaries: SessionSummary[] = sessionList.map(sessionId => ({
@@ -296,13 +328,41 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     } finally {
       setLoading(false);
     }
-  }, [config.paths.minecraftDir]);
+  }, [historyDirectory, profileDirectory, t]);
 
   useEffect(() => {
     if (open) {
+      // Use existing profileDirectory as fallback if historyDirectory is not set
+      if (!historyDirectory && profileDirectory) {
+        setHistoryDirectory(profileDirectory);
+      }
       loadSessions();
     }
-  }, [open, loadSessions]);
+  }, [open, loadSessions, historyDirectory, profileDirectory]);
+  
+  // Handle directory selection for history
+  const handleSelectHistoryDirectory = async () => {
+    try {
+      const selected = await FileService.openDirectoryDialog('Select Profile Directory for History');
+      if (selected) {
+        // Validate the directory path
+        if (!selected.trim()) {
+          setError(t('errors.invalidDirectory', 'Invalid directory selected'));
+          return;
+        }
+        
+        setHistoryDirectory(selected);
+        setError(null);
+        
+        // Automatically reload sessions with new directory
+        loadSessions();
+      }
+    } catch (error) {
+      console.error('Failed to select history directory:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+    }
+  };
 
   const handleToggleSession = (sessionId: string) => {
     setSessions(prev => prev.map(session => 
@@ -320,28 +380,64 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     ));
   };
 
+  const handleViewLogs = useCallback(async (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setSessionLogDialogOpen(true);
+    setLoadingSessionLog(true);
+    setSessionLogError(null);
+    setSessionLogContent('');
+
+    try {
+      // Use historyDirectory if set, otherwise fall back to profileDirectory
+      const minecraftDir = historyDirectory || profileDirectory;
+      
+      if (!minecraftDir) {
+        setSessionLogError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
+        return;
+      }
+      
+      // Extract the actual path if it has the NATIVE_DIALOG prefix
+      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
+        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
+        : minecraftDir;
+      
+      const logContent = await invoke<string>('read_session_log', {
+        minecraftDir: actualPath,
+        sessionId
+      });
+      setSessionLogContent(logContent);
+    } catch (err) {
+      console.error('Failed to load session log:', err);
+      setSessionLogError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoadingSessionLog(false);
+    }
+  }, [historyDirectory, profileDirectory, t]);
+
   const handleSort = (field: SortField) => {
     const direction = sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
     setSortConfig({ field, direction });
   };
 
-  const sortedSessions = [...sessions].sort((a, b) => {
-    const { field, direction } = sortConfig;
-    const multiplier = direction === 'asc' ? 1 : -1;
-    
-    switch (field) {
-      case 'sessionId':
-        return (a.timestamp.getTime() - b.timestamp.getTime()) * multiplier;
-      case 'language':
-        return a.language.localeCompare(b.language) * multiplier;
-      case 'totalTranslations':
-        return (a.totalTranslations - b.totalTranslations) * multiplier;
-      case 'successRate':
-        return (a.successRate - b.successRate) * multiplier;
-      default:
-        return 0;
-    }
-  });
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      const { field, direction } = sortConfig;
+      const multiplier = direction === 'asc' ? 1 : -1;
+      
+      switch (field) {
+        case 'sessionId':
+          return (a.timestamp.getTime() - b.timestamp.getTime()) * multiplier;
+        case 'language':
+          return a.language.localeCompare(b.language) * multiplier;
+        case 'totalTranslations':
+          return (a.totalTranslations - b.totalTranslations) * multiplier;
+        case 'successRate':
+          return (a.successRate - b.successRate) * multiplier;
+        default:
+          return 0;
+      }
+    });
+  }, [sessions, sortConfig]);
 
   const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <button
@@ -355,9 +451,29 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-full max-h-[85vh] overflow-hidden sm:max-w-[95vw]">
+      <DialogContent className="max-w-[90vw] w-full max-h-[85vh] 2xl:max-h-[90vh] overflow-hidden sm:max-w-[85vw] 2xl:max-w-[1600px]">
         <DialogHeader>
-          <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
+          <div className="flex flex-col space-y-4">
+            <DialogTitle>{t('settings.backup.translationHistory', 'Translation History')}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectHistoryDirectory}
+                className="flex items-center gap-2"
+              >
+                <FolderOpen className="h-4 w-4" />
+                {t('buttons.selectProfileDirectory', 'Select Profile Directory')}
+              </Button>
+              {(historyDirectory || profileDirectory) && (
+                <div className="text-sm text-muted-foreground">
+                  {t('misc.selectedDirectory')} {((historyDirectory || profileDirectory) || '').startsWith('NATIVE_DIALOG:')
+                    ? ((historyDirectory || profileDirectory) || '').substring('NATIVE_DIALOG:'.length)
+                    : (historyDirectory || profileDirectory)}
+                </div>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 overflow-hidden">
@@ -383,7 +499,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
 
           {!loading && !error && sessions.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
-              <ScrollArea className="h-[60vh] min-h-[400px] w-full overflow-auto">
+              <ScrollArea className="h-[60vh] min-h-[400px] 2xl:h-[70vh] 2xl:min-h-[500px] w-full overflow-auto">
                 <div className="min-w-[1000px]">
                   <Table>
                   <TableHeader>
@@ -411,8 +527,11 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
                         key={sessionSummary.sessionId}
                         sessionSummary={sessionSummary}
                         onToggle={() => handleToggleSession(sessionSummary.sessionId)}
-                        minecraftDir={config.paths.minecraftDir || ''}
+                        minecraftDir={(historyDirectory || profileDirectory || '').startsWith('NATIVE_DIALOG:') 
+                          ? (historyDirectory || profileDirectory || '').substring('NATIVE_DIALOG:'.length)
+                          : (historyDirectory || profileDirectory || '')}
                         updateSession={updateSession}
+                        onViewLogs={handleViewLogs}
                       />
                     ))}
                   </TableBody>
@@ -437,6 +556,55 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Session Log Dialog */}
+      <Dialog open={sessionLogDialogOpen} onOpenChange={setSessionLogDialogOpen}>
+        <DialogContent className="max-w-[90vw] w-full max-h-[85vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {t('history.sessionLogs', 'Session Logs')} - {selectedSessionId ? formatSessionId(selectedSessionId) : ''}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 overflow-hidden">
+            {loadingSessionLog && (
+              <div className="text-center py-8">
+                <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+              </div>
+            )}
+
+            {sessionLogError && (
+              <div className="text-center py-8 text-red-500">
+                <p>{t('errors.failedToLoadLogs', 'Failed to load session logs')}</p>
+                <p className="text-sm mt-2">{sessionLogError}</p>
+              </div>
+            )}
+
+            {!loadingSessionLog && !sessionLogError && sessionLogContent && (
+              <div className="border rounded-lg overflow-hidden">
+                <ScrollArea className="h-[60vh] min-h-[400px] w-full">
+                  <pre className="p-4 text-sm font-mono whitespace-pre-wrap text-left">
+                    {sessionLogContent}
+                  </pre>
+                </ScrollArea>
+              </div>
+            )}
+
+            {!loadingSessionLog && !sessionLogError && !sessionLogContent && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>{t('history.noLogsFound', 'No logs found for this session')}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setSessionLogDialogOpen(false)}>
+              {t('common.close', 'Close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

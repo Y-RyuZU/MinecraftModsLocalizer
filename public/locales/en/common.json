@@ -57,6 +57,10 @@
       "fallback": "Fallback to Entry-Based",
       "fallbackHint": "Use entry-based chunking if token estimation fails"
     },
+    "skipExistingTranslations": {
+      "title": "Skip when translations exist",
+      "hint": "Skip items that already have target language files (Mods, Quests, Guidebooks only)"
+    },
     "typicalLocation": "Typical location",
     "pathSettings": "Path Settings",
     "minecraftDirectory": "Minecraft Directory",
@@ -173,8 +177,17 @@
     "selectProfileDirectoryFirst": "Please select a profile directory first",
     "noTargetLanguageSelected": "No target language selected. Please select a target language from the dropdown in the translation tab.",
     "translationInProgress": "Translation in Progress",
-    "cannotSwitchTabs": "Cannot switch tabs while translation is in progress. Please wait for the current translation to complete or cancel it.",
-    "failedToLoad": "Failed to load"
+    "scanInProgress": "Scan in Progress",
+    "cannotSwitchTabs": "Cannot switch tabs while operation is in progress. Please wait for it to complete.",
+    "failedToLoad": "Failed to load",
+    "directoryNotFound": "Directory not found: {{path}}",
+    "modsDirectoryNotFound": "Mods directory not found: {{path}}. Please select a valid Minecraft profile directory.",
+    "questsDirectoryNotFound": "Quests directory not found: {{path}}. Please select a valid Minecraft profile directory containing quest files.",
+    "guidebooksDirectoryNotFound": "Guidebooks directory not found: {{path}}. Please select a valid Minecraft profile directory containing guidebook files.",
+    "customFilesDirectoryNotFound": "Custom files directory not found: {{path}}. Please select a valid directory containing JSON or SNBT files.",
+    "profileDirectoryNotFound": "Profile directory not found: {{path}}. Please select a valid Minecraft profile directory.",
+    "failedToLoadLogs": "Failed to load session logs",
+    "noMinecraftDir": "Minecraft directory is not set. Please configure it in settings."
   },
   "info": {
     "translationCancelled": "Translation cancelled by user"
@@ -240,7 +253,11 @@
       "failed": "Failed",
       "pending": "Pending",
       "in_progress": "In Progress"
-    }
+    },
+    "sessionDetails": "Session Details",
+    "viewLogs": "View Logs",
+    "sessionLogs": "Session Logs",
+    "noLogsFound": "No logs found for this session"
   },
   "update": {
     "title": "Update Available",

@@ -8,10 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent } from "@/components/ui/card";
 import { LLMSettings } from "@/components/settings/llm-settings";
 import { TranslationSettings } from "@/components/settings/translation-settings";
-import { PathSettings } from "@/components/settings/path-settings";
 import { useAppStore } from "@/lib/store";
 import { ConfigService } from "@/lib/services/config-service";
-import { FileService } from "@/lib/services/file-service";
 import { toast } from "sonner";
 
 export function SettingsDialog() {
@@ -69,19 +67,6 @@ export function SettingsDialog() {
     }
   };
   
-  // Select directory
-  const handleSelectDirectory = async (path: keyof typeof config.paths) => {
-    try {
-      const selected = await FileService.openDirectoryDialog(`Select ${path.replace('_', ' ')} Directory`);
-      
-      if (selected) {
-        config.paths[path] = selected;
-        setConfig({ ...config });
-      }
-    } catch (error) {
-      console.error(`Failed to select ${path} directory:`, error);
-    }
-  };
 
   return (
     <>
@@ -100,7 +85,7 @@ export function SettingsDialog() {
         }
         setIsDialogOpen(open);
       }}>
-        <DialogContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-5xl 2xl:max-w-7xl max-h-[80vh] 2xl:max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('cards.settings')}</DialogTitle>
           </DialogHeader>
@@ -119,8 +104,6 @@ export function SettingsDialog() {
             {/* Translation Settings */}
             <TranslationSettings config={config} setConfig={setConfig} />
             
-            {/* Path Settings */}
-            <PathSettings config={config} onSelectDirectory={handleSelectDirectory} />
             
             {/* Reset Button */}
             <Card>

@@ -151,7 +151,7 @@ export class ConfigService {
       }
       
       // Migrate legacy apiKey to provider-specific keys
-      this.config = this.migrateApiKeys(this.config);
+      this.config = ConfigService.migrateApiKeys(this.config);
       
       this.loaded = true;
     } catch (error) {
@@ -310,6 +310,7 @@ export class ConfigService {
     
     return config;
   }
+
 }
 
 /**
@@ -347,13 +348,6 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
     },
     ui: {
       theme: config.ui.theme
-    },
-    paths: {
-      minecraft_dir: config.paths.minecraftDir,
-      mods_dir: config.paths.modsDir,
-      resource_packs_dir: config.paths.resourcePacksDir,
-      config_dir: config.paths.configDir,
-      logs_dir: config.paths.logsDir
     }
   };
 }
@@ -367,7 +361,6 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
   const llm = backendConfig.llm as Record<string, unknown> | undefined;
   const translation = backendConfig.translation as Record<string, unknown> | undefined;
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
-  const paths = backendConfig.paths as Record<string, unknown> | undefined;
 
   // Parse api_keys if it exists
   const apiKeys = llm?.api_keys as Record<string, string> | undefined;
@@ -402,12 +395,8 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
     ui: {
       theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme
     },
-    paths: {
-      minecraftDir: (paths?.minecraft_dir as string) || DEFAULT_CONFIG.paths.minecraftDir,
-      modsDir: (paths?.mods_dir as string) || DEFAULT_CONFIG.paths.modsDir,
-      resourcePacksDir: (paths?.resource_packs_dir as string) || DEFAULT_CONFIG.paths.resourcePacksDir,
-      configDir: (paths?.config_dir as string) || DEFAULT_CONFIG.paths.configDir,
-      logsDir: (paths?.logs_dir as string) || DEFAULT_CONFIG.paths.logsDir
+    update: {
+      checkOnStartup: DEFAULT_CONFIG.update?.checkOnStartup || false
     }
   };
 }

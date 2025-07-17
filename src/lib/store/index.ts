@@ -11,6 +11,10 @@ interface AppState {
   setConfig: (config: AppConfig) => void;
   updateConfig: (partialConfig: Partial<AppConfig>) => void;
   
+  // Profile directory
+  profileDirectory: string;
+  setProfileDirectory: (directory: string) => void;
+  
   // Translation targets - separated by type
   modTranslationTargets: TranslationTarget[];
   questTranslationTargets: TranslationTarget[];
@@ -94,6 +98,20 @@ interface AppState {
   isCompletionDialogOpen: boolean;
   setCompletionDialogOpen: (isOpen: boolean) => void;
   resetTranslationState: () => void;
+  
+  // Scanning state
+  isScanning: boolean;
+  setScanning: (isScanning: boolean) => void;
+  
+  // Scan progress state
+  scanProgress: {
+    currentFile: string;
+    processedCount: number;
+    totalCount?: number;
+    scanType?: string;
+  };
+  setScanProgress: (progress: Partial<{currentFile: string; processedCount: number; totalCount?: number; scanType?: string}>) => void;
+  resetScanProgress: () => void;
 }
 
 /**
@@ -107,6 +125,10 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ 
       config: { ...state.config, ...partialConfig } 
     })),
+  
+  // Profile directory
+  profileDirectory: '',
+  setProfileDirectory: (directory) => set({ profileDirectory: directory }),
   
   // Translation targets - separated by type
   modTranslationTargets: [],
@@ -375,6 +397,29 @@ export const useAppStore = create<AppState>((set) => ({
   setLogDialogOpen: (isOpen) => set({ isLogDialogOpen: isOpen }),
   isCompletionDialogOpen: false,
   setCompletionDialogOpen: (isOpen) => set({ isCompletionDialogOpen: isOpen }),
+  
+  // Scanning state
+  isScanning: false,
+  setScanning: (isScanning) => set({ isScanning }),
+  
+  // Scan progress state
+  scanProgress: {
+    currentFile: '',
+    processedCount: 0,
+    totalCount: undefined,
+    scanType: undefined,
+  },
+  setScanProgress: (progress) => set((state) => ({
+    scanProgress: { ...state.scanProgress, ...progress }
+  })),
+  resetScanProgress: () => set({
+    scanProgress: {
+      currentFile: '',
+      processedCount: 0,
+      totalCount: undefined,
+      scanType: undefined,
+    }
+  }),
   
   // Reset translation state for new translation workflow
   resetTranslationState: () => set({
