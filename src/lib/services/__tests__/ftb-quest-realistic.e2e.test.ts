@@ -303,9 +303,9 @@ describe('FTB Quest Translation - Realistic E2E', () => {
             return Promise.resolve(content || '');
           
           case 'write_text_file':
-            // For JSON keys, should create language-suffixed file
-            if (args.path.includes('localized_quest.ja_jp.snbt')) {
-              // Keys should remain unchanged
+            // For SNBT files, should modify original file in-place
+            if (args.path.includes('localized_quest.snbt') && !args.path.includes('ja_jp')) {
+              // Keys should remain unchanged for JSON key reference files
               expect(args.content).toContain('ftbquests.chapter.tutorial.title');
               expect(args.content).toContain('ftbquests.quest.tutorial.first.title');
               expect(args.content).not.toContain('チュートリアル'); // No direct translation in SNBT
@@ -329,15 +329,15 @@ describe('FTB Quest Translation - Realistic E2E', () => {
         path: '/test/modpack/config/ftbquests/quests/chapters/localized_quest.snbt'
       });
 
-      // For JSON keys, content should be preserved as-is
+      // For JSON keys, content should be preserved as-is and written to original file
       // Translation would happen in the corresponding lang file, not the SNBT
       await FileService.invoke<boolean>('write_text_file', {
-        path: '/test/modpack/config/ftbquests/quests/chapters/localized_quest.ja_jp.snbt',
+        path: '/test/modpack/config/ftbquests/quests/chapters/localized_quest.snbt',
         content: originalContent // Keys preserved
       });
 
       expect(mockInvoke).toHaveBeenCalledWith('write_text_file', {
-        path: '/test/modpack/config/ftbquests/quests/chapters/localized_quest.ja_jp.snbt',
+        path: '/test/modpack/config/ftbquests/quests/chapters/localized_quest.snbt',
         content: expect.stringContaining('ftbquests.chapter.tutorial.title')
       });
     });

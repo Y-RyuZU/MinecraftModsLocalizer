@@ -10,6 +10,7 @@ import { useAppTranslation } from '@/lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@/lib/store';
 import { FileService } from '@/lib/services/file-service';
+import { UnifiedLogViewer } from './unified-log-viewer';
 
 interface TranslationHistoryDialogProps {
   open: boolean;
@@ -283,9 +284,6 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'sessionId', direction: 'desc' });
   const [sessionLogDialogOpen, setSessionLogDialogOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [sessionLogContent, setSessionLogContent] = useState<string>('');
-  const [loadingSessionLog, setLoadingSessionLog] = useState(false);
-  const [sessionLogError, setSessionLogError] = useState<string | null>(null);
   const [historyDirectory, setHistoryDirectory] = useState<string>('');
 
   const loadSessions = useCallback(async () => {
@@ -380,39 +378,10 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     ));
   };
 
-  const handleViewLogs = useCallback(async (sessionId: string) => {
+  const handleViewLogs = useCallback((sessionId: string) => {
     setSelectedSessionId(sessionId);
     setSessionLogDialogOpen(true);
-    setLoadingSessionLog(true);
-    setSessionLogError(null);
-    setSessionLogContent('');
-
-    try {
-      // Use historyDirectory if set, otherwise fall back to profileDirectory
-      const minecraftDir = historyDirectory || profileDirectory;
-      
-      if (!minecraftDir) {
-        setSessionLogError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
-        return;
-      }
-      
-      // Extract the actual path if it has the NATIVE_DIALOG prefix
-      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
-        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
-        : minecraftDir;
-      
-      const logContent = await invoke<string>('read_session_log', {
-        minecraftDir: actualPath,
-        sessionId
-      });
-      setSessionLogContent(logContent);
-    } catch (err) {
-      console.error('Failed to load session log:', err);
-      setSessionLogError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoadingSessionLog(false);
-    }
-  }, [historyDirectory, profileDirectory, t]);
+  }, []);
 
   const handleSort = (field: SortField) => {
     const direction = sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -557,54 +526,15 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
         </DialogFooter>
       </DialogContent>
 
-      {/* Session Log Dialog */}
-      <Dialog open={sessionLogDialogOpen} onOpenChange={setSessionLogDialogOpen}>
-        <DialogContent className="max-w-[90vw] w-full max-h-[85vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {t('history.sessionLogs', 'Session Logs')} - {selectedSessionId ? formatSessionId(selectedSessionId) : ''}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 overflow-hidden">
-            {loadingSessionLog && (
-              <div className="text-center py-8">
-                <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
-              </div>
-            )}
-
-            {sessionLogError && (
-              <div className="text-center py-8 text-red-500">
-                <p>{t('errors.failedToLoadLogs', 'Failed to load session logs')}</p>
-                <p className="text-sm mt-2">{sessionLogError}</p>
-              </div>
-            )}
-
-            {!loadingSessionLog && !sessionLogError && sessionLogContent && (
-              <div className="border rounded-lg overflow-hidden">
-                <ScrollArea className="h-[60vh] min-h-[400px] w-full">
-                  <pre className="p-4 text-sm font-mono whitespace-pre-wrap text-left">
-                    {sessionLogContent}
-                  </pre>
-                </ScrollArea>
-              </div>
-            )}
-
-            {!loadingSessionLog && !sessionLogError && !sessionLogContent && (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>{t('history.noLogsFound', 'No logs found for this session')}</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setSessionLogDialogOpen(false)}>
-              {t('common.close', 'Close')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Session Log Dialog using Unified Log Viewer */}
+      <UnifiedLogViewer
+        open={sessionLogDialogOpen}
+        onOpenChange={setSessionLogDialogOpen}
+        mode="historical"
+        sessionId={selectedSessionId || undefined}
+        minecraftDir={historyDirectory || profileDirectory}
+        title={selectedSessionId ? `${t('history.sessionLogs', 'Session Logs')} - ${formatSessionId(selectedSessionId)}` : undefined}
+      />
     </Dialog>
   );
 }

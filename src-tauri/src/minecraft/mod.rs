@@ -893,22 +893,18 @@ pub async fn check_quest_translation_exists(
         .ok_or("Failed to get file stem")?
         .to_string_lossy();
 
-    // Check for translated file with language suffix (for JSON key reference files)
-    let translated_snbt = parent.join(format!(
-        "{}.{}.snbt",
-        file_stem,
-        target_language.to_lowercase()
-    ));
+    // Check for translated file with language suffix (only for non-SNBT files)
     let translated_json = parent.join(format!(
         "{}.{}.json",
         file_stem,
         target_language.to_lowercase()
     ));
 
-    // Note: For direct text SNBT files that are translated in-place,
-    // we cannot reliably detect if they are already translated because
-    // the filename remains the same. This is intentional behavior.
-    Ok(translated_snbt.exists() || translated_json.exists())
+    // Note: SNBT files are always translated in-place and cannot be detected
+    // as already translated by filename. This is intentional behavior to
+    // maintain Minecraft compatibility.
+    // Only check for JSON files with language suffix.
+    Ok(translated_json.exists())
 }
 
 /// Check if a translation exists for a Patchouli guidebook

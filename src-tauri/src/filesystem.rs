@@ -336,29 +336,10 @@ pub async fn get_ftb_quest_files_with_language(
                                 last_emit = Instant::now();
                             }
 
-                            // Check if the file is an SNBT file and not already translated
+                            // Check if the file is an SNBT file
                             if entry_path.is_file()
                                 && entry_path.extension().is_some_and(|ext| ext == "snbt")
                             {
-                                // Skip files that already have language suffixes (e.g., filename.ja_jp.snbt)
-                                if let Some(file_name) =
-                                    entry_path.file_name().and_then(|n| n.to_str())
-                                {
-                                    // Pattern to match language suffixes like .ja_jp.snbt, .zh_cn.snbt, etc.
-                                    if file_name.contains(".ja_jp.")
-                                        || file_name.contains(".zh_cn.")
-                                        || file_name.contains(".ko_kr.")
-                                        || file_name.contains(".de_de.")
-                                        || file_name.contains(".fr_fr.")
-                                        || file_name.contains(".es_es.")
-                                        || file_name.contains(".it_it.")
-                                        || file_name.contains(".pt_br.")
-                                        || file_name.contains(".ru_ru.")
-                                    {
-                                        debug!("Skipping already translated file: {file_name}");
-                                        continue;
-                                    }
-                                }
 
                                 match entry_path.to_str() {
                                     Some(path_str) => quest_files.push(path_str.to_string()),

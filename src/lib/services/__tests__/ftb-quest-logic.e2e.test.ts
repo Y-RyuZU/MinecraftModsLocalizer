@@ -402,8 +402,8 @@ describe('FTB Quest Translation Logic E2E', () => {
         getOutputPath: () => '/test/modpack/config/ftbquests/quests/chapters/mining.snbt',
         getResultContent: () => ({}),
         writeOutput: async (job, outputPath, content) => {
-          // For JSON key references, should create language-suffixed file
-          expect(outputPath).toBe('/test/modpack/config/ftbquests/quests/chapters/mining.ja_jp.snbt');
+          // For SNBT files, should modify original file in-place
+          expect(outputPath).toBe('/test/modpack/config/ftbquests/quests/chapters/mining.snbt');
           
           // Verify the keys are preserved (not translated)
           expect(content).toContain('ftbquests.quest.mining.title');

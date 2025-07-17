@@ -420,13 +420,13 @@ export function QuestsTab() {
                             basePath = basePath.replace(languagePattern, `.${fileExtension}`);
                         }
                         
-                        // For SNBT files with direct content (not using KubeJS), modify the original file
-                        if (fileExtension === 'snbt' && questData.contentType === 'direct_text' && !questData.hasKubeJSFiles) {
-                            // Direct SNBT files with real text should be modified in-place
+                        // For SNBT files, always modify the original file in-place
+                        if (fileExtension === 'snbt') {
+                            // All SNBT files should be modified in-place to maintain Minecraft compatibility
                             outputFilePath = basePath;
-                            console.log(`Direct SNBT translation: ${outputFilePath}`);
+                            console.log(`SNBT translation (in-place): ${outputFilePath}`);
                         } else {
-                            // For JSON key-based SNBT files, lang files, and KubeJS files, add language suffix
+                            // For non-SNBT files (lang files, etc.), add language suffix
                             const lastDotIndex = basePath.lastIndexOf('.');
                             if (lastDotIndex !== -1) {
                                 outputFilePath = basePath.substring(0, lastDotIndex) + `.${targetLanguage}` + basePath.substring(lastDotIndex);
@@ -434,7 +434,7 @@ export function QuestsTab() {
                                 // Fallback if no extension found
                                 outputFilePath = `${basePath}.${targetLanguage}.${fileExtension}`;
                             }
-                            console.log(`Key-based or lang file translation: ${outputFilePath}`);
+                            console.log(`Non-SNBT file translation: ${outputFilePath}`);
                         }
                     }
                     
