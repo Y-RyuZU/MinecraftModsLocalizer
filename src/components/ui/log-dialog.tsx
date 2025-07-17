@@ -213,13 +213,8 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     });
   };
   
-  // Reset logs when translation starts
-  useEffect(() => {
-    if (isTranslating) {
-      // Reset logs when translation starts
-      setLogs([]);
-    }
-  }, [isTranslating]);
+  // Note: We don't reset logs when translation starts anymore
+  // This allows users to see logs from previous translations
   
   // Effect to listen for log events from Tauri
   useEffect(() => {

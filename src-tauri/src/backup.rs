@@ -360,9 +360,21 @@ pub async fn get_translation_summary(
         .join("translation_summary.json");
 
     if !summary_path.exists() {
-        return Err(format!(
-            "Translation summary not found for session: {session_id}"
-        ));
+        // Check if the session directory exists
+        let session_dir = summary_path.parent().unwrap();
+        if session_dir.exists() {
+            // Session exists but no translations completed yet
+            // Return empty summary
+            return Ok(TranslationSummary {
+                lang: "unknown".to_string(),
+                translations: Vec::new(),
+            });
+        } else {
+            // Session directory doesn't exist
+            return Err(format!(
+                "Session not found: {session_id}"
+            ));
+        }
     }
 
     // Read and parse the JSON file
