@@ -345,7 +345,8 @@ export function TranslationTab({
 
             // Create a new logs directory for the entire translation session
             try {
-                // Note: We don't clear existing logs here to preserve translation history
+                // Clear in-memory log buffer for new session (file logs are preserved)
+                await invoke('clear_logs');
 
                 // Generate a unique session ID for this translation job
                 const sessionId = await invoke<string>('generate_session_id');

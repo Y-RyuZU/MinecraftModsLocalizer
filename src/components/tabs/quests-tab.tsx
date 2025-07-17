@@ -390,11 +390,20 @@ export function QuestsTab() {
                             basePath = basePath.replace(languagePattern, `.${fileExtension}`);
                         }
                         
-                        // Now add the new language suffix
-                        outputFilePath = basePath.replace(
-                            `.${fileExtension}`,
-                            `.${targetLanguage}.${fileExtension}`
-                        );
+                        // For SNBT files with direct content (not using KubeJS), modify the original file
+                        if (fileExtension === 'snbt' && !questData.hasKubeJSFiles) {
+                            // Direct SNBT files should be modified in-place, no suffix needed
+                            outputFilePath = basePath;
+                        } else {
+                            // For JSON and lang files, add language suffix
+                            const lastDotIndex = basePath.lastIndexOf('.');
+                            if (lastDotIndex !== -1) {
+                                outputFilePath = basePath.substring(0, lastDotIndex) + `.${targetLanguage}` + basePath.substring(lastDotIndex);
+                            } else {
+                                // Fallback if no extension found
+                                outputFilePath = `${basePath}.${targetLanguage}.${fileExtension}`;
+                            }
+                        }
                     }
                     
                     await FileService.writeTextFile(outputFilePath, translatedText);
