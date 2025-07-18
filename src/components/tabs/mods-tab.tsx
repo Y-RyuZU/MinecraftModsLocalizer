@@ -90,7 +90,7 @@ export function ModsTab() {
   }, [setScanProgress, resetScanProgress]);
 
   // Scan for mods
-  const handleScan = async (directory: string) => {
+  const handleScan = async (directory: string, targetLanguage?: string) => {
     try {
       setScanning(true);
       
@@ -136,6 +136,20 @@ export function ModsTab() {
           // Calculate relative path (cross-platform)
           const relativePath = getRelativePath(modFile, modsDirectory);
             
+          // Check for existing translation if target language is provided
+          let hasExistingTranslation = false;
+          if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+            try {
+              hasExistingTranslation = await FileService.invoke<boolean>("check_mod_translation_exists", {
+                modPath: modFile,
+                modId: modInfo.id,
+                targetLanguage: targetLanguage
+              });
+            } catch (error) {
+              console.error(`Failed to check existing translation for ${modInfo.name}:`, error);
+            }
+          }
+          
           targets.push({
             type: "mod",
             id: modInfo.id,
@@ -143,7 +157,8 @@ export function ModsTab() {
             path: modFile, // Keep the full path for internal use
             relativePath: relativePath, // Add relative path for display
             selected: true,
-            langFormat: modInfo.langFormat || "json" // Store the language file format
+            langFormat: modInfo.langFormat || "json", // Store the language file format
+            hasExistingTranslation
           });
         }
       } catch (error) {
@@ -203,20 +218,10 @@ export function ModsTab() {
     selectedDirectory: string,
     sessionId: string
   ) => {
+    
     // Sort targets alphabetically by name for predictable processing order
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-    // Always set resource packs directory to <selectedDirectory>/resourcepacks
-    const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
-
-    // Ensure resource pack name is always set
-    const resourcePackName = config.translation.resourcePackName || "MinecraftModsLocalizer";
-    // Create resource pack
-    const resourcePackDir = await FileService.createResourcePack(
-      resourcePackName,
-      targetLanguage,
-      resourcePacksDir
-    );
-
+    
     // Reset progress tracking
     setCompletedMods(0);
     setCompletedChunks(0);
@@ -227,6 +232,11 @@ export function ModsTab() {
     let totalChunksCount = 0;
     const jobs = [];
     let skippedCount = 0;
+    
+    // Resource pack variables - will be created only if needed
+    let resourcePackDir: string | null = null;
+    const resourcePacksDir = selectedDirectory.replace(/[/\\]+$/, "") + "/resourcepacks";
+    const resourcePackName = config.translation.resourcePackName || "MinecraftModsLocalizer";
     
     for (const target of sortedTargets) {
       try {
@@ -296,6 +306,37 @@ export function ModsTab() {
       }
     }
 
+    // Early exit if all mods were skipped
+    if (jobs.length === 0) {
+      // Log summary with improved format
+      try {
+        await invoke('log_translation_process', { 
+          message: `Translation summary: Selected: ${sortedTargets.length}, Translated: 0, Skipped: ${skippedCount}`, 
+          processType: "TRANSLATION" 
+        });
+        
+        if (skippedCount > 0) {
+          await invoke('log_translation_process', { 
+            message: `All selected mods already have translations. No new translations created.`, 
+            processType: "TRANSLATION" 
+          });
+        }
+      } catch {
+        // ignore logging errors
+      }
+      
+      // Set translation as complete
+      setTranslating(false);
+      return;
+    }
+
+    // Create resource pack only when we have mods to translate
+    resourcePackDir = await FileService.createResourcePack(
+      resourcePackName,
+      targetLanguage,
+      resourcePacksDir
+    );
+
     // Use mod-level progress tracking: denominator = actual jobs, numerator = completed mods
     // This ensures progress reaches 100% when all translatable mods are processed
     setTotalMods(jobs.length);
@@ -310,10 +351,8 @@ export function ModsTab() {
     
     // Use the session ID provided by the common translation tab
     const minecraftDir = selectedDirectory;
-    const sessionPath = await invoke<string>('create_logs_directory_with_session', {
-      minecraftDir: minecraftDir,
-      sessionId: sessionId
-    });
+    // Session path is already created by the common translation tab, just construct it
+    const sessionPath = `${minecraftDir}/logs/localizer/${sessionId}`;
 
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");
@@ -328,7 +367,7 @@ export function ModsTab() {
         targetLanguage,
         type: "mod",
         sessionId,
-        getOutputPath: () => resourcePackDir,
+        getOutputPath: () => resourcePackDir!,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
           // Find the target to get the langFormat
@@ -375,16 +414,15 @@ export function ModsTab() {
         // Don't fail the translation if backup fails
       }
       
-      // Log skipped items summary
-      if (skippedCount > 0) {
-        try {
-          await invoke('log_translation_process', { 
-            message: `Translation completed. Skipped ${skippedCount} mods that already have translations.`, 
-            processType: "TRANSLATION" 
-          });
-        } catch {
-          // ignore logging errors
-        }
+      // Log improved summary
+      try {
+        const translatedCount = jobs.length;
+        await invoke('log_translation_process', { 
+          message: `Translation summary: Selected: ${sortedTargets.length}, Translated: ${translatedCount}, Skipped: ${skippedCount}`, 
+          processType: "TRANSLATION" 
+        });
+      } catch {
+        // ignore logging errors
       }
     } finally {
       setTranslating(false);
@@ -421,6 +459,22 @@ export function ModsTab() {
             }`}>
               {target.langFormat?.toUpperCase() || 'JSON'}
             </span>
+          )
+        },
+        {
+          key: "hasExistingTranslation",
+          label: "Translation",
+          className: "w-24",
+          render: (target) => (
+            target.hasExistingTranslation !== undefined ? (
+              <span className={`px-2 py-1 text-xs rounded ${
+                target.hasExistingTranslation
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+              }`}>
+                {target.hasExistingTranslation ? 'Exists' : 'New'}
+              </span>
+            ) : null
           )
         }
       ]}

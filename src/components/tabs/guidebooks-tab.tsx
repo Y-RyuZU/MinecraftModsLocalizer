@@ -91,7 +91,7 @@ export function GuidebooksTab() {
   }, [setScanProgress, resetScanProgress]);
 
   // Scan for guidebooks
-  const handleScan = async (directory: string) => {
+  const handleScan = async (directory: string, targetLanguage?: string) => {
     try {
       setScanning(true);
       
@@ -146,13 +146,29 @@ export function GuidebooksTab() {
           }
 
           for (const book of books) {
+            // Check for existing translation if target language is provided
+            let hasExistingTranslation = false;
+            if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+              try {
+                hasExistingTranslation = await FileService.invoke<boolean>("check_guidebook_translation_exists", {
+                  guidebookPath: modFile,
+                  modId: book.modId,
+                  bookId: book.id,
+                  targetLanguage: targetLanguage
+                });
+              } catch (error) {
+                console.error(`Failed to check existing translation for ${book.name}:`, error);
+              }
+            }
+            
             targets.push({
               type: "patchouli",
               id: book.id,
               name: `${book.modId}: ${book.name}`,
               path: modFile,
               relativePath: relativePath,
-              selected: true
+              selected: true,
+              hasExistingTranslation
             });
           }
         }
@@ -371,6 +387,22 @@ export function GuidebooksTab() {
           key: "relativePath",
           label: "tables.path",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "hasExistingTranslation",
+          label: "Translation",
+          className: "w-24",
+          render: (target) => (
+            target.hasExistingTranslation !== undefined ? (
+              <span className={`px-2 py-1 text-xs rounded ${
+                target.hasExistingTranslation
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+              }`}>
+                {target.hasExistingTranslation ? 'Exists' : 'New'}
+              </span>
+            ) : null
+          )
         }
       ]}
       config={config}

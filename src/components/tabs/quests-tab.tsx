@@ -93,7 +93,7 @@ export function QuestsTab() {
     }, [setScanProgress, resetScanProgress]);
 
     // Scan for quests
-    const handleScan = async (directory: string) => {
+    const handleScan = async (directory: string, targetLanguage?: string) => {
         try {
             setScanning(true);
             
@@ -144,6 +144,19 @@ export function QuestsTab() {
                 // Calculate relative path (cross-platform)
                 const relativePath = getRelativePath(questFile, directory);
 
+                // Check for existing translation if target language is provided
+                let hasExistingTranslation = false;
+                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+                    try {
+                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
+                            questPath: questFile,
+                            targetLanguage: targetLanguage
+                        });
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${fileName}:`, error);
+                    }
+                }
+
                 targets.push({
                     type: "quest",
                     questFormat: "ftb",
@@ -151,7 +164,8 @@ export function QuestsTab() {
                     name: `FTB Quest ${questNumber}: ${fileName}`,
                     path: questFile,
                     relativePath: relativePath,
-                    selected: true
+                    selected: true,
+                    hasExistingTranslation
                 });
             } catch (error) {
                 console.error(`Failed to analyze FTB quest: ${questFile}`, error);
@@ -183,6 +197,19 @@ export function QuestsTab() {
                     ? `Better Quest (Direct): ${fileName}` 
                     : `Better Quest ${questNumber}: ${fileName}`;
 
+                // Check for existing translation if target language is provided
+                let hasExistingTranslation = false;
+                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+                    try {
+                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
+                            questPath: questFile,
+                            targetLanguage: targetLanguage
+                        });
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${fileName}:`, error);
+                    }
+                }
+
                 targets.push({
                     type: "quest",
                     questFormat: "better",
@@ -190,7 +217,8 @@ export function QuestsTab() {
                     name: questName,
                     path: questFile,
                     relativePath: relativePath,
-                    selected: true
+                    selected: true,
+                    hasExistingTranslation
                 });
             } catch (error) {
                 console.error(`Failed to analyze Better quest: ${questFile}`, error);
@@ -527,6 +555,22 @@ export function QuestsTab() {
                     key: "relativePath",
                     label: "tables.path",
                     render: (target) => target.relativePath || getFileName(target.path)
+                },
+                {
+                    key: "hasExistingTranslation",
+                    label: "Translation",
+                    className: "w-24",
+                    render: (target) => (
+                        target.hasExistingTranslation !== undefined ? (
+                            <span className={`px-2 py-1 text-xs rounded ${
+                                target.hasExistingTranslation
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                            }`}>
+                                {target.hasExistingTranslation ? 'Exists' : 'New'}
+                            </span>
+                        ) : null
+                    )
                 }
             ]}
             config={config}

@@ -977,3 +977,12 @@ pub async fn detect_snbt_content_type(file_path: &str) -> Result<String, String>
         Ok("direct_text".to_string())
     }
 }
+
+// Include tests module
+#[cfg(test)]
+#[path = "mod_translation_test.rs"]
+mod mod_translation_test;
+
+// Debug module
+#[cfg(debug_assertions)]
+pub mod debug_translation_check;

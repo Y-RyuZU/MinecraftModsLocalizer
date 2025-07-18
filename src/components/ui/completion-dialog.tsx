@@ -74,8 +74,8 @@ export function CompletionDialog({
       return t('completion.failedMessage', { type: translatedType });
     } else if (failureCount > 0 && successCount > 0) {
       return t('completion.partialMessage', {
-        successful: successCount,
-        failed: failureCount,
+        completed: successCount,
+        total: successCount + failureCount,
         type: translatedType
       });
     } else {

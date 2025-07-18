@@ -91,7 +91,7 @@ export interface TranslationTabProps {
     };
 
     // Custom handlers
-    onScan: (directory: string) => Promise<void>;
+    onScan: (directory: string, targetLanguage?: string) => Promise<void>;
     onTranslate: (
         selectedTargets: TranslationTarget[],
         targetLanguage: string,
@@ -220,7 +220,7 @@ export function TranslationTab({
                 setTranslationResults([]);
             });
 
-            await onScan(actualPath);
+            await onScan(actualPath, tempTargetLanguage || undefined);
         } catch (error) {
             console.error(`Failed to scan ${tabType}:`, error);
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -299,6 +299,40 @@ export function TranslationTab({
                 setError(t('errors.noTargetLanguageSelected') || "No target language selected");
                 setTranslating(false);
                 return;
+            }
+            
+            // Pre-check for existing translations if skipExistingTranslations is enabled
+            if ((config.translation.skipExistingTranslations ?? true) && tabType === 'mods') {
+                let existingCount = 0;
+                for (const target of selectedTargets) {
+                    try {
+                        const exists = await FileService.invoke<boolean>("check_mod_translation_exists", {
+                            modPath: target.path,
+                            modId: target.id,
+                            targetLanguage: targetLanguage
+                        });
+                        if (exists) {
+                            existingCount++;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${target.name}:`, error);
+                    }
+                }
+                
+                // Show warning if all selected mods already have translations
+                if (existingCount === selectedTargets.length) {
+                    toast.warning(t('warnings.allModsAlreadyTranslated', 'All selected mods already have translations'), {
+                        description: t('warnings.noNewTranslationsNeeded', 'No new translations will be created.'),
+                        duration: 5000
+                    });
+                    setTranslating(false);
+                    return;
+                } else if (existingCount > 0) {
+                    toast.info(t('info.someModsAlreadyTranslated', `${existingCount} of ${selectedTargets.length} mods already have translations`), {
+                        description: t('info.willSkipExisting', 'These will be skipped.'),
+                        duration: 3000
+                    });
+                }
             }
 
             // Get provider-specific API key

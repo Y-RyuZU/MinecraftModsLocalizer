@@ -31,6 +31,9 @@ use minecraft::{
     extract_patchouli_books, write_patchouli_book,
 };
 
+#[cfg(debug_assertions)]
+use minecraft::debug_translation_check::debug_mod_translation_check;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize the logger
@@ -128,7 +131,10 @@ pub fn run() {
             list_translation_sessions,
             get_translation_summary,
             update_translation_summary,
-            batch_update_translation_summary
+            batch_update_translation_summary,
+            // Debug commands (only in debug builds)
+            #[cfg(debug_assertions)]
+            debug_mod_translation_check
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
