@@ -893,19 +893,18 @@ pub async fn check_quest_translation_exists(
         .ok_or("Failed to get file stem")?
         .to_string_lossy();
 
-    // Check for translated file with language suffix
-    let translated_snbt = parent.join(format!(
-        "{}.{}.snbt",
-        file_stem,
-        target_language.to_lowercase()
-    ));
+    // Check for translated file with language suffix (only for non-SNBT files)
     let translated_json = parent.join(format!(
         "{}.{}.json",
         file_stem,
         target_language.to_lowercase()
     ));
 
-    Ok(translated_snbt.exists() || translated_json.exists())
+    // Note: SNBT files are always translated in-place and cannot be detected
+    // as already translated by filename. This is intentional behavior to
+    // maintain Minecraft compatibility.
+    // Only check for JSON files with language suffix.
+    Ok(translated_json.exists())
 }
 
 /// Check if a translation exists for a Patchouli guidebook
@@ -942,3 +941,48 @@ pub async fn check_guidebook_translation_exists(
 
     Ok(false)
 }
+
+/// Detect if SNBT file contains direct text or JSON key references
+#[tauri::command]
+pub async fn detect_snbt_content_type(file_path: &str) -> Result<String, String> {
+    use std::fs;
+
+    let content =
+        fs::read_to_string(file_path).map_err(|e| format!("Failed to read SNBT file: {e}"))?;
+
+    // Simple heuristic: check if the content contains typical JSON key patterns
+    // JSON keys usually contain dots (e.g., "item.minecraft.stick") or colons (e.g., "minecraft:stick")
+    let has_json_key_patterns = content.contains("minecraft:")
+        || content.contains("ftbquests:")
+        || content.contains(".minecraft.")
+        || content.contains("item.")
+        || content.contains("block.")
+        || content.contains("entity.")
+        || content.contains("gui.")
+        || content.contains("quest.");
+
+    // Check if the content has direct readable text (not just IDs and keys)
+    // Look for typical quest text patterns
+    let has_direct_text = content.contains("description:")
+        || content.contains("title:")
+        || content.contains("subtitle:")
+        || content.contains("text:");
+
+    if has_json_key_patterns && !has_direct_text {
+        Ok("json_keys".to_string())
+    } else if has_direct_text {
+        Ok("direct_text".to_string())
+    } else {
+        // Default to direct_text if uncertain
+        Ok("direct_text".to_string())
+    }
+}
+
+// Include tests module
+#[cfg(test)]
+#[path = "mod_translation_test.rs"]
+mod mod_translation_test;
+
+// Debug module
+#[cfg(debug_assertions)]
+pub mod debug_translation_check;

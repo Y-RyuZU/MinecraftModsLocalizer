@@ -21,7 +21,10 @@ module.exports = {
     '<rootDir>/src/__tests__/components/translation-tab.test.tsx',
     '<rootDir>/src/__tests__/e2e/',
     '<rootDir>/src/__tests__/services/file-service-lang-format.test.ts',
-    '<rootDir>/src/__tests__/test-setup.ts'
+    '<rootDir>/src/__tests__/test-setup.ts',
+    '<rootDir>/src/lib/services/__tests__/ftb-quest-realistic.e2e.test.ts',
+    '<rootDir>/src/__tests__/integration/realistic-minecraft-directory.test.ts',
+    '<rootDir>/src/__tests__/test-utils/minecraft-directory-mock.ts'
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',

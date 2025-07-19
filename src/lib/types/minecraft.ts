@@ -117,6 +117,8 @@ export interface TranslationTarget {
   questFormat?: "ftb" | "better";
   /** Language file format (only for mod type) */
   langFormat?: "json" | "lang";
+  /** Whether the target already has a translation for the current target language */
+  hasExistingTranslation?: boolean;
 }
 
 /**

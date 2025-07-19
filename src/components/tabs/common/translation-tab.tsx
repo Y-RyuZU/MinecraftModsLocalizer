@@ -91,14 +91,15 @@ export interface TranslationTabProps {
     };
 
     // Custom handlers
-    onScan: (directory: string) => Promise<void>;
+    onScan: (directory: string, targetLanguage?: string) => Promise<void>;
     onTranslate: (
         selectedTargets: TranslationTarget[],
         targetLanguage: string,
         translationService: TranslationService,
         setCurrentJobId: (jobId: string | null) => void,
         addTranslationResult: (result: TranslationResult) => void,
-        selectedDirectory: string
+        selectedDirectory: string,
+        sessionId: string
     ) => Promise<void>;
 }
 
@@ -182,16 +183,9 @@ export function TranslationTab({
                 // Clear any previous errors
                 setError(null);
 
-                // Log the selection type for debugging
-                if (selected.startsWith("NATIVE_DIALOG:")) {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log("Native dialog was used!");
-                    }
-                } else {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log("Mock dialog was used!");
-                        setError("Warning: Mock dialog was used instead of native dialog");
-                    }
+                // Log the selection for debugging
+                if (process.env.NODE_ENV === 'development') {
+                    console.log("Directory selected:", selected);
                 }
             }
         } catch (error) {
@@ -216,10 +210,8 @@ export function TranslationTab({
             setIsScanning(true);
             setError(null);
             
-            // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = profileDirectory.startsWith("NATIVE_DIALOG:")
-                ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                : profileDirectory;
+            // Use the profile directory path directly
+            const actualPath = profileDirectory;
 
             // Clear existing results after UI has updated
             requestAnimationFrame(() => {
@@ -228,7 +220,7 @@ export function TranslationTab({
                 setTranslationResults([]);
             });
 
-            await onScan(actualPath);
+            await onScan(actualPath, tempTargetLanguage || undefined);
         } catch (error) {
             console.error(`Failed to scan ${tabType}:`, error);
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -308,6 +300,40 @@ export function TranslationTab({
                 setTranslating(false);
                 return;
             }
+            
+            // Pre-check for existing translations if skipExistingTranslations is enabled
+            if ((config.translation.skipExistingTranslations ?? true) && tabType === 'mods') {
+                let existingCount = 0;
+                for (const target of selectedTargets) {
+                    try {
+                        const exists = await FileService.invoke<boolean>("check_mod_translation_exists", {
+                            modPath: target.path,
+                            modId: target.id,
+                            targetLanguage: targetLanguage
+                        });
+                        if (exists) {
+                            existingCount++;
+                        }
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${target.name}:`, error);
+                    }
+                }
+                
+                // Show warning if all selected mods already have translations
+                if (existingCount === selectedTargets.length) {
+                    toast.warning(t('warnings.allModsAlreadyTranslated', 'All selected mods already have translations'), {
+                        description: t('warnings.noNewTranslationsNeeded', 'No new translations will be created.'),
+                        duration: 5000
+                    });
+                    setTranslating(false);
+                    return;
+                } else if (existingCount > 0) {
+                    toast.info(t('info.someModsAlreadyTranslated', `${existingCount} of ${selectedTargets.length} mods already have translations`), {
+                        description: t('info.willSkipExisting', 'These will be skipped.'),
+                        duration: 3000
+                    });
+                }
+            }
 
             // Get provider-specific API key
             const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
@@ -338,18 +364,16 @@ export function TranslationTab({
                 setTranslationServiceRef(translationService);
             }
 
-            // Extract the actual path from the NATIVE_DIALOG prefix if present
-            const actualPath = profileDirectory && profileDirectory.startsWith("NATIVE_DIALOG:")
-                ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                : profileDirectory || "";
+            // Use the profile directory path directly
+            const actualPath = profileDirectory || "";
 
-            // Clear existing logs and create a new logs directory for the entire translation session
+            // Generate a unique session ID for this translation job
+            const sessionId = await invoke<string>('generate_session_id');
+
+            // Create a new logs directory for the entire translation session
             try {
-                // Clear existing logs
+                // Clear log viewer for new session (file logs from previous sessions are preserved)
                 await invoke('clear_logs');
-
-                // Generate a unique session ID for this translation job
-                const sessionId = await invoke<string>('generate_session_id');
 
                 // Create a new logs directory using the session ID for uniqueness
                 // Use the shared profile directory
@@ -391,7 +415,8 @@ export function TranslationTab({
                 translationService,
                 setCurrentJobId,
                 collectResults,
-                actualPath
+                actualPath,
+                sessionId
             ).finally(() => {
                 // Show completion dialog only if translation was not cancelled
                 if (!wasCancelledRef.current) {
@@ -474,9 +499,7 @@ export function TranslationTab({
 
             {profileDirectory && (
                 <div className="text-sm text-muted-foreground">
-                    {t('misc.selectedDirectory')} {profileDirectory.startsWith("NATIVE_DIALOG:")
-                    ? profileDirectory.substring("NATIVE_DIALOG:".length)
-                    : profileDirectory}
+                    {t('misc.selectedDirectory')} {profileDirectory}
                 </div>
             )}
 

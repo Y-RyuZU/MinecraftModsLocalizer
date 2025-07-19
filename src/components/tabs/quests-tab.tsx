@@ -93,7 +93,7 @@ export function QuestsTab() {
     }, [setScanProgress, resetScanProgress]);
 
     // Scan for quests
-    const handleScan = async (directory: string) => {
+    const handleScan = async (directory: string, targetLanguage?: string) => {
         try {
             setScanning(true);
             
@@ -144,6 +144,19 @@ export function QuestsTab() {
                 // Calculate relative path (cross-platform)
                 const relativePath = getRelativePath(questFile, directory);
 
+                // Check for existing translation if target language is provided
+                let hasExistingTranslation = false;
+                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+                    try {
+                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
+                            questPath: questFile,
+                            targetLanguage: targetLanguage
+                        });
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${fileName}:`, error);
+                    }
+                }
+
                 targets.push({
                     type: "quest",
                     questFormat: "ftb",
@@ -151,7 +164,8 @@ export function QuestsTab() {
                     name: `FTB Quest ${questNumber}: ${fileName}`,
                     path: questFile,
                     relativePath: relativePath,
-                    selected: true
+                    selected: true,
+                    hasExistingTranslation
                 });
             } catch (error) {
                 console.error(`Failed to analyze FTB quest: ${questFile}`, error);
@@ -183,6 +197,19 @@ export function QuestsTab() {
                     ? `Better Quest (Direct): ${fileName}` 
                     : `Better Quest ${questNumber}: ${fileName}`;
 
+                // Check for existing translation if target language is provided
+                let hasExistingTranslation = false;
+                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+                    try {
+                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
+                            questPath: questFile,
+                            targetLanguage: targetLanguage
+                        });
+                    } catch (error) {
+                        console.error(`Failed to check existing translation for ${fileName}:`, error);
+                    }
+                }
+
                 targets.push({
                     type: "quest",
                     questFormat: "better",
@@ -190,7 +217,8 @@ export function QuestsTab() {
                     name: questName,
                     path: questFile,
                     relativePath: relativePath,
-                    selected: true
+                    selected: true,
+                    hasExistingTranslation
                 });
             } catch (error) {
                 console.error(`Failed to analyze Better quest: ${questFile}`, error);
@@ -212,7 +240,8 @@ export function QuestsTab() {
         translationService: TranslationService,
         setCurrentJobId: (jobId: string | null) => void,
         addTranslationResult: (result: TranslationResult) => void,
-        selectedDirectory: string
+        selectedDirectory: string,
+        sessionId: string
     ) => {
         try {
             setTranslating(true);
@@ -226,15 +255,7 @@ export function QuestsTab() {
             setProgress(0);
             setCompletedQuests(0);
             
-            // Set total quests for progress tracking
-            setTotalQuests(sortedTargets.length);
-                const totalQuests = sortedTargets.length;
-            setTotalChunks(totalQuests); // For quests, we track at file level instead of chunk level
-            
-            // Generate session ID for this translation
-            const sessionId = await invoke<string>('generate_session_id');
-            
-            // Create logs directory with session ID
+            // Use the session ID provided by the common translation tab
             const minecraftDir = selectedDirectory;
             const sessionPath = await invoke<string>('create_logs_directory_with_session', {
                 minecraftDir: minecraftDir,
@@ -263,6 +284,8 @@ export function QuestsTab() {
                 target: TranslationTarget;
                 job: TranslationJob;
                 content: string;
+                contentType?: string;
+                hasKubeJSFiles?: boolean;
             }> = [];
             let skippedCount = 0;
             
@@ -289,6 +312,24 @@ export function QuestsTab() {
                             continue;
                         }
                     }
+                    
+                    // For SNBT files, detect content type
+                    let contentType = "direct_text"; // Default
+                    let hasKubeJSFiles = false;
+                    
+                    if (target.path.endsWith('.snbt')) {
+                        try {
+                            contentType = await FileService.invoke<string>("detect_snbt_content_type", {
+                                filePath: target.path
+                            });
+                            console.log(`SNBT content type for ${target.name}: ${contentType}`);
+                        } catch (error) {
+                            console.warn(`Failed to detect SNBT content type for ${target.name}:`, error);
+                        }
+                        
+                        // Check if this target has KubeJS files
+                        hasKubeJSFiles = target.path.includes('kubejs/assets/kubejs/lang');
+                    }
                     // Read quest file
                     const content = await FileService.readTextFile(target.path);
                     
@@ -309,7 +350,7 @@ export function QuestsTab() {
                         target.name
                     );
                     
-                    jobs.push({ target, job, content: processedContent });
+                    jobs.push({ target, job, content: processedContent, contentType, hasKubeJSFiles });
                 } catch (error) {
                     console.error(`Failed to prepare quest: ${target.name}`, error);
                     // Add failed result immediately
@@ -324,6 +365,11 @@ export function QuestsTab() {
                     incrementCompletedChunks();
                 }
             }
+            
+            // Set total quests for progress tracking: denominator = actual jobs, numerator = completed quests
+            // This ensures progress reaches 100% when all translatable quests are processed
+            setTotalQuests(jobs.length);
+            setTotalChunks(jobs.length); // For quests, we track at file level instead of chunk level
             
             // Use runTranslationJobs for consistent processing
             await runTranslationJobs({
@@ -347,6 +393,16 @@ export function QuestsTab() {
                     // Write translated file with language suffix
                     let fileExtension: string;
                     let outputFilePath: string;
+                    
+                    // Special handling for KubeJS lang files
+                    if (questData.target.path.includes('kubejs/assets/kubejs/lang') && questData.target.path.endsWith('en_us.json')) {
+                        // For KubeJS en_us.json files, create target language file
+                        const kubejsLangDir = questData.target.path.replace('en_us.json', '');
+                        outputFilePath = `${kubejsLangDir}${targetLanguage}.json`;
+                        console.log(`KubeJS lang file translation: ${outputFilePath}`);
+                        await FileService.writeTextFile(outputFilePath, translatedText);
+                        return;
+                    }
                     
                     if (questData.target.questFormat === "ftb") {
                         fileExtension = "snbt";
@@ -390,11 +446,22 @@ export function QuestsTab() {
                             basePath = basePath.replace(languagePattern, `.${fileExtension}`);
                         }
                         
-                        // Now add the new language suffix
-                        outputFilePath = basePath.replace(
-                            `.${fileExtension}`,
-                            `.${targetLanguage}.${fileExtension}`
-                        );
+                        // For SNBT files, always modify the original file in-place
+                        if (fileExtension === 'snbt') {
+                            // All SNBT files should be modified in-place to maintain Minecraft compatibility
+                            outputFilePath = basePath;
+                            console.log(`SNBT translation (in-place): ${outputFilePath}`);
+                        } else {
+                            // For non-SNBT files (lang files, etc.), add language suffix
+                            const lastDotIndex = basePath.lastIndexOf('.');
+                            if (lastDotIndex !== -1) {
+                                outputFilePath = basePath.substring(0, lastDotIndex) + `.${targetLanguage}` + basePath.substring(lastDotIndex);
+                            } else {
+                                // Fallback if no extension found
+                                outputFilePath = `${basePath}.${targetLanguage}.${fileExtension}`;
+                            }
+                            console.log(`Non-SNBT file translation: ${outputFilePath}`);
+                        }
                     }
                     
                     await FileService.writeTextFile(outputFilePath, translatedText);
@@ -488,6 +555,22 @@ export function QuestsTab() {
                     key: "relativePath",
                     label: "tables.path",
                     render: (target) => target.relativePath || getFileName(target.path)
+                },
+                {
+                    key: "hasExistingTranslation",
+                    label: "Translation",
+                    className: "w-24",
+                    render: (target) => (
+                        target.hasExistingTranslation !== undefined ? (
+                            <span className={`px-2 py-1 text-xs rounded ${
+                                target.hasExistingTranslation
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                            }`}>
+                                {target.hasExistingTranslation ? 'Exists' : 'New'}
+                            </span>
+                        ) : null
+                    )
                 }
             ]}
             config={config}

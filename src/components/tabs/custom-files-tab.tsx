@@ -167,7 +167,8 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    _selectedDirectory: string // eslint-disable-line @typescript-eslint/no-unused-vars
+    selectedDirectory: string,
+    sessionId: string
   ) => {
     try {
       setTranslating(true);
@@ -187,11 +188,6 @@ export function CustomFilesTab() {
       setWholeProgress(0);
       setProgress(0);
       setCompletedCustomFiles(0);
-      
-      // Set total files for progress tracking
-      const totalFiles = sortedTargets.length;
-      setTotalChunks(totalFiles); // Track at file level
-      setTotalCustomFiles(totalFiles);
       
       // Create jobs for all files
       const jobs: Array<{
@@ -275,6 +271,19 @@ export function CustomFilesTab() {
         }
       }
       
+      // Set total files for progress tracking: denominator = actual jobs, numerator = completed files
+      // This ensures progress reaches 100% when all translatable files are processed
+      setTotalCustomFiles(jobs.length);
+      setTotalChunks(jobs.length); // Track at file level
+      
+      // Use the session ID provided by the common translation tab
+      const minecraftDir = selectedDirectory;
+      const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+          minecraftDir: minecraftDir,
+          sessionId: sessionId
+      });
+      console.log(`Custom files translation session created: ${sessionPath}`);
+      
       // Use runTranslationJobs for consistent processing
       await runTranslationJobs({
         jobs: jobs.map(({ job }) => job),
@@ -284,6 +293,7 @@ export function CustomFilesTab() {
         incrementWholeProgress: incrementCompletedCustomFiles, // Track at file level
         targetLanguage,
         type: "custom",
+        sessionId,
         getOutputPath: () => outputDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {

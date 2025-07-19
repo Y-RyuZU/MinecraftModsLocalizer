@@ -126,13 +126,13 @@
     "settings": "Settings"
   },
   "buttons": {
-    "scanMods": "Scan Mods",
-    "scanQuests": "Scan Quests",
-    "scanGuidebooks": "Scan Guidebooks",
-    "scanFiles": "Scan Files",
+    "scanMods": "Scan",
+    "scanQuests": "Scan",
+    "scanGuidebooks": "Scan",
+    "scanFiles": "Scan",
     "selectDirectory": "Select Directory",
-    "selectProfileDirectory": "Select Profile Directory",
-    "translate": "Translate Selected",
+    "selectProfileDirectory": "Select Profile",
+    "translate": "Translate",
     "translating": "Translating...",
     "scanning": "Scanning...",
     "cancel": "Cancel"
@@ -151,14 +151,14 @@
     "fileName": "File Name",
     "type": "Type",
     "path": "Path",
-    "noModsFound": "No mods found. Click 'Scan Mods' to scan for mods.",
-    "noQuestsFound": "No quests found. Click 'Scan Quests' to scan for quests.",
-    "noGuidebooksFound": "No guidebooks found. Click 'Scan Guidebooks' to scan for guidebooks.",
-    "noFilesFound": "No files found. Click 'Scan Files' to scan for JSON and SNBT files.",
-    "scanningForMods": "Scanning for mods...",
-    "scanningForQuests": "Scanning for quests...",
-    "scanningForGuidebooks": "Scanning for guidebooks...",
-    "scanningForFiles": "Scanning for files..."
+    "noModsFound": "No mods found. Click 'Scan' to scan for mods.",
+    "noQuestsFound": "No quests found. Click 'Scan' to scan for quests.",
+    "noGuidebooksFound": "No guidebooks found. Click 'Scan' to scan for guidebooks.",
+    "noFilesFound": "No files found. Click 'Scan' to scan for JSON and SNBT files.",
+    "scanningForMods": "Scanning...",
+    "scanningForQuests": "Scanning...",
+    "scanningForGuidebooks": "Scanning...",
+    "scanningForFiles": "Scanning..."
   },
   "progress": {
     "translatingMods": "Translating mods...",
@@ -202,6 +202,7 @@
     "translationLogs": "Translation Logs",
     "viewLogs": "View Logs",
     "openLogs": "Open Logs",
+    "clearLogs": "Clear Logs",
     "noLogs": "No logs available",
     "autoScroll": "Auto-scroll"
   },

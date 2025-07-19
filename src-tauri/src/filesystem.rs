@@ -166,6 +166,15 @@ pub async fn get_ftb_quest_files(
     app_handle: tauri::AppHandle,
     dir: &str,
 ) -> std::result::Result<Vec<String>, String> {
+    get_ftb_quest_files_with_language(app_handle, dir, None).await
+}
+
+/// Get FTB quest files with optional target language for existence checking
+pub async fn get_ftb_quest_files_with_language(
+    app_handle: tauri::AppHandle,
+    dir: &str,
+    target_language: Option<&str>,
+) -> std::result::Result<Vec<String>, String> {
     info!("Getting FTB quest files from {dir}");
 
     // Validate and canonicalize the path to prevent directory traversal attacks
@@ -199,7 +208,7 @@ pub async fn get_ftb_quest_files(
                 kubejs_assets_dir.display()
             );
             // Walk through the directory and find all JSON files
-            for entry in WalkDir::new(kubejs_assets_dir).max_depth(1).into_iter() {
+            for entry in WalkDir::new(&kubejs_assets_dir).max_depth(1).into_iter() {
                 match entry {
                     Ok(entry) => {
                         let entry_path = entry.path();
@@ -223,6 +232,18 @@ pub async fn get_ftb_quest_files(
                                 {
                                     debug!("Skipping already translated file: {file_name}");
                                     continue;
+                                }
+
+                                // If target language is specified, check if translation already exists
+                                if let Some(target_lang) = target_language {
+                                    if file_name == "en_us.json" {
+                                        let target_file =
+                                            kubejs_assets_dir.join(format!("{target_lang}.json"));
+                                        if target_file.exists() && target_file.is_file() {
+                                            debug!("Skipping {} - target language file already exists: {}", file_name, target_file.display());
+                                            continue;
+                                        }
+                                    }
                                 }
                             }
 
@@ -316,30 +337,10 @@ pub async fn get_ftb_quest_files(
                                 last_emit = Instant::now();
                             }
 
-                            // Check if the file is an SNBT file and not already translated
+                            // Check if the file is an SNBT file
                             if entry_path.is_file()
                                 && entry_path.extension().is_some_and(|ext| ext == "snbt")
                             {
-                                // Skip files that already have language suffixes (e.g., filename.ja_jp.snbt)
-                                if let Some(file_name) =
-                                    entry_path.file_name().and_then(|n| n.to_str())
-                                {
-                                    // Pattern to match language suffixes like .ja_jp.snbt, .zh_cn.snbt, etc.
-                                    if file_name.contains(".ja_jp.")
-                                        || file_name.contains(".zh_cn.")
-                                        || file_name.contains(".ko_kr.")
-                                        || file_name.contains(".de_de.")
-                                        || file_name.contains(".fr_fr.")
-                                        || file_name.contains(".es_es.")
-                                        || file_name.contains(".it_it.")
-                                        || file_name.contains(".pt_br.")
-                                        || file_name.contains(".ru_ru.")
-                                    {
-                                        debug!("Skipping already translated file: {file_name}");
-                                        continue;
-                                    }
-                                }
-
                                 match entry_path.to_str() {
                                     Some(path_str) => quest_files.push(path_str.to_string()),
                                     None => {
@@ -723,10 +724,8 @@ pub async fn open_directory_dialog(
 
     if let Some(path_str) = folder.to_str() {
         info!("RUST: Selected directory: {path_str}");
-        // Add a prefix to indicate that this is from the native dialog
-        let result = format!("NATIVE_DIALOG:{path_str}");
-        info!("RUST: Returning result: {result}");
-        Ok(Some(result))
+        // Return the clean path without any prefix
+        Ok(Some(path_str.to_string()))
     } else {
         error!("RUST: Invalid directory path");
         Err("Invalid directory path".to_string())

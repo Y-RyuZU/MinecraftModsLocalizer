@@ -91,7 +91,7 @@ export function GuidebooksTab() {
   }, [setScanProgress, resetScanProgress]);
 
   // Scan for guidebooks
-  const handleScan = async (directory: string) => {
+  const handleScan = async (directory: string, targetLanguage?: string) => {
     try {
       setScanning(true);
       
@@ -146,13 +146,29 @@ export function GuidebooksTab() {
           }
 
           for (const book of books) {
+            // Check for existing translation if target language is provided
+            let hasExistingTranslation = false;
+            if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
+              try {
+                hasExistingTranslation = await FileService.invoke<boolean>("check_guidebook_translation_exists", {
+                  guidebookPath: modFile,
+                  modId: book.modId,
+                  bookId: book.id,
+                  targetLanguage: targetLanguage
+                });
+              } catch (error) {
+                console.error(`Failed to check existing translation for ${book.name}:`, error);
+              }
+            }
+            
             targets.push({
               type: "patchouli",
               id: book.id,
               name: `${book.modId}: ${book.name}`,
               path: modFile,
               relativePath: relativePath,
-              selected: true
+              selected: true,
+              hasExistingTranslation
             });
           }
         }
@@ -183,6 +199,8 @@ export function GuidebooksTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
+    selectedDirectory: string,
+    sessionId: string
   ) => {
     // Sort targets alphabetically for consistent processing
     const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
@@ -192,15 +210,12 @@ export function GuidebooksTab() {
     setWholeProgress(0);
     setCompletedGuidebooks(0);
     
-    // Set total guidebooks for progress tracking
-    setTotalGuidebooks(sortedTargets.length);
-
     // Prepare jobs and count total chunks
     let totalChunksCount = 0;
     const jobs = [];
     let skippedCount = 0;
     
-    for (const target of selectedTargets) {
+    for (const target of sortedTargets) {
       try {
         // Extract Patchouli books first to get mod ID
         const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", {
@@ -274,6 +289,10 @@ export function GuidebooksTab() {
       }
     }
 
+    // Set total guidebooks for progress tracking: denominator = actual jobs, numerator = completed guidebooks
+    // This ensures progress reaches 100% when all translatable guidebooks are processed
+    setTotalGuidebooks(jobs.length);
+
     // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
     const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;
     setTotalChunks(finalTotalChunks);
@@ -282,6 +301,14 @@ export function GuidebooksTab() {
     if (jobs.length > 0) {
       setCurrentJobId(jobs[0].id);
     }
+
+    // Use the session ID provided by the common translation tab
+    const minecraftDir = selectedDirectory;
+    const sessionPath = await invoke<string>('create_logs_directory_with_session', {
+        minecraftDir: minecraftDir,
+        sessionId: sessionId
+    });
+    console.log(`Guidebooks translation session created: ${sessionPath}`);
 
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");
@@ -294,6 +321,7 @@ export function GuidebooksTab() {
         incrementWholeProgress: incrementCompletedGuidebooks, // Track at guidebook level
         targetLanguage,
         type: "patchouli",
+        sessionId,
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,
         getResultContent: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job: import("@/lib/types/minecraft").PatchouliTranslationJob, outputPath, content) => {
@@ -359,6 +387,22 @@ export function GuidebooksTab() {
           key: "relativePath",
           label: "tables.path",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "hasExistingTranslation",
+          label: "Translation",
+          className: "w-24",
+          render: (target) => (
+            target.hasExistingTranslation !== undefined ? (
+              <span className={`px-2 py-1 text-xs rounded ${
+                target.hasExistingTranslation
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+              }`}>
+                {target.hasExistingTranslation ? 'Exists' : 'New'}
+              </span>
+            ) : null
+          )
         }
       ]}
       config={config}

@@ -10,6 +10,7 @@ import { useAppTranslation } from '@/lib/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '@/lib/store';
 import { FileService } from '@/lib/services/file-service';
+import { UnifiedLogViewer } from './unified-log-viewer';
 
 interface TranslationHistoryDialogProps {
   open: boolean;
@@ -146,21 +147,21 @@ function SessionDetailsRow({ sessionSummary, onViewLogs }: { sessionSummary: Ses
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">{t('history.status', 'Status')}</TableHead>
-                  <TableHead>{t('history.fileName', 'File Name')}</TableHead>
-                  <TableHead className="w-[120px]">{t('history.type', 'Type')}</TableHead>
-                  <TableHead className="w-[100px]">{t('history.keyCount', 'Keys')}</TableHead>
+                  <TableHead className="min-w-[120px] max-w-[180px] w-[15%]">{t('history.status', 'Status')}</TableHead>
+                  <TableHead className="min-w-[180px] w-[50%]">{t('history.fileName', 'File Name')}</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[150px] w-[20%]">{t('history.type', 'Type')}</TableHead>
+                  <TableHead className="min-w-[80px] max-w-[120px] w-[15%]">{t('history.keyCount', 'Keys')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {summary.translations.map((translation, index) => (
                   <TableRow key={index}>
-                    <TableCell>
+                    <TableCell className="min-w-[120px] max-w-[180px] w-[15%]">
                       {renderStatus(translation.status)}
                     </TableCell>
-                    <TableCell className="font-medium">{translation.name}</TableCell>
-                    <TableCell>{getLocalizedType(translation.type)}</TableCell>
-                    <TableCell className="font-mono text-sm">{translation.keys}</TableCell>
+                    <TableCell className="font-medium min-w-[180px] w-[50%] truncate" title={translation.name}>{translation.name}</TableCell>
+                    <TableCell className="min-w-[100px] max-w-[150px] w-[20%]">{getLocalizedType(translation.type)}</TableCell>
+                    <TableCell className="font-mono text-sm min-w-[80px] max-w-[120px] w-[15%]">{translation.keys}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -283,9 +284,6 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: 'sessionId', direction: 'desc' });
   const [sessionLogDialogOpen, setSessionLogDialogOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [sessionLogContent, setSessionLogContent] = useState<string>('');
-  const [loadingSessionLog, setLoadingSessionLog] = useState(false);
-  const [sessionLogError, setSessionLogError] = useState<string | null>(null);
   const [historyDirectory, setHistoryDirectory] = useState<string>('');
 
   const loadSessions = useCallback(async () => {
@@ -301,10 +299,8 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
         return;
       }
       
-      // Extract the actual path if it has the NATIVE_DIALOG prefix
-      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
-        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
-        : minecraftDir;
+      // Use the minecraft directory path directly
+      const actualPath = minecraftDir;
       
       const sessionList = await invoke<string[]>('list_translation_sessions', {
         minecraftDir: actualPath
@@ -380,39 +376,10 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     ));
   };
 
-  const handleViewLogs = useCallback(async (sessionId: string) => {
+  const handleViewLogs = useCallback((sessionId: string) => {
     setSelectedSessionId(sessionId);
     setSessionLogDialogOpen(true);
-    setLoadingSessionLog(true);
-    setSessionLogError(null);
-    setSessionLogContent('');
-
-    try {
-      // Use historyDirectory if set, otherwise fall back to profileDirectory
-      const minecraftDir = historyDirectory || profileDirectory;
-      
-      if (!minecraftDir) {
-        setSessionLogError(t('errors.noMinecraftDir', 'Minecraft directory is not set. Please select a profile directory.'));
-        return;
-      }
-      
-      // Extract the actual path if it has the NATIVE_DIALOG prefix
-      const actualPath = minecraftDir.startsWith('NATIVE_DIALOG:')
-        ? minecraftDir.substring('NATIVE_DIALOG:'.length)
-        : minecraftDir;
-      
-      const logContent = await invoke<string>('read_session_log', {
-        minecraftDir: actualPath,
-        sessionId
-      });
-      setSessionLogContent(logContent);
-    } catch (err) {
-      console.error('Failed to load session log:', err);
-      setSessionLogError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoadingSessionLog(false);
-    }
-  }, [historyDirectory, profileDirectory, t]);
+  }, []);
 
   const handleSort = (field: SortField) => {
     const direction = sortConfig.field === field && sortConfig.direction === 'asc' ? 'desc' : 'asc';
@@ -467,9 +434,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
               </Button>
               {(historyDirectory || profileDirectory) && (
                 <div className="text-sm text-muted-foreground">
-                  {t('misc.selectedDirectory')} {((historyDirectory || profileDirectory) || '').startsWith('NATIVE_DIALOG:')
-                    ? ((historyDirectory || profileDirectory) || '').substring('NATIVE_DIALOG:'.length)
-                    : (historyDirectory || profileDirectory)}
+                  {t('misc.selectedDirectory')} {(historyDirectory || profileDirectory)}
                 </div>
               )}
             </div>
@@ -500,23 +465,23 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
           {!loading && !error && sessions.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <ScrollArea className="h-[60vh] min-h-[400px] 2xl:h-[70vh] 2xl:min-h-[500px] w-full overflow-auto">
-                <div className="min-w-[1000px]">
+                <div className="min-w-[800px]">
                   <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="min-w-[250px]">
+                      <TableHead className="min-w-[200px] w-[30%]">
                         <SortButton field="sessionId">{t('history.sessionDate', 'Session Date')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[150px]">
+                      <TableHead className="min-w-[120px] max-w-[180px] w-[15%]">
                         <SortButton field="language">{t('history.targetLanguage', 'Target Language')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[120px]">
+                      <TableHead className="min-w-[100px] max-w-[140px] w-[15%]">
                         <SortButton field="totalTranslations">{t('history.totalItems', 'Total Items')}</SortButton>
                       </TableHead>
-                      <TableHead className="min-w-[150px]">
+                      <TableHead className="min-w-[120px] max-w-[160px] w-[15%]">
                         {t('history.successCount', 'Success Count')}
                       </TableHead>
-                      <TableHead className="min-w-[200px]">
+                      <TableHead className="min-w-[180px] w-[25%]">
                         <SortButton field="successRate">{t('history.successRate', 'Success Rate')}</SortButton>
                       </TableHead>
                     </TableRow>
@@ -527,9 +492,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
                         key={sessionSummary.sessionId}
                         sessionSummary={sessionSummary}
                         onToggle={() => handleToggleSession(sessionSummary.sessionId)}
-                        minecraftDir={(historyDirectory || profileDirectory || '').startsWith('NATIVE_DIALOG:') 
-                          ? (historyDirectory || profileDirectory || '').substring('NATIVE_DIALOG:'.length)
-                          : (historyDirectory || profileDirectory || '')}
+                        minecraftDir={historyDirectory || profileDirectory || ''}
                         updateSession={updateSession}
                         onViewLogs={handleViewLogs}
                       />
@@ -557,54 +520,15 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
         </DialogFooter>
       </DialogContent>
 
-      {/* Session Log Dialog */}
-      <Dialog open={sessionLogDialogOpen} onOpenChange={setSessionLogDialogOpen}>
-        <DialogContent className="max-w-[90vw] w-full max-h-[85vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {t('history.sessionLogs', 'Session Logs')} - {selectedSessionId ? formatSessionId(selectedSessionId) : ''}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 overflow-hidden">
-            {loadingSessionLog && (
-              <div className="text-center py-8">
-                <RefreshCcw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
-              </div>
-            )}
-
-            {sessionLogError && (
-              <div className="text-center py-8 text-red-500">
-                <p>{t('errors.failedToLoadLogs', 'Failed to load session logs')}</p>
-                <p className="text-sm mt-2">{sessionLogError}</p>
-              </div>
-            )}
-
-            {!loadingSessionLog && !sessionLogError && sessionLogContent && (
-              <div className="border rounded-lg overflow-hidden">
-                <ScrollArea className="h-[60vh] min-h-[400px] w-full">
-                  <pre className="p-4 text-sm font-mono whitespace-pre-wrap text-left">
-                    {sessionLogContent}
-                  </pre>
-                </ScrollArea>
-              </div>
-            )}
-
-            {!loadingSessionLog && !sessionLogError && !sessionLogContent && (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>{t('history.noLogsFound', 'No logs found for this session')}</p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setSessionLogDialogOpen(false)}>
-              {t('common.close', 'Close')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Session Log Dialog using Unified Log Viewer */}
+      <UnifiedLogViewer
+        open={sessionLogDialogOpen}
+        onOpenChange={setSessionLogDialogOpen}
+        mode="historical"
+        sessionId={selectedSessionId || undefined}
+        minecraftDir={historyDirectory || profileDirectory}
+        title={selectedSessionId ? `${t('history.sessionLogs', 'Session Logs')} - ${formatSessionId(selectedSessionId)}` : undefined}
+      />
     </Dialog>
   );
 }

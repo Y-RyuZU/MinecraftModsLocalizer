@@ -149,31 +149,7 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
             });
         }
         
-        // Update translation summary if session ID is provided
-        if (sessionId) {
-            try {
-                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown> }> }).chunks || [];
-                const translatedKeys = chunks.filter((c) => c.status === "completed")
-                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
-                const totalKeys = Object.keys((job as { sourceContent?: Record<string, unknown> }).sourceContent || {}).length;
-                
-                const profileDirectory = useAppStore.getState().profileDirectory;
-                
-                await invoke('update_translation_summary', {
-                    minecraftDir: profileDirectory || '',
-                    sessionId,
-                    translationType: type,
-                    name: job.currentFileName || job.id,
-                    status: job.status === "completed" ? "completed" : "failed",
-                    translatedKeys,
-                    totalKeys,
-                    targetLanguage
-                });
-            } catch (error) {
-                console.error('Failed to update translation summary:', error);
-                // Don't fail the translation if summary update fails
-            }
-        }
+        // Individual job summary update removed - will be done in batch at the end
 
         // Ensure final progress is set to 100% for completed jobs
         if (setProgress && job.status === "completed") {
@@ -192,4 +168,46 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     }
 
     if (setCurrentJobId) setCurrentJobId(null);
+
+    // Update translation summary once for all jobs at the end
+    if (sessionId && jobs.length > 0) {
+        try {
+            const profileDirectory = useAppStore.getState().profileDirectory;
+            
+            // Validate profileDirectory before invoking
+            if (!profileDirectory) {
+                throw new Error('Profile directory is not defined');
+            }
+            
+            console.log(`[TranslationRunner] Updating batch summary for ${jobs.length} jobs: sessionId=${sessionId}, profileDirectory=${profileDirectory}`);
+            
+            const entries = jobs.map(job => {
+                const chunks = (job as { chunks?: Array<{ status: string; translatedContent?: Record<string, unknown>; content?: Record<string, unknown> }> }).chunks || [];
+                const translatedKeys = chunks.filter((c) => c.status === "completed")
+                    .reduce((sum: number, chunk) => sum + Object.keys(chunk.translatedContent || {}).length, 0);
+                const totalKeys = chunks.reduce((sum: number, chunk) => sum + Object.keys(chunk.content || {}).length, 0);
+                
+                return {
+                    translationType: type,
+                    name: job.currentFileName || job.id,
+                    status: job.status === "completed" ? "completed" : "failed",
+                    translatedKeys,
+                    totalKeys
+                };
+            });
+            
+            await invoke('batch_update_translation_summary', {
+                minecraftDir: profileDirectory,
+                sessionId,
+                targetLanguage,
+                entries
+            });
+        } catch (error) {
+            console.error('Failed to update batch translation summary:', error);
+            // Add user notification for better error visibility
+            await invoke('log_translation_process', {
+                message: `Failed to update translation summary: ${error instanceof Error ? error.message : 'Unknown error'}`
+            });
+        }
+    }
 }

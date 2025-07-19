@@ -9,8 +9,8 @@ pub mod minecraft;
 mod tests;
 
 use backup::{
-    backup_resource_pack, backup_snbt_files, create_backup, get_translation_summary,
-    list_translation_sessions, update_translation_summary,
+    backup_resource_pack, backup_snbt_files, batch_update_translation_summary, create_backup,
+    get_translation_summary, list_translation_sessions, update_translation_summary,
 };
 use config::{load_config, save_config};
 use filesystem::{
@@ -27,9 +27,12 @@ use logging::{
 };
 use minecraft::{
     analyze_mod_jar, check_guidebook_translation_exists, check_mod_translation_exists,
-    check_quest_translation_exists, extract_lang_files, extract_patchouli_books,
-    write_patchouli_book,
+    check_quest_translation_exists, detect_snbt_content_type, extract_lang_files,
+    extract_patchouli_books, write_patchouli_book,
 };
+
+#[cfg(debug_assertions)]
+use minecraft::debug_translation_check::debug_mod_translation_check;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -83,6 +86,7 @@ pub fn run() {
             check_mod_translation_exists,
             check_quest_translation_exists,
             check_guidebook_translation_exists,
+            detect_snbt_content_type,
             // File system operations
             get_mod_files,
             get_ftb_quest_files,
@@ -126,7 +130,11 @@ pub fn run() {
             // Translation history operations
             list_translation_sessions,
             get_translation_summary,
-            update_translation_summary
+            update_translation_summary,
+            batch_update_translation_summary,
+            // Debug commands (only in debug builds)
+            #[cfg(debug_assertions)]
+            debug_mod_translation_check
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
