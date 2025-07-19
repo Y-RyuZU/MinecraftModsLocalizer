@@ -11,7 +11,7 @@ fn create_test_mod_jar(
     mod_name: &str,
     translations: Vec<(&str, &str, &str)>, // (lang_code, format, content)
 ) -> PathBuf {
-    let jar_path = dir.join(format!("{}-1.0.0.jar", mod_id));
+    let jar_path = dir.join(format!("{mod_id}-1.0.0.jar"));
     let file = File::create(&jar_path).unwrap();
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
@@ -21,17 +21,16 @@ fn create_test_mod_jar(
     let fabric_json = format!(
         r#"{{
             "schemaVersion": 1,
-            "id": "{}",
+            "id": "{mod_id}",
             "version": "1.0.0",
-            "name": "{}",
+            "name": "{mod_name}",
             "description": "Test mod for translation detection",
             "authors": ["Test Author"],
             "contact": {{}},
             "license": "MIT",
             "environment": "*",
             "entrypoints": {{}}
-        }}"#,
-        mod_id, mod_name
+        }}"#
     );
     zip.write_all(fabric_json.as_bytes()).unwrap();
 
@@ -43,18 +42,17 @@ loaderVersion="[40,)"
 license="MIT"
 
 [[mods]]
-modId="{}"
+modId="{mod_id}"
 version="1.0.0"
-displayName="{}"
+displayName="{mod_name}"
 description="Test mod for translation detection"
-"#,
-        mod_id, mod_name
+"#
     );
     zip.write_all(mods_toml.as_bytes()).unwrap();
 
     // Add translations
     for (lang_code, format, content) in translations {
-        let path = format!("assets/{}/lang/{}.{}", mod_id, lang_code, format);
+        let path = format!("assets/{mod_id}/lang/{lang_code}.{format}");
         zip.start_file(&path, options).unwrap();
         zip.write_all(content.as_bytes()).unwrap();
     }
@@ -113,10 +111,10 @@ fn test_mod_translation_detection_integration() {
 
     // Print paths for manual testing
     println!("Created test mods:");
-    println!("  - Mod 1 (with ja_jp.json): {:?}", mod1_path);
-    println!("  - Mod 2 (with ja_jp.lang): {:?}", mod2_path);
-    println!("  - Mod 3 (without ja_jp): {:?}", mod3_path);
-    println!("  - Mod 4 (with JA_JP.json): {:?}", mod4_path);
+    println!("  - Mod 1 (with ja_jp.json): {mod1_path:?}");
+    println!("  - Mod 2 (with ja_jp.lang): {mod2_path:?}");
+    println!("  - Mod 3 (without ja_jp): {mod3_path:?}");
+    println!("  - Mod 4 (with JA_JP.json): {mod4_path:?}");
 
     // Verify files exist
     assert!(mod1_path.exists(), "Mod 1 JAR should exist");
@@ -161,11 +159,11 @@ fn test_mod_translation_detection_integration() {
 
     zip.finish().unwrap();
 
-    println!("  - Mod 5 (complex structure): {:?}", mod5_path);
+    println!("  - Mod 5 (complex structure): {mod5_path:?}");
     assert!(mod5_path.exists(), "Mod 5 JAR should exist");
 
     // The actual check_mod_translation_exists calls would be made from the application
-    println!("\nTest mods created successfully in: {:?}", mods_dir);
+    println!("\nTest mods created successfully in: {mods_dir:?}");
     println!("\nExpected results when checking for ja_jp translations:");
     println!("  - testmod1: Should find translation (ja_jp.json exists)");
     println!("  - testmod2: Should find translation (ja_jp.lang exists)");
@@ -221,7 +219,7 @@ fn test_edge_cases() {
     zip.finish().unwrap();
 
     println!("\nEdge case test mods created:");
-    println!("  - Empty language file: {:?}", edge1_path);
-    println!("  - Path separator test: {:?}", edge2_path);
-    println!("  - Multiple locations: {:?}", edge3_path);
+    println!("  - Empty language file: {edge1_path:?}");
+    println!("  - Path separator test: {edge2_path:?}");
+    println!("  - Multiple locations: {edge3_path:?}");
 }
