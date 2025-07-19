@@ -15,6 +15,15 @@ import { invoke } from '@tauri-apps/api/core';
 jest.mock('@tauri-apps/api/core');
 const mockInvoke = invoke as jest.MockedFunction<typeof invoke>;
 
+// Mock app store
+jest.mock('@/lib/store', () => ({
+  useAppStore: {
+    getState: () => ({
+      profileDirectory: '/test/modpack'
+    })
+  }
+}));
+
 // Mock file system operations
 const mockFileSystem = {
   '/test/modpack/kubejs/assets/kubejs/lang/en_us.json': JSON.stringify({
@@ -218,7 +227,7 @@ describe('FTB Quest Translation Logic E2E', () => {
 
       // Verify batch translation summary was updated
       expect(mockInvoke).toHaveBeenCalledWith('batch_update_translation_summary', {
-        minecraftDir: '',
+        minecraftDir: '/test/modpack',
         sessionId,
         targetLanguage,
         entries: expect.arrayContaining([
@@ -519,7 +528,7 @@ describe('FTB Quest Translation Logic E2E', () => {
 
       // Verify batch translation summary was updated
       expect(mockInvoke).toHaveBeenCalledWith('batch_update_translation_summary', {
-        minecraftDir: '',
+        minecraftDir: '/test/modpack',
         sessionId,
         targetLanguage,
         entries: expect.arrayContaining([
