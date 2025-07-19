@@ -4,8 +4,8 @@ use std::path::Path;
 /// Debug function to test translation detection on a real mod file
 pub async fn debug_check_translation(mod_path: &str, mod_id: &str) {
     println!("\n=== Debug Translation Check ===");
-    println!("Mod Path: {}", mod_path);
-    println!("Mod ID: {}", mod_id);
+    println!("Mod Path: {mod_path}");
+    println!("Mod ID: {mod_id}");
     println!("File exists: {}", Path::new(mod_path).exists());
 
     let test_languages = vec![
@@ -24,7 +24,7 @@ pub async fn debug_check_translation(mod_path: &str, mod_id: &str) {
                 );
             }
             Err(e) => {
-                println!("  {} - ERROR: {}", lang, e);
+                println!("  {lang} - ERROR: {e}");
             }
         }
     }
@@ -39,7 +39,7 @@ pub async fn debug_check_translation(mod_path: &str, mod_id: &str) {
                     if name.contains("/lang/")
                         && (name.ends_with(".json") || name.ends_with(".lang"))
                     {
-                        println!("  Found: {}", name);
+                        println!("  Found: {name}");
                     }
                 }
             }
@@ -61,8 +61,8 @@ pub async fn debug_mod_translation_check(
 ) -> Result<String, String> {
     let mut output = String::new();
 
-    output.push_str(&format!("Debug Translation Check for: {}\n", mod_path));
-    output.push_str(&format!("Mod ID: {}\n", mod_id));
+    output.push_str(&format!("Debug Translation Check for: {mod_path}\n"));
+    output.push_str(&format!("Mod ID: {mod_id}\n"));
     output.push_str(&format!(
         "File exists: {}\n\n",
         Path::new(&mod_path).exists()
@@ -81,7 +81,7 @@ pub async fn debug_mod_translation_check(
                 ));
             }
             Err(e) => {
-                output.push_str(&format!("{}: ERROR - {}\n", lang, e));
+                output.push_str(&format!("{lang}: ERROR - {e}\n"));
             }
         }
     }
@@ -97,11 +97,11 @@ pub async fn debug_mod_translation_check(
                     if name.contains("/lang/")
                         && (name.ends_with(".json") || name.ends_with(".lang"))
                     {
-                        output.push_str(&format!("  - {}\n", name));
+                        output.push_str(&format!("  - {name}\n"));
                         found_any = true;
 
                         // Check if this matches the expected pattern
-                        let expected_pattern = format!("assets/{}/lang/", mod_id);
+                        let expected_pattern = format!("assets/{mod_id}/lang/");
                         if name.starts_with(&expected_pattern) {
                             output.push_str("    ✓ Matches expected pattern\n");
                         } else {

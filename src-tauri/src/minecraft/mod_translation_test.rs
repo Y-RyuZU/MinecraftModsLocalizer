@@ -10,7 +10,7 @@ fn create_mock_mod_jar(
     languages: Vec<(&str, &str)>, // (language_code, format) e.g., ("ja_jp", "json")
 ) -> Result<TempDir, Box<dyn std::error::Error>> {
     let temp_dir = TempDir::new()?;
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
     let file = File::create(&jar_path)?;
     let mut zip = ZipWriter::new(file);
 
@@ -22,32 +22,29 @@ fn create_mock_mod_jar(
     let mod_json = format!(
         r#"{{
                 "schemaVersion": 1,
-                "id": "{}",
+                "id": "{mod_id}",
                 "version": "1.0.0",
                 "name": "Test Mod"
-            }}"#,
-        mod_id
+            }}"#
     );
     zip.write_all(mod_json.as_bytes())?;
 
     // Add language files
     for (lang_code, format) in &languages {
-        let lang_path = format!("assets/{}/lang/{}.{}", mod_id, lang_code, format);
+        let lang_path = format!("assets/{mod_id}/lang/{lang_code}.{format}");
         zip.start_file(&lang_path, options)?;
 
         if *format == "json" {
             let content = format!(
                 r#"{{
-                        "item.{}.test": "Test Item",
-                        "block.{}.test": "Test Block"
-                    }}"#,
-                mod_id, mod_id
+                        "item.{mod_id}.test": "Test Item",
+                        "block.{mod_id}.test": "Test Block"
+                    }}"#
             );
             zip.write_all(content.as_bytes())?;
         } else {
             let content = format!(
-                "item.{}.test=Test Item\nblock.{}.test=Test Block",
-                mod_id, mod_id
+                "item.{mod_id}.test=Test Item\nblock.{mod_id}.test=Test Block"
             );
             zip.write_all(content.as_bytes())?;
         }
@@ -55,14 +52,13 @@ fn create_mock_mod_jar(
 
     // Always add en_us.json as source
     if !languages.iter().any(|(lang, _)| lang == &"en_us") {
-        let lang_path = format!("assets/{}/lang/en_us.json", mod_id);
+        let lang_path = format!("assets/{mod_id}/lang/en_us.json");
         zip.start_file(&lang_path, options)?;
         let content = format!(
             r#"{{
-                    "item.{}.test": "Test Item",
-                    "block.{}.test": "Test Block"
-                }}"#,
-            mod_id, mod_id
+                    "item.{mod_id}.test": "Test Item",
+                    "block.{mod_id}.test": "Test Block"
+                }}"#
         );
         zip.write_all(content.as_bytes())?;
     }
@@ -77,7 +73,7 @@ async fn test_check_mod_translation_exists_with_json() {
     let temp_dir = create_mock_mod_jar(mod_id, vec![("en_us", "json"), ("ja_jp", "json")])
         .expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     // Test: ja_jp translation exists
     let result = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "ja_jp").await;
@@ -98,7 +94,7 @@ async fn test_check_mod_translation_exists_with_lang_format() {
     let temp_dir = create_mock_mod_jar(mod_id, vec![("en_us", "lang"), ("ja_jp", "lang")])
         .expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     // Test: ja_jp.lang translation exists
     let result = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "ja_jp").await;
@@ -113,7 +109,7 @@ async fn test_check_mod_translation_case_insensitive() {
     let temp_dir =
         create_mock_mod_jar(mod_id, vec![("ja_jp", "json")]).expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     // Test: JA_JP should find ja_jp (case insensitive)
     let result = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "JA_JP").await;
@@ -143,7 +139,7 @@ async fn test_check_mod_translation_mixed_formats() {
     )
     .expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     // Test: Both json and lang formats should be detected
     let result_ja = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "ja_jp").await;
@@ -164,7 +160,7 @@ async fn test_check_mod_translation_wrong_mod_id() {
     let temp_dir =
         create_mock_mod_jar(mod_id, vec![("ja_jp", "json")]).expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     // Test: Using wrong mod_id should not find translation
     let result =
@@ -205,7 +201,7 @@ async fn test_check_mod_translation_nonexistent_file() {
 async fn test_check_mod_translation_realistic_structure() {
     let mod_id = "examplemod";
     let temp_dir = TempDir::new().unwrap();
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
     let file = File::create(&jar_path).unwrap();
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
@@ -220,12 +216,11 @@ async fn test_check_mod_translation_realistic_structure() {
     let mod_json = format!(
         r#"{{
                 "schemaVersion": 1,
-                "id": "{}",
+                "id": "{mod_id}",
                 "version": "1.0.0",
                 "name": "Example Mod",
                 "description": "A test mod"
-            }}"#,
-        mod_id
+            }}"#
     );
     zip.write_all(mod_json.as_bytes()).unwrap();
 
@@ -237,13 +232,13 @@ async fn test_check_mod_translation_realistic_structure() {
     ];
 
     for (lang, content) in languages {
-        let path = format!("assets/{}/lang/{}.json", mod_id, lang);
+        let path = format!("assets/{mod_id}/lang/{lang}.json");
         zip.start_file(&path, options).unwrap();
         zip.write_all(content.as_bytes()).unwrap();
     }
 
     // Add some other assets
-    zip.start_file(format!("assets/{}/textures/item/test.png", mod_id), options)
+    zip.start_file(format!("assets/{mod_id}/textures/item/test.png"), options)
         .unwrap();
     zip.write_all(b"PNG_DATA").unwrap();
 
@@ -278,7 +273,7 @@ async fn test_check_mod_translation_special_characters() {
     let temp_dir =
         create_mock_mod_jar(mod_id, vec![("ja_jp", "json")]).expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     let result = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "ja_jp").await;
 
@@ -296,7 +291,7 @@ async fn test_check_mod_translation_empty_language() {
     let temp_dir =
         create_mock_mod_jar(mod_id, vec![("ja_jp", "json")]).expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
 
     let result = check_mod_translation_exists(jar_path.to_str().unwrap(), mod_id, "").await;
 
@@ -309,26 +304,26 @@ async fn test_check_mod_translation_empty_language() {
 async fn test_check_mod_translation_performance() {
     let mod_id = "largemod";
     let temp_dir = TempDir::new().unwrap();
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
     let file = File::create(&jar_path).unwrap();
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     // Add many files to simulate a large mod
     for i in 0..1000 {
-        let path = format!("assets/{}/textures/item/item_{}.png", mod_id, i);
+        let path = format!("assets/{mod_id}/textures/item/item_{i}.png");
         zip.start_file(&path, options).unwrap();
         zip.write_all(b"PNG_DATA").unwrap();
     }
 
     // Add target language file in the middle
-    let lang_path = format!("assets/{}/lang/ja_jp.json", mod_id);
+    let lang_path = format!("assets/{mod_id}/lang/ja_jp.json");
     zip.start_file(&lang_path, options).unwrap();
     zip.write_all(r#"{"test": "テスト"}"#.as_bytes()).unwrap();
 
     // Add more files after
     for i in 1000..2000 {
-        let path = format!("assets/{}/models/block/block_{}.json", mod_id, i);
+        let path = format!("assets/{mod_id}/models/block/block_{i}.json");
         zip.start_file(&path, options).unwrap();
         zip.write_all(b"MODEL_DATA").unwrap();
     }
@@ -353,18 +348,18 @@ async fn test_check_mod_translation_performance() {
 async fn test_check_mod_translation_nested_jars() {
     let mod_id = "nestedmod";
     let temp_dir = TempDir::new().unwrap();
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
     let file = File::create(&jar_path).unwrap();
     let mut zip = ZipWriter::new(file);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     // Add normal mod structure
     zip.start_file("fabric.mod.json", options).unwrap();
-    let mod_json = format!(r#"{{"id": "{}"}}"#, mod_id);
+    let mod_json = format!(r#"{{"id": "{mod_id}"}}"#);
     zip.write_all(mod_json.as_bytes()).unwrap();
 
     // Add language file
-    let lang_path = format!("assets/{}/lang/ja_jp.json", mod_id);
+    let lang_path = format!("assets/{mod_id}/lang/ja_jp.json");
     zip.start_file(&lang_path, options).unwrap();
     zip.write_all(r#"{"test": "テスト"}"#.as_bytes()).unwrap();
 
@@ -399,7 +394,7 @@ async fn test_check_mod_translation_concurrent_access() {
     )
     .expect("Failed to create mock JAR");
 
-    let jar_path = temp_dir.path().join(format!("{}.jar", mod_id));
+    let jar_path = temp_dir.path().join(format!("{mod_id}.jar"));
     let jar_path_str = jar_path.to_str().unwrap().to_string();
 
     // Launch multiple concurrent checks
@@ -423,8 +418,7 @@ async fn test_check_mod_translation_concurrent_access() {
         let result = handle.await.unwrap();
         assert!(
             result.is_ok(),
-            "Concurrent check for {} should succeed",
-            lang
+            "Concurrent check for {lang} should succeed"
         );
 
         let expected = matches!(lang, "ja_jp" | "zh_cn" | "ko_kr");
