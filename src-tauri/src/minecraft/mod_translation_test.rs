@@ -43,9 +43,7 @@ fn create_mock_mod_jar(
             );
             zip.write_all(content.as_bytes())?;
         } else {
-            let content = format!(
-                "item.{mod_id}.test=Test Item\nblock.{mod_id}.test=Test Block"
-            );
+            let content = format!("item.{mod_id}.test=Test Item\nblock.{mod_id}.test=Test Block");
             zip.write_all(content.as_bytes())?;
         }
     }
@@ -416,10 +414,7 @@ async fn test_check_mod_translation_concurrent_access() {
     // Wait for all checks to complete
     for (lang, handle) in handles {
         let result = handle.await.unwrap();
-        assert!(
-            result.is_ok(),
-            "Concurrent check for {lang} should succeed"
-        );
+        assert!(result.is_ok(), "Concurrent check for {lang} should succeed");
 
         let expected = matches!(lang, "ja_jp" | "zh_cn" | "ko_kr");
         assert_eq!(
