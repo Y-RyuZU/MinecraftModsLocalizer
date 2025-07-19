@@ -145,6 +145,7 @@ fn test_mod_translation_detection_integration() {
     // Add correct Japanese translation
     zip.start_file("assets/complexmod/lang/ja_jp.json", options)
         .unwrap();
+    // Using regular string with .as_bytes() for UTF-8 characters
     zip.write_all(r#"{"item.complexmod.item": "複雑なアイテム"}"#.as_bytes())
         .unwrap();
 

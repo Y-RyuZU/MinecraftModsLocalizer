@@ -5,6 +5,7 @@ use crate::logging::AppLogger;
  * Only handles backup creation - all management features have been removed
  * as per TX016 specification for a minimal backup system
  */
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -398,14 +399,14 @@ pub async fn update_translation_summary(
     total_keys: i32,
     target_language: String,
 ) -> Result<(), String> {
-    println!("[update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, translation_type={translation_type}, name={name}, status={status}, translated_keys={translated_keys}, total_keys={total_keys}, target_language={target_language}");
+    debug!("[update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, translation_type={translation_type}, name={name}, status={status}, translated_keys={translated_keys}, total_keys={total_keys}, target_language={target_language}");
 
     let session_dir = PathBuf::from(&minecraft_dir)
         .join("logs")
         .join("localizer")
         .join(&session_id);
 
-    println!(
+    debug!(
         "[update_translation_summary] Session directory: {}",
         session_dir.display()
     );
@@ -446,7 +447,7 @@ pub async fn update_translation_summary(
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
-    println!(
+    debug!(
         "[update_translation_summary] Successfully wrote summary to: {}",
         summary_path.display()
     );
@@ -461,7 +462,7 @@ pub async fn batch_update_translation_summary(
     target_language: String,
     entries: Vec<serde_json::Value>, // Array of translation entries
 ) -> Result<(), String> {
-    println!("[batch_update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, target_language={target_language}, entries_count={}", 
+    debug!("[batch_update_translation_summary] Called with: minecraft_dir={minecraft_dir}, session_id={session_id}, target_language={target_language}, entries_count={}", 
              entries.len());
 
     let session_dir = PathBuf::from(&minecraft_dir)
@@ -469,7 +470,7 @@ pub async fn batch_update_translation_summary(
         .join("localizer")
         .join(&session_id);
 
-    println!(
+    debug!(
         "[batch_update_translation_summary] Session directory: {}",
         session_dir.display()
     );
@@ -544,7 +545,7 @@ pub async fn batch_update_translation_summary(
 
     fs::write(&summary_path, json).map_err(|e| format!("Failed to write summary file: {e}"))?;
 
-    println!(
+    debug!(
         "[batch_update_translation_summary] Successfully wrote summary with {} entries to: {}",
         summary.translations.len(),
         summary_path.display()

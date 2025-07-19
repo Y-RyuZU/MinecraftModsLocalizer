@@ -413,7 +413,7 @@ export function UnifiedLogViewer({
     
     // Cleanup
     return () => {
-      unlistenPromise.then(unlisten => unlisten && unlisten());
+      unlistenPromise.then(unlisten => unlisten?.());
     };
   }, [mode, open]);
   

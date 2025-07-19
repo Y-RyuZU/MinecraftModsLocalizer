@@ -173,6 +173,12 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
     if (sessionId && jobs.length > 0) {
         try {
             const profileDirectory = useAppStore.getState().profileDirectory;
+            
+            // Validate profileDirectory before invoking
+            if (!profileDirectory) {
+                throw new Error('Profile directory is not defined');
+            }
+            
             console.log(`[TranslationRunner] Updating batch summary for ${jobs.length} jobs: sessionId=${sessionId}, profileDirectory=${profileDirectory}`);
             
             const entries = jobs.map(job => {
@@ -191,13 +197,17 @@ export async function runTranslationJobs<T extends TranslationJob = TranslationJ
             });
             
             await invoke('batch_update_translation_summary', {
-                minecraftDir: profileDirectory || '',
+                minecraftDir: profileDirectory,
                 sessionId,
                 targetLanguage,
                 entries
             });
         } catch (error) {
             console.error('Failed to update batch translation summary:', error);
+            // Add user notification for better error visibility
+            await invoke('log_translation_process', {
+                message: `Failed to update translation summary: ${error instanceof Error ? error.message : 'Unknown error'}`
+            });
         }
     }
 }
