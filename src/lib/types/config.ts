@@ -27,6 +27,7 @@ export const PROVIDER_DEFINITIONS: Record<ProviderId, {
   name: string;
   apiKeyUrl: string;
   environmentVariable: string;
+  alternativeEnvironmentVariable?: string;
 }> = {
   openai: {
     name: "OpenAI",
@@ -41,7 +42,8 @@ export const PROVIDER_DEFINITIONS: Record<ProviderId, {
   gemini: {
     name: "Google Gemini",
     apiKeyUrl: "https://aistudio.google.com/app/apikey",
-    environmentVariable: "GEMINI_API_KEY"
+    environmentVariable: "GEMINI_API_KEY",
+    alternativeEnvironmentVariable: "GOOGLE_API_KEY"
   }
 };
 

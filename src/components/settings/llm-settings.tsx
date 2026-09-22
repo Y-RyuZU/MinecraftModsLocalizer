@@ -153,6 +153,7 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             </div>
             <p className="text-xs text-muted-foreground">
               {t("settings.environmentVariable") || "Environment variable"}: {providerDefinition.environmentVariable}
+              {providerDefinition.alternativeEnvironmentVariable && ` (${providerDefinition.alternativeEnvironmentVariable})`}
             </p>
             {apiKeyMessage && <p className="text-xs text-muted-foreground">{apiKeyMessage}</p>}
           </div>

@@ -58,7 +58,7 @@ The Settings screen has a provider-specific API key field. Use **Get API key** t
 
 - [OpenAI API keys](https://platform.openai.com/api-keys): `OPENAI_API_KEY`
 - [Anthropic API keys](https://console.anthropic.com/settings/keys): `ANTHROPIC_API_KEY`
-- [Google AI Studio keys](https://aistudio.google.com/app/apikey): `GEMINI_API_KEY`
+- [Google AI Studio keys](https://aistudio.google.com/app/apikey): `GEMINI_API_KEY` (or `GOOGLE_API_KEY`)
 
 For a real two-line translation smoke test from PowerShell:
 

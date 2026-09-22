@@ -280,12 +280,14 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
 /// Read a provider API key from the process environment without logging its value.
 #[tauri::command]
 pub fn get_api_key_from_environment(provider: &str) -> std::result::Result<Option<String>, String> {
-    let variable = match provider.to_ascii_lowercase().as_str() {
-        "openai" => "OPENAI_API_KEY",
-        "anthropic" => "ANTHROPIC_API_KEY",
-        "gemini" | "google" => "GEMINI_API_KEY",
+    let variables: &[&str] = match provider.to_ascii_lowercase().as_str() {
+        "openai" => &["OPENAI_API_KEY"],
+        "anthropic" => &["ANTHROPIC_API_KEY"],
+        "gemini" | "google" => &["GEMINI_API_KEY", "GOOGLE_API_KEY"],
         _ => return Err(format!("Unsupported LLM provider: {provider}")),
     };
 
-    Ok(std::env::var(variable).ok().filter(|value| !value.trim().is_empty()))
+    Ok(variables.iter()
+        .filter_map(|variable| std::env::var(variable).ok())
+        .find(|value| !value.trim().is_empty()))
 }

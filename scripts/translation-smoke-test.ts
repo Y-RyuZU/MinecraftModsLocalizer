@@ -3,7 +3,13 @@ import { DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/
 
 const provider = normalizeProvider(process.env.MML_PROVIDER || "openai");
 const providerDefinition = PROVIDER_DEFINITIONS[provider];
-const apiKey = process.env.MML_API_KEY || process.env[providerDefinition.environmentVariable];
+const environmentVariables = [
+  providerDefinition.environmentVariable,
+  providerDefinition.alternativeEnvironmentVariable
+].filter((name): name is string => Boolean(name));
+const apiKey = process.env.MML_API_KEY || environmentVariables
+  .map((name) => process.env[name])
+  .find((value) => Boolean(value));
 const model = process.env.MML_MODEL || DEFAULT_MODELS[provider];
 const targetLanguage = process.env.MML_TARGET_LANGUAGE || "ja_jp";
 

@@ -2,7 +2,7 @@ import { DEFAULT_PROMPT_TEMPLATE, LLMConfig, TranslationRequest, TranslationResp
 import { DEFAULT_MODELS, DEFAULT_API_CONFIG } from "../types/config";
 import { BaseLLMAdapter } from "./base-llm-adapter";
 import { invoke } from "@tauri-apps/api/core";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai/web";
 
 /**
  * Gemini API Adapter
@@ -77,37 +77,12 @@ export class GeminiAdapter extends BaseLLMAdapter {
     );
     
     // Initialize Gemini client
-    const genAI = new GoogleGenerativeAI(this.config.apiKey);
+    const genAI = new GoogleGenAI({
+      apiKey: this.config.apiKey,
+      ...(this.config.baseUrl ? { httpOptions: { baseUrl: this.config.baseUrl } } : {})
+    });
     
     const model = this.config.model || DEFAULT_MODELS.gemini;
-    
-    // Get the generative model
-    const generativeModel = genAI.getGenerativeModel({
-      model,
-      systemInstruction: systemPrompt,
-      generationConfig: {
-        temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
-        maxOutputTokens: 4096,
-      },
-      safetySettings: [
-        {
-          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-          threshold: HarmBlockThreshold.BLOCK_NONE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-          threshold: HarmBlockThreshold.BLOCK_NONE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-          threshold: HarmBlockThreshold.BLOCK_NONE,
-        },
-        {
-          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-          threshold: HarmBlockThreshold.BLOCK_NONE,
-        },
-      ],
-    });
     
     await this.logApiRequest(`Sending request to Gemini API (model: ${model})`);
     
@@ -119,12 +94,37 @@ export class GeminiAdapter extends BaseLLMAdapter {
       try {
         await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
         
-        const result = await generativeModel.generateContent(userPrompt);
-        const response = await result.response;
+        const response = await genAI.models.generateContent({
+          model,
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+            maxOutputTokens: 4096,
+            safetySettings: [
+              {
+                category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold: HarmBlockThreshold.BLOCK_NONE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold: HarmBlockThreshold.BLOCK_NONE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold: HarmBlockThreshold.BLOCK_NONE,
+              },
+              {
+                category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold: HarmBlockThreshold.BLOCK_NONE,
+              },
+            ],
+          },
+        });
         
         await this.logApiRequest(`API request successful`);
         
-        const translationText = response.text().trim();
+        const translationText = (response.text || "").trim();
         
         if (!translationText) {
           const errorMessage = "Empty response from Gemini API";
@@ -156,7 +156,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
           metadata: {
             tokensUsed,
             timeTaken,
-            model
+            model: response.modelVersion || model
           }
         };
       } catch (error) {
@@ -201,11 +201,13 @@ export class GeminiAdapter extends BaseLLMAdapter {
     try {
       await this.logApiRequest("Validating Gemini API key");
       
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: DEFAULT_MODELS.gemini });
-      
-      // Try to generate a simple response as a validation check
-      await model.generateContent("Hi");
+      const genAI = new GoogleGenAI({ apiKey });
+
+      // Try to generate a simple response as a validation check.
+      await genAI.models.generateContent({
+        model: DEFAULT_MODELS.gemini,
+        contents: "Hi"
+      });
       
       await this.logApiRequest("API key validation successful");
       return true;
