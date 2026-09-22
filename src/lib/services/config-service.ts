@@ -1,4 +1,11 @@
-import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS } from "../types/config";
+import {
+  AppConfig,
+  DEFAULT_CONFIG,
+  STORAGE_KEYS,
+  DEFAULT_MODELS,
+  normalizeProvider,
+  ApiKeys
+} from "../types/config";
 import { SupportedLanguage } from "../types/llm";
 
 // Flag to indicate if we're in a server-side rendering environment
@@ -280,10 +287,18 @@ export class ConfigService {
  * @returns Backend config in snake_case
  */
 function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
+  const provider = normalizeProvider(config.llm.provider);
+  const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+
   return {
     llm: {
-      provider: config.llm.provider,
-      api_key: config.llm.apiKey,
+      provider,
+      api_key: apiKey,
+      api_keys: {
+        openai: config.llm.apiKeys?.openai || "",
+        anthropic: config.llm.apiKeys?.anthropic || "",
+        gemini: config.llm.apiKeys?.gemini || config.llm.apiKeys?.google || ""
+      },
       base_url: config.llm.baseUrl,
       model: config.llm.model,
       max_retries: config.llm.maxRetries,
@@ -322,18 +337,27 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
   const translation = backendConfig.translation as Record<string, unknown> | undefined;
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
   const paths = backendConfig.paths as Record<string, unknown> | undefined;
+  const backendApiKeys = (llm?.api_keys || {}) as Record<string, unknown>;
+  const apiKeys: ApiKeys = {
+    openai: (backendApiKeys.openai as string) || "",
+    anthropic: (backendApiKeys.anthropic as string) || "",
+    gemini: (backendApiKeys.gemini as string) || (backendApiKeys.google as string) || ""
+  };
+  const provider = normalizeProvider(llm?.provider as string | undefined);
+  const legacyApiKey = (llm?.api_key as string) || "";
 
   return {
     llm: {
-      provider: (llm?.provider as string) || "",
-      apiKey: (llm?.api_key as string) || "",
+      provider,
+      apiKey: apiKeys[provider] || legacyApiKey,
+      apiKeys,
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
       maxRetries: (llm?.max_retries as number) || DEFAULT_CONFIG.llm.maxRetries,
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
       userPrompt: llm?.user_prompt as string | undefined,
-      temperature: (llm?.temperature as number) || DEFAULT_CONFIG.llm.temperature
+      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature
     },
     translation: {
       modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,

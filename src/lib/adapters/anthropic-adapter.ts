@@ -214,7 +214,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       
       // Try to create a simple message as a validation check
       await anthropic.messages.create({
-        model: "claude-3-5-haiku-20241022",
+        model: DEFAULT_MODELS.anthropic,
         max_tokens: 10,
         messages: [{ role: "user", content: "Hi" }]
       });

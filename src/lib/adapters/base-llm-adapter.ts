@@ -192,14 +192,29 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   ): Record<string, string> {
     const originalKeys = Object.keys(originalContent);
     const translatedContent: Record<string, string> = {};
+
+    // Prefer a JSON object when a model wraps its answer in a code fence.
+    // This keeps keys containing regex characters (for example, dots) safe.
+    const jsonCandidate = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]
+      || response.slice(response.indexOf("{"), response.lastIndexOf("}") + 1);
+    if (jsonCandidate && jsonCandidate.startsWith("{") && jsonCandidate.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>;
+        if (originalKeys.every((key) => typeof parsed[key] === "string")) {
+          return Object.fromEntries(originalKeys.map((key) => [key, parsed[key] as string]));
+        }
+      } catch {
+        // Fall through to the line-based parser used by older prompts.
+      }
+    }
     
     // Split the response into lines and filter out empty lines
-    const allLines = response.trim().split("\n").filter(line => line.trim() !== "");
+    const allLines = response.trim().split(/\r?\n/).filter(line => line.trim() !== "");
     
     // First approach: Try to extract all lines that match the exact key format
     for (const key of originalKeys) {
       for (const line of allLines) {
-        const keyValueMatch = line.match(new RegExp(`^${key}:\\s*(.+)$`));
+        const keyValueMatch = line.match(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.*)$`));
         if (keyValueMatch) {
           translatedContent[key] = keyValueMatch[1].trim();
           break; // Found this key, move to next
@@ -248,7 +263,7 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
       const line = candidateLines[i];
       
       // Check if line includes the key
-      const keyValueMatch = line.match(new RegExp(`^${key}:\\s*(.+)$`));
+      const keyValueMatch = line.match(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.*)$`));
       
       if (keyValueMatch) {
         translatedContent[key] = keyValueMatch[1].trim();

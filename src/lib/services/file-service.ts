@@ -5,6 +5,7 @@
 const isSSR = typeof window === 'undefined';
 
 // Note: We use the Rust backend for dialog operations to avoid chunk loading issues
+import { invoke as tauriCoreInvoke } from "@tauri-apps/api/core";
 
 /**
  * Check if we're running in a Tauri environment
@@ -153,8 +154,17 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
   // In SSR, always use mock
   if (isSSR) {
-    console.log(`[SSR] Using mock for command: ${command}`);
-    return mockInvoke<T>(command, args);
+    try {
+      // This is mockable in Bun tests and works when SSR is hosted by Tauri.
+      return await tauriCoreInvoke<T>(command, args);
+    } catch (error) {
+      // The browser-only Tauri API throws when Next SSR has no window.
+      if (String(error).includes("window is not defined")) {
+        console.log(`[SSR] Using mock for command: ${command}`);
+        return mockInvoke<T>(command, args);
+      }
+      throw error;
+    }
   }
   
   const tauriAvailable = isTauri && tauriInvokeFunction;

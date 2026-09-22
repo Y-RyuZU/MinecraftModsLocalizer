@@ -4,9 +4,11 @@ import { SupportedLanguage, DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFA
  * Default model configurations for each provider
  */
 export const DEFAULT_MODELS = {
-  openai: "o4-mini-2025-04-16",
-  anthropic: "claude-3-5-haiku-20241022",
-  google: "gemini-1.5-flash"
+  openai: "gpt-5-mini",
+  anthropic: "claude-haiku-4-5-20251001",
+  gemini: "gemini-3.8-flash",
+  // Kept for config files created by older releases.
+  google: "gemini-3.8-flash"
 } as const;
 
 /**
@@ -15,8 +17,47 @@ export const DEFAULT_MODELS = {
 export const DEFAULT_API_URLS = {
   openai: "https://api.openai.com/v1/chat/completions",
   anthropic: "https://api.anthropic.com",
-  google: undefined // Google uses SDK default
+  gemini: undefined, // Google uses SDK default
+  google: undefined // Legacy provider ID
 } as const;
+
+export type ProviderId = "openai" | "anthropic" | "gemini";
+
+export const PROVIDER_DEFINITIONS: Record<ProviderId, {
+  name: string;
+  apiKeyUrl: string;
+  environmentVariable: string;
+}> = {
+  openai: {
+    name: "OpenAI",
+    apiKeyUrl: "https://platform.openai.com/api-keys",
+    environmentVariable: "OPENAI_API_KEY"
+  },
+  anthropic: {
+    name: "Anthropic",
+    apiKeyUrl: "https://console.anthropic.com/settings/keys",
+    environmentVariable: "ANTHROPIC_API_KEY"
+  },
+  gemini: {
+    name: "Google Gemini",
+    apiKeyUrl: "https://aistudio.google.com/app/apikey",
+    environmentVariable: "GEMINI_API_KEY"
+  }
+};
+
+/** Normalize provider IDs used by older config files. */
+export function normalizeProvider(provider: string | undefined): ProviderId {
+  switch (provider?.toLowerCase()) {
+    case "anthropic":
+      return "anthropic";
+    case "gemini":
+    case "google":
+      return "gemini";
+    case "openai":
+    default:
+      return "openai";
+  }
+}
 
 // Removed DEFAULT_API_CONFIG - values moved to DEFAULT_CONFIG for unified configuration
 
@@ -49,8 +90,10 @@ export interface AppConfig {
 export interface LLMProviderConfig {
   /** Provider ID */
   provider: string;
-  /** API key */
+  /** Active API key (legacy compatibility) */
   apiKey: string;
+  /** API keys stored per provider */
+  apiKeys: ApiKeys;
   /** Base URL (optional for some providers) */
   baseUrl?: string;
   /** Model to use */
@@ -119,6 +162,15 @@ export interface UpdateConfig {
   lastCheckTime?: number;
 }
 
+/** Provider-specific API keys. */
+export interface ApiKeys {
+  openai?: string;
+  anthropic?: string;
+  gemini?: string;
+  /** Legacy Google provider key. */
+  google?: string;
+}
+
 /**
  * Default application configuration
  * Unified configuration with all default values in one place
@@ -127,6 +179,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   llm: {
     provider: "openai",
     apiKey: "",
+    apiKeys: {
+      openai: "",
+      anthropic: "",
+      gemini: ""
+    },
     model: DEFAULT_MODELS.openai,
     maxRetries: 3,
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,

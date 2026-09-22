@@ -11,7 +11,7 @@ use filesystem::{
     read_text_file, write_text_file, create_directory, open_directory_dialog,
     create_resource_pack, write_lang_file, open_external_url
 };
-use config::{load_config, save_config};
+use config::{get_api_key_from_environment, load_config, save_config};
 use logging::{init_logger, log_translation_process, log_error, log_file_operation, log_api_request, get_logs, clear_logs, create_logs_directory, create_temp_directory, create_logs_directory_with_session, create_temp_directory_with_session, generate_session_id};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -84,6 +84,7 @@ pub fn run() {
       // Configuration operations
       load_config,
       save_config,
+      get_api_key_from_environment,
       
       // Logging operations
       log_translation_process,

@@ -17,6 +17,7 @@ import { useAppTranslation } from "@/lib/i18n";
 import { TargetLanguageSelector } from "@/components/tabs/target-language-selector";
 import { TranslationService } from "@/lib/services/translation-service";
 import { invoke } from "@tauri-apps/api/core";
+import { normalizeProvider } from "@/lib/types/config";
 import type { AppConfig } from "@/lib/types/config";
 
 // Helper function to get the chunk size for a specific tab type
@@ -265,12 +266,17 @@ export function TranslationTab({
       }
 
       // Create a translation service
+      const provider = normalizeProvider(config.llm.provider);
+      const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey;
       const translationService = new TranslationService({
         llmConfig: {
-          provider: config.llm.provider,
-          apiKey: config.llm.apiKey,
+          provider,
+          apiKey,
           baseUrl: config.llm.baseUrl,
           model: config.llm.model,
+          systemPrompt: config.llm.systemPrompt,
+          userPrompt: config.llm.userPrompt,
+          temperature: config.llm.temperature,
         },
         chunkSize: getChunkSizeForTabType(config, tabType),
         promptTemplate: config.llm.promptTemplate,

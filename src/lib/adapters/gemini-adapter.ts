@@ -79,7 +79,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
     // Initialize Gemini client
     const genAI = new GoogleGenerativeAI(this.config.apiKey);
     
-    const model = this.config.model || DEFAULT_MODELS.google;
+    const model = this.config.model || DEFAULT_MODELS.gemini;
     
     // Get the generative model
     const generativeModel = genAI.getGenerativeModel({
@@ -202,7 +202,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
       await this.logApiRequest("Validating Gemini API key");
       
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: DEFAULT_MODELS.gemini });
       
       // Try to generate a simple response as a validation check
       await model.generateContent("Hi");

@@ -41,6 +41,9 @@ pub struct LLMProviderConfig {
     pub provider: String,
     /// API key
     pub api_key: String,
+    /// API keys stored per provider
+    #[serde(default)]
+    pub api_keys: ApiKeys,
     /// Base URL (optional for some providers)
     pub base_url: Option<String>,
     /// Model to use
@@ -49,6 +52,29 @@ pub struct LLMProviderConfig {
     pub max_retries: u32,
     /// Custom prompt template
     pub prompt_template: Option<String>,
+    /// System prompt
+    #[serde(default)]
+    pub system_prompt: Option<String>,
+    /// User prompt template
+    #[serde(default)]
+    pub user_prompt: Option<String>,
+    /// Sampling temperature
+    #[serde(default)]
+    pub temperature: Option<f32>,
+}
+
+/// Provider-specific API keys.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ApiKeys {
+    #[serde(default)]
+    pub openai: String,
+    #[serde(default)]
+    pub anthropic: String,
+    #[serde(default)]
+    pub gemini: String,
+    /// Legacy Google provider key.
+    #[serde(default)]
+    pub google: String,
 }
 
 /// Translation configuration
@@ -105,10 +131,14 @@ pub fn default_config() -> AppConfig {
         llm: LLMProviderConfig {
             provider: "openai".to_string(),
             api_key: "".to_string(),
+            api_keys: ApiKeys::default(),
             base_url: None,
-            model: Some("o4-mini-2025-04-16".to_string()),
-            max_retries: 5,
+            model: Some("gpt-5-mini".to_string()),
+            max_retries: 3,
             prompt_template: None,
+            system_prompt: None,
+            user_prompt: None,
+            temperature: Some(1.0),
         },
         translation: TranslationConfig {
             mod_chunk_size: 50,
@@ -245,4 +275,17 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     }
     
     Ok(true)
+}
+
+/// Read a provider API key from the process environment without logging its value.
+#[tauri::command]
+pub fn get_api_key_from_environment(provider: &str) -> std::result::Result<Option<String>, String> {
+    let variable = match provider.to_ascii_lowercase().as_str() {
+        "openai" => "OPENAI_API_KEY",
+        "anthropic" => "ANTHROPIC_API_KEY",
+        "gemini" | "google" => "GEMINI_API_KEY",
+        _ => return Err(format!("Unsupported LLM provider: {provider}")),
+    };
+
+    Ok(std::env::var(variable).ok().filter(|value| !value.trim().is_empty()))
 }

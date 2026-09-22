@@ -93,6 +93,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       try {
         await this.logApiRequest(`API request attempt ${retries + 1}/${maxRetries + 1}`);
         
+        const isReasoningModel = /^(gpt-5|o[1-9])/i.test(model);
         const completion = await openai.chat.completions.create({
           model,
           messages: [
@@ -105,7 +106,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
               content: userPrompt
             }
           ],
-          temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature,
+          ...(isReasoningModel ? {} : {
+            temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature
+          }),
           user: "minecraft-mod-localizer"
         });
         
