@@ -101,7 +101,12 @@ export class TranslationService {
    * @param options Translation service options
    */
   constructor(options: TranslationServiceOptions) {
-    this.adapter = LLMAdapterFactory.getAdapter(options.llmConfig);
+    // Keep retry/backoff policy in this service. If adapters also retry, one
+    // failed chunk can multiply API requests (service retries × adapter retries).
+    this.adapter = LLMAdapterFactory.getAdapter({
+      ...options.llmConfig,
+      maxRetries: 0
+    });
     this.chunkSize = options.chunkSize ?? this.adapter.getMaxChunkSize();
     this.promptTemplate = options.promptTemplate;
     this.maxRetries = options.maxRetries ?? 5;
