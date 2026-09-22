@@ -36,7 +36,9 @@ describe("BaseLLMAdapter response parsing", () => {
     const prompt = adapter.formatUser({ "item.example.name": "Copper Pickaxe" }, "ja_jp");
 
     expect(prompt).toContain('"item.example.name": "Copper Pickaxe"');
-    expect(DEFAULT_SYSTEM_PROMPT).toContain("use a readable katakana rendering");
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("transliterate it into readable katakana");
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("Japanese localization for Minecraft mods");
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("instead of inventing or forcing an unnatural kanji compound");
   });
 
   test("parses fenced JSON responses", () => {

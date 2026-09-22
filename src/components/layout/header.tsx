@@ -33,7 +33,9 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
   
   // Check for updates on mount
   useEffect(() => {
-    if (mounted) {
+    // Development builds use a fixed package version and would otherwise show
+    // the production update dialog on every launch.
+    if (mounted && !isDebugMode) {
       // Check for updates after a short delay
       const timer = setTimeout(async () => {
         try {
@@ -51,7 +53,7 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
       
       return () => clearTimeout(timer);
     }
-  }, [mounted]);
+  }, [mounted, isDebugMode]);
   
   const handleUpdateClick = async () => {
     if (updateInfo && updateInfo.updateAvailable) {

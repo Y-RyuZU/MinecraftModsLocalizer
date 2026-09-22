@@ -129,7 +129,10 @@ export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator speciali
 ## Detailed Translation Instructions
 - Treat each JSON value as an independent translation unit
 - Use appropriate phonetic transcription for proper nouns when needed
-- When a foreign word, technical term, proper noun, or mod-specific term does not have a natural Japanese equivalent, use a readable katakana rendering instead of forcing an unnatural kanji translation
+- This is Japanese localization for Minecraft mods, not generic word-for-word translation
+- When the target language is Japanese and a foreign word, technical term, proper noun, or mod-specific term has no established natural Japanese equivalent, transliterate it into readable katakana instead of inventing or forcing an unnatural kanji compound
+- Prefer terminology that Japanese Minecraft players would naturally recognize; do not turn mod names, brand names, acronyms, item names, or technical terms into arbitrary kanji just because kanji can be constructed
+- Keep an established official Japanese term when one exists, and keep the original spelling when that is the clearest form for a mod name or acronym
 - Preserve programming variables (e.g., %s, $1, \\") and special symbols as they are
 - Maintain backslashes (\\\\) as they may be used as escape characters
 - Do not edit any characters that appear to be special symbols
@@ -145,9 +148,15 @@ export const DEFAULT_USER_PROMPT = `Please translate the following English text 
 
 ## Input Text Information
 - Number of entries: {line_count}
+- This is Minecraft mod localization. The values may be item names, block names, GUI labels, tooltips, configuration text, quest text, or guidebook text shown to players.
 - The input below is a JSON object. Translate only its string values.
 - Return one JSON object with the exact same keys and one translated string value for each key.
 - Do not wrap the JSON in Markdown or add any commentary.
+
+## Japanese Localization Guidance
+- For Japanese, prioritize natural terminology used by Minecraft players and mod communities.
+- If an imported or technical term has no natural established Japanese equivalent, use readable katakana rather than forced kanji.
+- Do not arbitrarily kanjify mod names, acronyms, brand names, or specialized terms.
 
 # JSON Content to Translate
 {content}`;
