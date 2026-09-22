@@ -4,6 +4,9 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use log::{error, info};
 use thiserror::Error;
+use keyring::Entry;
+
+const KEYRING_SERVICE: &str = "MinecraftModsLocalizer";
 
 /// Configuration errors
 #[derive(Error, Debug)]
@@ -75,6 +78,99 @@ pub struct ApiKeys {
     /// Legacy Google provider key.
     #[serde(default)]
     pub google: String,
+}
+
+fn keyring_entry(provider: &str) -> std::result::Result<Entry, String> {
+    let provider = match provider.to_ascii_lowercase().as_str() {
+        "openai" | "anthropic" | "gemini" | "google" => provider.to_ascii_lowercase(),
+        _ => return Err(format!("Unsupported LLM provider: {provider}")),
+    };
+
+    Entry::new(KEYRING_SERVICE, &format!("llm.{provider}"))
+        .map_err(|error| format!("Failed to access OS credential store: {error}"))
+}
+
+fn read_keyring_key(provider: &str) -> std::result::Result<Option<String>, String> {
+    let entry = keyring_entry(provider)?;
+    match entry.get_password() {
+        Ok(value) if !value.trim().is_empty() => Ok(Some(value)),
+        Ok(_) => Ok(None),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(error) => Err(format!("Failed to read API key from OS credential store: {error}")),
+    }
+}
+
+fn write_keyring_key(provider: &str, value: &str) -> std::result::Result<(), String> {
+    let entry = keyring_entry(provider)?;
+    entry.set_password(value)
+        .map_err(|error| format!("Failed to save API key to OS credential store: {error}"))
+}
+
+fn delete_keyring_key(provider: &str) -> std::result::Result<(), String> {
+    let entry = keyring_entry(provider)?;
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(format!("Failed to remove API key from OS credential store: {error}")),
+    }
+}
+
+fn normalize_legacy_key(config: &mut AppConfig) {
+    if config.llm.api_key.trim().is_empty() {
+        return;
+    }
+
+    let provider = config.llm.provider.to_ascii_lowercase();
+    match provider.as_str() {
+        "openai" if config.llm.api_keys.openai.trim().is_empty() => {
+            config.llm.api_keys.openai = config.llm.api_key.clone();
+        }
+        "anthropic" if config.llm.api_keys.anthropic.trim().is_empty() => {
+            config.llm.api_keys.anthropic = config.llm.api_key.clone();
+        }
+        "gemini" | "google" if config.llm.api_keys.gemini.trim().is_empty() => {
+            config.llm.api_keys.gemini = config.llm.api_key.clone();
+        }
+        _ => {}
+    }
+}
+
+fn load_keyring_keys(config: &mut AppConfig) {
+    for provider in ["openai", "anthropic", "gemini"] {
+        if let Ok(Some(value)) = read_keyring_key(provider) {
+            match provider {
+                "openai" => config.llm.api_keys.openai = value,
+                "anthropic" => config.llm.api_keys.anthropic = value,
+                "gemini" => config.llm.api_keys.gemini = value,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    let active_provider = config.llm.provider.to_ascii_lowercase();
+    let active_key = match active_provider.as_str() {
+        "openai" => config.llm.api_keys.openai.clone(),
+        "anthropic" => config.llm.api_keys.anthropic.clone(),
+        "gemini" | "google" => config.llm.api_keys.gemini.clone(),
+        _ => String::new(),
+    };
+    if !active_key.is_empty() {
+        config.llm.api_key = active_key;
+    }
+}
+
+fn save_keyring_keys(config: &AppConfig) -> std::result::Result<(), String> {
+    for (provider, value) in [
+        ("openai", config.llm.api_keys.openai.as_str()),
+        ("anthropic", config.llm.api_keys.anthropic.as_str()),
+        ("gemini", config.llm.api_keys.gemini.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            delete_keyring_key(provider)?;
+        } else {
+            write_keyring_key(provider, value)?;
+        }
+    }
+    Ok(())
 }
 
 /// Translation configuration
@@ -224,10 +320,14 @@ pub fn load_config() -> std::result::Result<String, String> {
     }
     
     // Parse the config
-    let config: AppConfig = match serde_json::from_str(&config_json) {
+    let mut config: AppConfig = match serde_json::from_str(&config_json) {
         Ok(config) => config,
         Err(e) => return Err(format!("Failed to parse config: {}", e)),
     };
+
+    // API keys are loaded from the OS credential store at runtime. Older
+    // config files may still contain a key and are migrated on the next save.
+    load_keyring_keys(&mut config);
     
     // TODO: Update the config with any missing fields from default_config()
     
@@ -245,11 +345,20 @@ pub fn load_config() -> std::result::Result<String, String> {
 pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     info!("Saving configuration");
     
-    // Parse the config
+    // Parse the config and move secrets to the OS credential store before
+    // writing the non-secret settings file.
     let config: AppConfig = match serde_json::from_str(config_json) {
         Ok(config) => config,
         Err(e) => return Err(format!("Failed to parse config: {}", e)),
     };
+
+    let mut config = config;
+    normalize_legacy_key(&mut config);
+    save_keyring_keys(&config)?;
+
+    let mut persisted_config = config;
+    persisted_config.llm.api_key.clear();
+    persisted_config.llm.api_keys = ApiKeys::default();
     
     // Get the config file path
     let config_path = match get_config_path() {
@@ -264,7 +373,7 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     };
     
     // Serialize the config
-    let config_json = match serde_json::to_string_pretty(&config) {
+    let config_json = match serde_json::to_string_pretty(&persisted_config) {
         Ok(json) => json,
         Err(e) => return Err(format!("Failed to serialize config: {}", e)),
     };

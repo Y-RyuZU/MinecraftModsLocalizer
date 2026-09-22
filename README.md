@@ -81,7 +81,7 @@ MML_API_KEY=op://Private/<item-name>/credential
 op run --env-file=(Join-Path $env:TEMP "mml-gemini.env") -- npm run test:translation:smoke
 ```
 
-`op run` resolves the reference only for the child process; the key is not written to the repository or printed by the smoke test. The Settings screen can use the same process-scoped variable with **Load from environment**. Avoid **Save Settings** when you do not want the key persisted in the app configuration file.
+`op run` resolves the reference only for the child process; the key is not written to the repository or printed by the smoke test. The Settings screen can use the same process-scoped variable with **Load from environment**. In the packaged Tauri app, **Save Settings** stores provider keys in the Windows Credential Manager and keeps them out of `config.json`; **Load from environment** is still the most ephemeral option for a one-off smoke test.
 
 ### Building
 
