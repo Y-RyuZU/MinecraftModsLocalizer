@@ -39,7 +39,7 @@ beforeAll(() => {
           type: "message",
           role: "assistant",
           model: "claude-haiku-4-5-20251001",
-          content: [{ type: "text", text: "item.example.name: 銅のつるはし" }],
+          content: [{ type: "text", text: "{\"item.example.name\":\"銅のつるはし\"}" }],
           stop_reason: "end_turn",
           usage: { input_tokens: 10, output_tokens: 8 }
         });
@@ -49,7 +49,7 @@ beforeAll(() => {
         candidates: [{
           content: {
             role: "model",
-            parts: [{ text: "item.example.name: 銅のつるはし" }]
+            parts: [{ text: "{\"item.example.name\":\"銅のつるはし\"}" }]
           },
           finishReason: "STOP"
         }],
@@ -84,6 +84,7 @@ describe("LLM adapter HTTP integrations", () => {
     });
     expect(requests.at(-1)?.path).toContain("chat/completions");
     expect(requests.at(-1)?.headers.get("authorization")).toBe("Bearer openai-test-key");
+    expect(requests.at(-1)?.body.response_format).toEqual({ type: "json_object" });
   });
 
   test("translates through the Anthropic messages endpoint", async () => {
@@ -115,5 +116,7 @@ describe("LLM adapter HTTP integrations", () => {
       content: { "item.example.name": "銅のつるはし" }
     });
     expect(requests.at(-1)?.path).toContain("generateContent");
+    const generationConfig = requests.at(-1)?.body.generationConfig as Record<string, unknown> | undefined;
+    expect(generationConfig?.responseMimeType).toBe("application/json");
   });
 });

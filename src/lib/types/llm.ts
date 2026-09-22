@@ -121,14 +121,15 @@ export const DEFAULT_LANGUAGES: SupportedLanguage[] = [
 export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator specializing in Minecraft mods and gaming content.
 
 ## Important Translation Rules
-- Translate line by line, strictly in order
-- Ensure the number of lines before and after translation matches exactly (do not add or remove lines)
-- Output only the translation result, without any greetings or explanations
+- Translate every JSON value while preserving every JSON key exactly
+- Return exactly one valid JSON object with the same keys as the input
+- Do not add, remove, rename, reorder, or duplicate keys
+- Output JSON only, without Markdown fences, greetings, or explanations
 
 ## Detailed Translation Instructions
-- Treat sentences on different lines as separate, even if they seem contextually connected
-- If multiple sentences appear on a single line, translate them as one line
+- Treat each JSON value as an independent translation unit
 - Use appropriate phonetic transcription for proper nouns when needed
+- When a foreign word, technical term, proper noun, or mod-specific term does not have a natural Japanese equivalent, use a readable katakana rendering instead of forcing an unnatural kanji translation
 - Preserve programming variables (e.g., %s, $1, \\") and special symbols as they are
 - Maintain backslashes (\\\\) as they may be used as escape characters
 - Do not edit any characters that appear to be special symbols
@@ -143,9 +144,12 @@ export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator speciali
 export const DEFAULT_USER_PROMPT = `Please translate the following English text into {language}.
 
 ## Input Text Information
-- Number of lines: {line_count}
+- Number of entries: {line_count}
+- The input below is a JSON object. Translate only its string values.
+- Return one JSON object with the exact same keys and one translated string value for each key.
+- Do not wrap the JSON in Markdown or add any commentary.
 
-# Content to Translate
+# JSON Content to Translate
 {content}`;
 
 /**

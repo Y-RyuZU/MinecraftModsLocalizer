@@ -109,6 +109,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
           ...(isReasoningModel ? {} : {
             temperature: this.config.temperature ?? DEFAULT_API_CONFIG.temperature
           }),
+          response_format: { type: "json_object" },
           user: "minecraft-mod-localizer"
         });
         

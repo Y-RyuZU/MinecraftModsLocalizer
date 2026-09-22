@@ -521,21 +521,27 @@ export class TranslationService {
     originalContent: Record<string, string>,
     translatedContent: Record<string, string>
   ): void {
-    // Check if all keys are present in the translated content
+    if (!translatedContent || typeof translatedContent !== "object" || Array.isArray(translatedContent)) {
+      throw new Error("Translation response must be an object");
+    }
+
+    // Check the exact schema so an LLM cannot silently drop or invent entries.
     const originalKeys = Object.keys(originalContent);
     const translatedKeys = Object.keys(translatedContent);
-    
-    if (originalKeys.length !== translatedKeys.length) {
-      throw new Error(
-        `Translation response has different number of keys: ${translatedKeys.length} vs ${originalKeys.length}`
-      );
-    }
-    
-    // Check if all original keys are present in the translated content
-    for (const key of originalKeys) {
-      if (!translatedContent[key]) {
-        throw new Error(`Translation response is missing key: ${key}`);
-      }
+
+    const missingKeys = originalKeys.filter((key) => !Object.prototype.hasOwnProperty.call(translatedContent, key));
+    const extraKeys = translatedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(originalContent, key));
+    const invalidValues = originalKeys.filter((key) =>
+      Object.prototype.hasOwnProperty.call(translatedContent, key) && typeof translatedContent[key] !== "string"
+    );
+
+    if (missingKeys.length || extraKeys.length || invalidValues.length) {
+      const details = [
+        missingKeys.length ? `missing: ${missingKeys.join(", ")}` : "",
+        extraKeys.length ? `extra: ${extraKeys.join(", ")}` : "",
+        invalidValues.length ? `non-string values: ${invalidValues.join(", ")}` : ""
+      ].filter(Boolean).join("; ");
+      throw new Error(`Invalid translation response schema (${details})`);
     }
   }
 

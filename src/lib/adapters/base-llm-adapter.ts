@@ -127,11 +127,11 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     customUserPrompt?: string
   ): string {
     const userPromptTemplate = this.getUserPromptTemplate(customUserPrompt);
-    const contentLines = Object.entries(content).map(([key, value]) => `${key}: ${value}`);
-    const lineCount = contentLines.length;
-    
-    // Format content
-    const formattedContent = contentLines.join('\n');
+    const lineCount = Object.keys(content).length;
+
+    // Serialize the whole object so keys containing punctuation, newlines, or
+    // quotes cannot be confused with the translated text.
+    const formattedContent = JSON.stringify(content, null, 2);
     
     // Replace variables
     return userPromptTemplate
@@ -193,18 +193,24 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     const originalKeys = Object.keys(originalContent);
     const translatedContent: Record<string, string> = {};
 
-    // Prefer a JSON object when a model wraps its answer in a code fence.
-    // This keeps keys containing regex characters (for example, dots) safe.
-    const jsonCandidate = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1]
-      || response.slice(response.indexOf("{"), response.lastIndexOf("}") + 1);
-    if (jsonCandidate && jsonCandidate.startsWith("{") && jsonCandidate.endsWith("}")) {
+    // Prefer a JSON object. Once a JSON object is found and parses, validate it
+    // strictly instead of silently accepting missing or extra translations.
+    const fencedJson = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1];
+    const firstBrace = response.indexOf("{");
+    const lastBrace = response.lastIndexOf("}");
+    const jsonCandidate = fencedJson?.trim()
+      || (firstBrace >= 0 && lastBrace > firstBrace ? response.slice(firstBrace, lastBrace + 1).trim() : "");
+
+    if (jsonCandidate.startsWith("{") && jsonCandidate.endsWith("}")) {
       try {
-        const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>;
-        if (originalKeys.every((key) => typeof parsed[key] === "string")) {
-          return Object.fromEntries(originalKeys.map((key) => [key, parsed[key] as string]));
+        const parsed = JSON.parse(jsonCandidate) as unknown;
+        return this.validateJsonTranslation(parsed, originalContent);
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          // Fall through to the line-based parser used by older prompts.
+        } else {
+          throw error;
         }
-      } catch {
-        // Fall through to the line-based parser used by older prompts.
       }
     }
     
@@ -290,5 +296,35 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     }
 
     return translatedContent;
+  }
+
+  /** Validate a JSON translation against the exact source-object schema. */
+  private validateJsonTranslation(
+    parsed: unknown,
+    originalContent: Record<string, string>
+  ): Record<string, string> {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Translation response must be a JSON object");
+    }
+
+    const translated = parsed as Record<string, unknown>;
+    const originalKeys = Object.keys(originalContent);
+    const translatedKeys = Object.keys(translated);
+    const missingKeys = originalKeys.filter((key) => !Object.prototype.hasOwnProperty.call(translated, key));
+    const extraKeys = translatedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(originalContent, key));
+    const nonStringKeys = originalKeys.filter((key) =>
+      Object.prototype.hasOwnProperty.call(translated, key) && typeof translated[key] !== "string"
+    );
+
+    if (missingKeys.length || extraKeys.length || nonStringKeys.length) {
+      const details = [
+        missingKeys.length ? `missing: ${missingKeys.join(", ")}` : "",
+        extraKeys.length ? `extra: ${extraKeys.join(", ")}` : "",
+        nonStringKeys.length ? `non-string values: ${nonStringKeys.join(", ")}` : ""
+      ].filter(Boolean).join("; ");
+      throw new Error(`Invalid JSON translation response (${details})`);
+    }
+
+    return Object.fromEntries(originalKeys.map((key) => [key, translated[key] as string]));
   }
 }

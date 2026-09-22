@@ -12,6 +12,30 @@ type RecordedRequest = {
 const requests: RecordedRequest[] = [];
 let server: ReturnType<typeof Bun.serve>;
 
+function responseFor(body: Record<string, unknown>, path: string): string {
+  let prompt = "";
+  if (path.includes("chat/completions")) {
+    const messages = body.messages as Array<{ content?: string }>;
+    prompt = messages.at(-1)?.content || "";
+  } else if (path.endsWith("/messages")) {
+    const messages = body.messages as Array<{ content?: string }>;
+    prompt = messages.at(-1)?.content || "";
+  } else {
+    const contents = body.contents as Array<{ parts?: Array<{ text?: string }> }>;
+    prompt = contents?.at(-1)?.parts?.at(-1)?.text || "";
+  }
+
+  const start = prompt.indexOf("{");
+  const end = prompt.lastIndexOf("}");
+  const source = JSON.parse(prompt.slice(start, end + 1)) as Record<string, string>;
+  return JSON.stringify(Object.fromEntries(
+    Object.keys(source).map((key) => [
+      key,
+      source[key] === "Copper Pickaxe" ? "銅のつるはし" : `訳:${source[key]}`
+    ])
+  ));
+}
+
 beforeAll(() => {
   server = Bun.serve({
     port: 0,
@@ -29,7 +53,7 @@ beforeAll(() => {
             index: 0,
             message: {
               role: "assistant",
-              content: "{\"item.example.name\": \"銅のつるはし\"}"
+              content: responseFor(body, path)
             },
             finish_reason: "stop"
           }]
@@ -44,7 +68,7 @@ beforeAll(() => {
           model: "claude-haiku-4-5-20251001",
           content: [{
             type: "text",
-            text: "item.example.name: 銅のつるはし"
+            text: responseFor(body, path)
           }],
           stop_reason: "end_turn",
           usage: { input_tokens: 10, output_tokens: 8 }
@@ -55,7 +79,7 @@ beforeAll(() => {
         candidates: [{
           content: {
             role: "model",
-            parts: [{ text: "item.example.name: 銅のつるはし" }]
+            parts: [{ text: responseFor(body, path) }]
           },
           finishReason: "STOP"
         }],
@@ -108,5 +132,32 @@ describe("TranslationService HTTP flow", () => {
     });
     expect(completedJobs).toEqual([job.id]);
     expect(requests).toHaveLength(1);
+  });
+
+  test("sends a multi-entry batch in one request and preserves every key", async () => {
+    requests.length = 0;
+    const service = new TranslationService({
+      llmConfig: {
+        provider: "gemini",
+        apiKey: "gemini-test-key",
+        baseUrl: server.url.toString(),
+        model: "gemini-3.8-flash",
+        maxRetries: 0
+      },
+      chunkSize: 2
+    });
+    const job = service.createJob({
+      "item.example.name": "Copper Pickaxe",
+      "item.example.tooltip": "This is a heavy tool."
+    }, "ja_jp");
+
+    const result = await service.startJob(job.id);
+
+    expect(result.status).toBe("completed");
+    expect(requests).toHaveLength(1);
+    expect(service.getCombinedTranslatedContent(job.id)).toEqual({
+      "item.example.name": "銅のつるはし",
+      "item.example.tooltip": "訳:This is a heavy tool."
+    });
   });
 });
