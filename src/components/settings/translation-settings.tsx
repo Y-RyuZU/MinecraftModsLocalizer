@@ -88,12 +88,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.questChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.questChunkSize || 1}
+                value={config.translation.questChunkSize || 50}
                 onChange={(e) => {
                   config.translation.questChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="1"
+                placeholder="50"
               />
             </div>
             
@@ -101,12 +101,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.guidebookChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.guidebookChunkSize || 1}
+                value={config.translation.guidebookChunkSize || 50}
                 onChange={(e) => {
                   config.translation.guidebookChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="1"
+                placeholder="50"
               />
             </div>
           </div>

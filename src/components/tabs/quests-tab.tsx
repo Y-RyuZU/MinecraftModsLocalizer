@@ -5,6 +5,18 @@ import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
+import { applyQuestTranslations, extractQuestText } from "@/lib/services/quest-text";
+
+function getQuestOutputPath(sourcePath: string, targetLanguage: string): string {
+  const match = sourcePath.match(/^([\s\S]*[\\/])lang[\\/]en_us([\\/].*)$/i);
+  if (!match) {
+    // Legacy FTB exports embed the text directly in chapter SNBT files.
+    return sourcePath;
+  }
+
+  const separator = sourcePath.includes("\\") ? "\\" : "/";
+  return `${match[1]}lang${separator}${targetLanguage}${match[2]}`;
+}
 
 export function QuestsTab() {
   const { 
@@ -119,11 +131,12 @@ export function QuestsTab() {
     let totalChunksCount = 0;
     for (const target of selectedTargets) {
       try {
-        // Read quest file to estimate chunk count
+        // Read quest file and count only user-visible text entries.
         const content = await FileService.readTextFile(target.path);
+        const questText = extractQuestText(content);
         // Create a temporary job to see how many chunks it would generate
         const tempJob = translationService.createJob(
-          { content },
+          questText.content,
           targetLanguage,
           target.name
         );
@@ -146,9 +159,14 @@ export function QuestsTab() {
         // Read quest file
         const content = await FileService.readTextFile(target.path);
         
-        // Create a translation job with a simple key-value structure
+        // Translate only visible quest strings; keep the SNBT syntax untouched.
+        const questText = extractQuestText(content);
+        if (Object.keys(questText.content).length === 0) {
+          console.warn(`No translatable quest text found: ${target.name}`);
+          continue;
+        }
         const job = translationService.createJob(
-          { content },
+          questText.content,
           targetLanguage,
           target.name
         );
@@ -174,13 +192,12 @@ export function QuestsTab() {
         
         // Get the translated content
         const translatedContent = translationService.getCombinedTranslatedContent(job.id);
-        const translatedText = translatedContent.content || `[${targetLanguage}] ${content}`;
+        const translatedText = applyQuestTranslations(content, questText, translatedContent);
         
         // Write translated file
-        const outputPath = target.path.replace(
-          `.${target.type}`,
-          `.${targetLanguage}.${target.type}`
-        );
+        // FTB SNBT is loaded from its original path, so preserve the source
+        // layout and write the translated file back to that path.
+        const outputPath = getQuestOutputPath(target.path, targetLanguage);
         
         await FileService.writeTextFile(outputPath, translatedText);
         

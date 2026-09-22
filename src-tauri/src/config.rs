@@ -142,8 +142,8 @@ pub fn default_config() -> AppConfig {
         },
         translation: TranslationConfig {
             mod_chunk_size: 50,
-            quest_chunk_size: 1,
-            guidebook_chunk_size: 1,
+            quest_chunk_size: 50,
+            guidebook_chunk_size: 50,
             custom_languages: vec![],
             resource_pack_name: "MinecraftModsLocalizer".to_string(),
         },

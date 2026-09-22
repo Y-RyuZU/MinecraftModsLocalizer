@@ -195,8 +195,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   translation: {
     modChunkSize: 50,
-    questChunkSize: 1,
-    guidebookChunkSize: 1,
+    questChunkSize: 50,
+    guidebookChunkSize: 50,
     additionalLanguages: [],
     resourcePackName: "MinecraftModsLocalizer"
   },

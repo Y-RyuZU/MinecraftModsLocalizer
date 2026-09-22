@@ -149,9 +149,20 @@ pub async fn get_ftb_quest_files(_app_handle: tauri::AppHandle, dir: &str) -> st
         let ftb_quests_dir = config_dir.join("ftbquests");
         
         if ftb_quests_dir.exists() && ftb_quests_dir.is_dir() {
-            info!("Scanning FTB quests directory: {}", ftb_quests_dir.display());
-            // Walk through the directory and find all SNBT files
-            for entry in WalkDir::new(ftb_quests_dir).into_iter() {
+            // Modern FTB Quests stores localized text separately under
+            // quests/lang/en_us. Prefer that tree so IDs, rewards, and layout
+            // data are never sent to the translator or rewritten.
+            let localized_source_dir = ftb_quests_dir.join("quests").join("lang").join("en_us");
+            let scan_root = if localized_source_dir.is_dir() {
+                info!("Scanning FTB localized language directory: {}", localized_source_dir.display());
+                localized_source_dir
+            } else {
+                info!("No FTB localized language directory found; scanning {}", ftb_quests_dir.display());
+                ftb_quests_dir.clone()
+            };
+
+            // Walk through the selected tree and find all SNBT files.
+            for entry in WalkDir::new(scan_root).into_iter() {
                 match entry {
                     Ok(entry) => {
                         let entry_path = entry.path();
