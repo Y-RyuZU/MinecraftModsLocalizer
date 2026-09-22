@@ -79,6 +79,9 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     const anthropic = new Anthropic({
       apiKey: this.config.apiKey,
       baseURL: this.config.baseUrl || DEFAULT_API_URLS.anthropic,
+      // TranslationService owns retry/backoff policy. Disable the SDK's
+      // hidden retries so one configured retry is one actual HTTP request.
+      maxRetries: 0,
       dangerouslyAllowBrowser: true // Required for browser environments
     });
     

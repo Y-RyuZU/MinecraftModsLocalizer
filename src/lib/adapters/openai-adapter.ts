@@ -78,6 +78,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     const openai = new OpenAI({
       apiKey: this.config.apiKey,
       baseURL: this.config.baseUrl || undefined,
+      // TranslationService owns retry/backoff policy. Disable the SDK's
+      // hidden retries so one configured retry is one actual HTTP request.
+      maxRetries: 0,
       dangerouslyAllowBrowser: true // Required for browser environments
     });
     

@@ -9,6 +9,7 @@ type RecordedRequest = {
 };
 
 const requests: RecordedRequest[] = [];
+let retryableFailures = 0;
 let server: ReturnType<typeof Bun.serve>;
 
 beforeAll(() => {
@@ -18,6 +19,11 @@ beforeAll(() => {
       const body = await request.json() as Record<string, unknown>;
       const path = new URL(request.url).pathname;
       requests.push({ path, headers: request.headers, body });
+
+      if (retryableFailures > 0) {
+        retryableFailures -= 1;
+        return Response.json({ error: { message: "temporary overload" } }, { status: 503 });
+      }
 
       if (path.includes("chat/completions")) {
         return Response.json({
@@ -118,5 +124,20 @@ describe("LLM adapter HTTP integrations", () => {
     expect(requests.at(-1)?.path).toContain("generateContent");
     const generationConfig = requests.at(-1)?.body.generationConfig as Record<string, unknown> | undefined;
     expect(generationConfig?.responseMimeType).toBe("application/json");
+  });
+
+  test("does not add hidden Gemini SDK retries", async () => {
+    const requestCountBefore = requests.length;
+    retryableFailures = 1;
+    const adapter = LLMAdapterFactory.getAdapter({
+      provider: "gemini",
+      apiKey: "gemini-test-key",
+      baseUrl: server.url.toString(),
+      model: "gemini-3.8-flash",
+      maxRetries: 0
+    });
+
+    await expect(adapter.translate(request)).rejects.toThrow();
+    expect(requests.length - requestCountBefore).toBe(1);
   });
 });

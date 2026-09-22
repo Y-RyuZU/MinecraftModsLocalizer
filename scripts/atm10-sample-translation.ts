@@ -5,6 +5,14 @@ import { TranslationService } from "../src/lib/services/translation-service";
 import { applyQuestTranslations, extractQuestText } from "../src/lib/services/quest-text";
 import { DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/lib/types/config";
 
+// The real app provides Tauri logging commands. The sample runner uses the
+// same service outside Tauri, so make those optional logs no-ops in Bun.
+if (typeof window === "undefined") {
+  (globalThis as unknown as { window: { __TAURI_INTERNALS__: { invoke: () => Promise<undefined> } } }).window = {
+    __TAURI_INTERNALS__: { invoke: async () => undefined }
+  };
+}
+
 const instanceRoot = process.env.MML_ATM10_ROOT;
 if (!instanceRoot) {
   throw new Error("MML_ATM10_ROOT must point to the ATM10 SKY minecraft directory.");

@@ -79,7 +79,13 @@ export class GeminiAdapter extends BaseLLMAdapter {
     // Initialize Gemini client
     const genAI = new GoogleGenAI({
       apiKey: this.config.apiKey,
-      ...(this.config.baseUrl ? { httpOptions: { baseUrl: this.config.baseUrl } } : {})
+      httpOptions: {
+        ...(this.config.baseUrl ? { baseUrl: this.config.baseUrl } : {}),
+        // The TranslationService owns retry/backoff policy. The Gemini SDK
+        // defaults to five attempts for 5xx/429 responses, which would make
+        // one configured retry silently send several extra requests.
+        retryOptions: { attempts: 1 }
+      }
     });
     
     const model = this.config.model || DEFAULT_MODELS.gemini;
