@@ -83,6 +83,16 @@ op run --env-file=(Join-Path $env:TEMP "mml-gemini.env") -- npm run test:transla
 
 `op run` resolves the reference only for the child process; the key is not written to the repository or printed by the smoke test. The Settings screen can use the same process-scoped variable with **Load from environment**. In the packaged Tauri app, **Save Settings** stores provider keys in the Windows Credential Manager and keeps them out of `config.json`; **Load from environment** is still the most ephemeral option for a one-off smoke test.
 
+To verify the real ATM10 SKY file path without modifying the instance, run the sample flow into a temporary output directory:
+
+```powershell
+$env:MML_PROVIDER = "gemini"
+$env:MML_ATM10_ROOT = "C:\Users\<user>\AppData\Roaming\PrismLauncher\instances\All the Mods 10- To the Sky   ATM10SKY\minecraft"
+op run --env-file=(Join-Path $env:TEMP "mml-gemini.env") -- npm run test:translation:atm10-sample
+```
+
+The command translates the eight-entry Compact Machines KubeJS language file and one FTB Quests SNBT file, validates exact keys, preserves quest structure, and writes only to `%TEMP%` unless `MML_SAMPLE_OUTPUT` is set.
+
 ### Building
 
 To build the application for your current platform:

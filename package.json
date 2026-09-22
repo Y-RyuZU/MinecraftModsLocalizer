@@ -13,7 +13,8 @@
     "test:translation:smoke": "bun run scripts/translation-smoke-test.ts",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:translation:atm10-sample": "bun run scripts/atm10-sample-translation.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.128.0",
