@@ -13,6 +13,8 @@ A desktop application that automates the translation of Minecraft Mods and Quest
 - **Patchouli Guidebook Translation**: Translates Patchouli guidebooks within mod JAR files
 - **Multi-Language Support**: Supports Japanese, Chinese, Korean, German, French, Spanish, and custom languages
 - **AI-Powered**: Uses advanced language models for high-quality translations
+- **Provider Choice**: Select OpenAI, Anthropic, or Google Gemini independently
+- **Secure Key Handoff**: Paste a key in Settings, open the provider console, or load it from a Windows environment variable
 - **Progress Tracking**: Real-time progress display with interrupt capability
 - **Batch Processing**: Efficiently processes large mod packs with chunking
 
@@ -28,8 +30,8 @@ Download the latest release for your platform from the [Releases](https://github
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (1.77.2 or later)
-- [Node.js](https://nodejs.org/) (20 or later)
+- [Rust](https://rustup.rs/) (stable toolchain)
+- [Node.js](https://nodejs.org/) (LTS)
 - [Bun](https://bun.sh/) (latest version)
 
 ### Setup
@@ -42,20 +44,37 @@ cd MinecraftModsLocalizer
 
 2. Install dependencies:
 ```bash
-bun install
+npm install
 ```
 
 3. Run in development mode:
 ```bash
-bun run tauri dev
+npm run tauri dev
 ```
+
+### API keys
+
+The Settings screen has a provider-specific API key field. Use **Get API key** to open the official console, or set one of these Windows environment variables and choose **Load from environment**:
+
+- [OpenAI API keys](https://platform.openai.com/api-keys): `OPENAI_API_KEY`
+- [Anthropic API keys](https://console.anthropic.com/settings/keys): `ANTHROPIC_API_KEY`
+- [Google AI Studio keys](https://aistudio.google.com/app/apikey): `GEMINI_API_KEY`
+
+For a real two-line translation smoke test from PowerShell:
+
+```powershell
+$env:OPENAI_API_KEY = "your-key"
+npm run test:translation:smoke
+```
+
+For another adapter, set `$env:MML_PROVIDER` to `anthropic` or `gemini` and set the matching provider variable. Never commit API keys or include them in logs.
 
 ### Building
 
 To build the application for your current platform:
 
 ```bash
-bun run tauri build
+npm run tauri build
 ```
 
 ## CI/CD Pipeline
@@ -94,8 +113,11 @@ This project uses GitHub Actions for continuous integration and deployment.
 Run the test suite:
 
 ```bash
-# Run all tests
-bun test
+# Run the Bun test suite
+npm test
+
+# Run a real provider translation (requires an API key)
+npm run test:translation:smoke
 
 # Run with Jest
 bun run test:jest
