@@ -14,7 +14,7 @@ A desktop application that automates the translation of Minecraft Mods and Quest
 - **Multi-Language Support**: Supports Japanese, Chinese, Korean, German, French, Spanish, and custom languages
 - **AI-Powered**: Uses advanced language models for high-quality translations
 - **Provider Choice**: Select OpenAI, Anthropic, or Google Gemini independently
-- **Secure Key Handoff**: Paste a key in Settings, open the provider console, or load it from a Windows environment variable
+- **Easy Key Setup**: Paste a key in Settings, open the provider console, or load it from a Windows environment variable
 - **Progress Tracking**: Real-time progress display with interrupt capability
 - **Batch Processing**: Efficiently processes large mod packs with chunking
 
