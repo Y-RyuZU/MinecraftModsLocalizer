@@ -77,6 +77,14 @@ To build the application for your current platform:
 npm run tauri build
 ```
 
+For a local unsigned Windows installer (no updater signing key required):
+
+```powershell
+npm run tauri build -- --debug --config '{"bundle":{"createUpdaterArtifacts":false}}'
+```
+
+Release builds that publish updater artifacts require `TAURI_SIGNING_PRIVATE_KEY`; the repository configuration contains only the public key.
+
 ## CI/CD Pipeline
 
 This project uses GitHub Actions for continuous integration and deployment.
