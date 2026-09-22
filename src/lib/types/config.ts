@@ -70,6 +70,9 @@ export const STORAGE_KEYS = {
   config: "minecraft-mods-localizer-config"
 } as const;
 
+/** Default number of JSON entries sent in one translation request. */
+export const DEFAULT_CHUNK_SIZE = 50;
+
 /**
  * Application configuration
  */
@@ -194,9 +197,9 @@ export const DEFAULT_CONFIG: AppConfig = {
     temperature: 1.0
   },
   translation: {
-    modChunkSize: 50,
-    questChunkSize: 50,
-    guidebookChunkSize: 50,
+    modChunkSize: DEFAULT_CHUNK_SIZE,
+    questChunkSize: DEFAULT_CHUNK_SIZE,
+    guidebookChunkSize: DEFAULT_CHUNK_SIZE,
     additionalLanguages: [],
     resourcePackName: "MinecraftModsLocalizer"
   },

@@ -366,7 +366,7 @@ pub async fn create_resource_pack(_app_handle: tauri::AppHandle, name: &str, lan
     let pack_mcmeta = ResourcePackManifest {
         pack: ResourcePackInfo {
             description: format!("Translated resources for {}", language),
-            pack_format: 9, // Minecraft 1.19+ pack format
+            pack_format: 34, // Minecraft 1.21.1 resource pack format
         },
     };
     

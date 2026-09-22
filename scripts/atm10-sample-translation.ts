@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { TranslationService } from "../src/lib/services/translation-service";
 import { applyQuestTranslations, extractQuestText } from "../src/lib/services/quest-text";
-import { DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/lib/types/config";
+import { DEFAULT_CHUNK_SIZE, DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/lib/types/config";
 
 // The real app provides Tauri logging commands. The sample runner uses the
 // same service outside Tauri, so make those optional logs no-ops in Bun.
@@ -45,7 +45,7 @@ const llmConfig = {
 async function translate(content: Record<string, string>, fileName: string): Promise<Record<string, string>> {
   const service = new TranslationService({
     llmConfig,
-    chunkSize: 50,
+    chunkSize: DEFAULT_CHUNK_SIZE,
     maxRetries: 0,
     currentFileName: fileName
   });
