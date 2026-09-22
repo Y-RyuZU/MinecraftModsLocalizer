@@ -52,7 +52,10 @@ async function translate(content: Record<string, string>, fileName: string): Pro
   const job = service.createJob(content, "ja_jp", fileName);
   const completed = await service.startJob(job.id);
   if (completed.status !== "completed") {
-    throw new Error(`Translation failed for ${fileName}: ${completed.error || "unknown error"}`);
+    const chunkErrors = completed.chunks
+      .map((chunk) => chunk.error)
+      .filter((error): error is string => Boolean(error));
+    throw new Error(`Translation failed for ${fileName}: ${chunkErrors.join(" | ") || completed.error || "unknown error"}`);
   }
   return service.getCombinedTranslatedContent(job.id);
 }
