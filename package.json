@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "test": "bun test src/lib/services/__tests__/update-service.test.ts src/lib/services/__tests__/filesystem-service.bun.test.ts src/lib/services/__tests__/translation-runner.bun.test.ts src/lib/services/__tests__/translation-service.bun.test.ts src/lib/adapters/__tests__/base-llm-adapter.bun.test.ts src/lib/adapters/__tests__/llm-adapter-factory.bun.test.ts src/lib/adapters/__tests__/llm-adapter-http.bun.test.ts",
+    "test": "bun test src/lib/services/__tests__/update-service.test.ts src/lib/services/__tests__/filesystem-service.bun.test.ts src/lib/services/__tests__/translation-runner.bun.test.ts src/lib/services/__tests__/translation-service.bun.test.ts src/lib/services/__tests__/translation-service-http.bun.test.ts src/lib/adapters/__tests__/base-llm-adapter.bun.test.ts src/lib/adapters/__tests__/llm-adapter-factory.bun.test.ts src/lib/adapters/__tests__/llm-adapter-http.bun.test.ts",
     "test:translation:smoke": "bun run scripts/translation-smoke-test.ts",
     "test:jest": "jest",
     "test:watch": "jest --watch",
