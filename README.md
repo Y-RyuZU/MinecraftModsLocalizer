@@ -14,7 +14,7 @@ A desktop application that automates the translation of Minecraft Mods and Quest
 - **Multi-Language Support**: Supports Japanese, Chinese, Korean, German, French, Spanish, and custom languages
 - **AI-Powered**: Uses advanced language models for high-quality translations
 - **Provider Choice**: Select OpenAI, Anthropic, or Google Gemini independently
-- **Easy Key Setup**: Paste a key in Settings, open the provider console, or load it from a Windows environment variable
+- **Easy Key Setup**: Open the provider console, load a key from a Windows environment variable, or inject it at runtime from 1Password
 - **Progress Tracking**: Real-time progress display with interrupt capability
 - **Batch Processing**: Efficiently processes large mod packs with chunking
 
@@ -60,14 +60,28 @@ The Settings screen has a provider-specific API key field. Use **Get API key** t
 - [Anthropic API keys](https://console.anthropic.com/settings/keys): `ANTHROPIC_API_KEY`
 - [Google AI Studio keys](https://aistudio.google.com/app/apikey): `GEMINI_API_KEY` (or `GOOGLE_API_KEY`)
 
-For a real two-line translation smoke test from PowerShell:
+For a real two-entry translation smoke test from PowerShell (the key is kept only in the current process):
 
 ```powershell
-$env:OPENAI_API_KEY = "your-key"
 npm run test:translation:smoke
 ```
 
 For another adapter, set `$env:MML_PROVIDER` to `anthropic` or `gemini` and set the matching provider variable. Never commit API keys or include them in logs.
+
+For 1Password CLI, keep only a secret reference in a temporary file outside the repository:
+
+On Windows, first unlock the 1Password desktop app and enable **Settings > Developer > Integrate with 1Password CLI**. Then use `op vault list` to confirm the CLI session.
+
+```powershell
+@"
+MML_PROVIDER=gemini
+MML_API_KEY=op://Private/<item-name>/credential
+"@ | Set-Content -Path (Join-Path $env:TEMP "mml-gemini.env") -Encoding ascii
+
+op run --env-file=(Join-Path $env:TEMP "mml-gemini.env") -- npm run test:translation:smoke
+```
+
+`op run` resolves the reference only for the child process; the key is not written to the repository or printed by the smoke test. The Settings screen can use the same process-scoped variable with **Load from environment**. Avoid **Save Settings** when you do not want the key persisted in the app configuration file.
 
 ### Building
 

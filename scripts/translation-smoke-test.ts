@@ -38,9 +38,13 @@ try {
     targetLanguage
   });
 
-  const keys = Object.keys(response.content);
-  if (keys.length !== Object.keys(source).length || keys.some((key) => !response.content[key]?.trim())) {
-    throw new Error(`Unexpected translation shape: ${JSON.stringify(response.content)}`);
+  const sourceKeys = Object.keys(source);
+  const responseKeys = Object.keys(response.content);
+  const missingKeys = sourceKeys.filter((key) => !Object.prototype.hasOwnProperty.call(response.content, key));
+  const extraKeys = responseKeys.filter((key) => !Object.prototype.hasOwnProperty.call(source, key));
+  const invalidValues = sourceKeys.filter((key) => typeof response.content[key] !== "string");
+  if (missingKeys.length || extraKeys.length || invalidValues.length) {
+    throw new Error(`Unexpected translation shape (missing: ${missingKeys.join(", ")}; extra: ${extraKeys.join(", ")}; non-string: ${invalidValues.join(", ")})`);
   }
 
   console.log(JSON.stringify({ provider, model, targetLanguage, result: response.content }, null, 2));
