@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
 import packageJson from '../../../package.json';
 import { UPDATE_DEFAULTS } from "../constants/defaults";
 
@@ -47,10 +48,16 @@ export class UpdateService {
   
   /**
    * Get current application version
-   * @returns Current version from package.json
+   * @returns Version embedded in Tauri, or the frontend version in a browser
    */
-  private static getCurrentVersion(): string {
-    return packageJson.version;
+  private static async getCurrentVersion(): Promise<string> {
+    try {
+      // The packaged Tauri version lives in tauri.conf.json, not package.json.
+      return await getVersion();
+    } catch {
+      // Keep browser-only development and tests usable.
+      return packageJson.version;
+    }
   }
   
   /**
@@ -131,13 +138,22 @@ export class UpdateService {
    * @returns Update check result
    */
   public static async checkForUpdates(forceCheck: boolean = false): Promise<UpdateCheckResult> {
+    if (typeof window !== 'undefined' && window.__TAURI_DEBUG__) {
+      const currentVersion = await this.getCurrentVersion();
+      return {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: currentVersion,
+      };
+    }
+
     // Check cache if not forcing
     if (!forceCheck && this.lastCheckResult && (Date.now() - this.lastCheckTime) < CACHE_DURATION) {
       console.log('Returning cached update check result');
       return this.lastCheckResult;
     }
     
-    const currentVersion = this.getCurrentVersion();
+    const currentVersion = await this.getCurrentVersion();
     
     try {
       console.log('Checking for updates...');

@@ -1,5 +1,9 @@
 import { UpdateService } from '../update-service';
 
+jest.mock('@tauri-apps/api/app', () => ({
+  getVersion: jest.fn().mockResolvedValue('3.0.0'),
+}));
+
 describe('UpdateService', () => {
   describe('Version Comparison', () => {
     // Access the private method using bracket notation for testing
@@ -46,6 +50,23 @@ describe('UpdateService', () => {
       expect(isNewerVersion('10.0.0', '9.9.9')).toBe(false);
       expect(isNewerVersion('1.10.0', '1.9.0')).toBe(false);
     });
+  });
+
+  it('uses the Tauri application version instead of the frontend package version', async () => {
+    await expect((UpdateService as any).getCurrentVersion()).resolves.toBe('3.0.0');
+  });
+
+  it('does not show release updates in Tauri debug mode', async () => {
+    Object.defineProperty(window, '__TAURI_DEBUG__', { value: true, configurable: true });
+    const mockFetch = jest.fn();
+    global.fetch = mockFetch as any;
+
+    const result = await UpdateService.checkForUpdates(true);
+
+    expect(result.updateAvailable).toBe(false);
+    expect(result.currentVersion).toBe('3.0.0');
+    expect(mockFetch).not.toHaveBeenCalled();
+    delete (window as Window & { __TAURI_DEBUG__?: boolean }).__TAURI_DEBUG__;
   });
   
   describe('Cache Management', () => {

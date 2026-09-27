@@ -44,6 +44,8 @@ jobs:
   build:
     name: Build - ${{ matrix.platform.target }}
     needs: test
+    # Pull requests run validation separately and do not receive the updater signing secret.
+    if: github.event_name != 'pull_request'
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}      # Repository Secret
@@ -72,7 +74,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -128,12 +130,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: minecraft-mods-localizer-${{ matrix.platform.target }}
-          path: |
-            src-tauri/target/release/bundle/**/*.AppImage
-            src-tauri/target/release/bundle/**/*.deb
-            src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.exe
-            src-tauri/target/release/bundle/**/*.msi
+          path: src-tauri/target/release/bundle/**/*
           retention-days: 7
 
   release:
@@ -151,6 +148,75 @@ jobs:
         with:
           path: artifacts
 
+      - name: Generate signed updater manifest
+        shell: bash
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from shutil import copy2
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.parse import quote
+
+          root = Path("artifacts")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          version = tag[1:] if tag.startswith("v") else tag
+          targets = {
+              "windows-x86_64": ("x86_64-pc-windows-msvc", ".msi"),
+              "darwin-x86_64": ("x86_64-apple-darwin", ".app.tar.gz"),
+              "darwin-aarch64": ("aarch64-apple-darwin", ".app.tar.gz"),
+              "linux-x86_64": ("x86_64-unknown-linux-gnu", ".AppImage"),
+          }
+          platforms = {}
+
+          for platform, (target, suffix) in targets.items():
+              artifact_dir = root / f"minecraft-mods-localizer-{target}"
+              if not artifact_dir.is_dir():
+                  raise SystemExit(f"Missing build artifact directory: {artifact_dir}")
+
+              bundles = sorted(
+                  path for path in artifact_dir.rglob("*")
+                  if path.is_file() and path.name.endswith(suffix)
+                  and not path.name.endswith(".sig")
+              )
+              if len(bundles) != 1:
+                  raise SystemExit(f"Expected one {suffix} updater bundle for {target}, found: {bundles}")
+
+              bundle = bundles[0]
+              signature_file = Path(f"{bundle}.sig")
+              if not signature_file.is_file():
+                  raise SystemExit(f"Missing updater signature: {signature_file}")
+
+              release_name = bundle.name.removesuffix(suffix) + f"-{target}" + suffix
+              updater_dir = root / "updater-bundles"
+              updater_dir.mkdir(exist_ok=True)
+              release_bundle = updater_dir / release_name
+              copy2(bundle, release_bundle)
+              copy2(signature_file, Path(f"{release_bundle}.sig"))
+
+              release_base = f"https://github.com/{repo}/releases/download/{quote(tag, safe='')}/"
+              platforms[platform] = {
+                  "url": release_base + quote(release_name, safe=""),
+                  "signature": signature_file.read_text(encoding="utf-8").strip(),
+              }
+
+          manifest = {
+              "version": version,
+              "notes": f"Minecraft Mods Localizer {version}",
+              "pub_date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+              "platforms": platforms,
+          }
+          Path("latest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -163,6 +229,8 @@ jobs:
             artifacts/**/*.dmg
             artifacts/**/*.exe
             artifacts/**/*.msi
+            artifacts/updater-bundles/*
+            latest.json
           body: |
             ## What's Changed
             
