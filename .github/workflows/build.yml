@@ -136,6 +136,17 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - name: Remove bundles restored from an older release
+        shell: python
+        run: |
+          import os, shutil
+          from pathlib import Path
+          workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          bundles = (workspace / "src-tauri/target/${{ matrix.platform.target }}/release/bundle").resolve()
+          bundles.relative_to(workspace / "src-tauri/target")
+          if bundles.is_dir():
+              shutil.rmtree(bundles)
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
