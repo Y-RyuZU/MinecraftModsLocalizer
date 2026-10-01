@@ -215,7 +215,7 @@
     "directorySelectionFailed": "No se pudo seleccionar el directorio",
     "scanFailed": "Error al analizar",
     "translationFailed": "Error de traducción",
-    "allTargetsAlreadyTranslated": "Todos los elementos ya contienen {{language}}. Se conservan las traducciones de misiones; usa «Traducir de todos modos» para reemplazar las de mods.",
+    "allTargetsAlreadyTranslated": "Todos los elementos ya contienen {{language}}. Para volver a traducirlos, marca «Traducir de todos modos» en la columna de idiomas de destino existentes.",
     "apiKeyNotConfigured": "No hay una clave API configurada ni disponible en el entorno de la aplicación."
   },
   "info": {

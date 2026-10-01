@@ -1,5 +1,6 @@
 "use client";
 
+import { RetranslationControl } from "@/components/tabs/common/retranslation-control";
 import { useAppTranslation } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
@@ -45,6 +46,12 @@ async function readQuestFile(target: TranslationTarget) {
               ? extractJavaLangText(source)
               : extractQuestText(source);
   return { source, questText, isJsonLang, isJavaLang, isBetterQuestData };
+}
+
+function hasExistingQuestTranslation(target: TranslationTarget, language: string) {
+  return isDirectQuestSource(target.path)
+    ? false
+    : FileService.invoke<boolean>("file_exists", { path: getQuestOutputPath(target.path, language) });
 }
 
 export function QuestsTab() {
@@ -387,6 +394,12 @@ export function QuestsTab() {
           label: "tables.path",
           className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "forceTranslation",
+          label: "tables.existingTranslation",
+          className: "min-w-[260px]",
+          render: (target, { targetLanguage, updateTarget }) => <RetranslationControl hasExistingTranslation={hasExistingQuestTranslation} target={target} targetLanguage={targetLanguage} updateTarget={updateTarget} disabled={isTranslating} />
         }
       ]}
       config={config}

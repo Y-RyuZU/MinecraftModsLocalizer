@@ -192,7 +192,7 @@
     "analyzingFiles": "Analyzing files..."
   },
   "errors": {
-    "allTargetsAlreadyTranslated": "Every selected target already contains {{language}}. Existing quest translations are preserved; on Mods, use “Translate anyway” to replace an existing translation.",
+    "allTargetsAlreadyTranslated": "Every selected target already contains {{language}}. To translate again, check “Translate anyway” in the existing target language column of the list.",
     "apiKeyNotConfigured": "No API key is configured or available from the application environment.",
     "noModsSelected": "No mods selected for translation",
     "noQuestsSelected": "No quests selected for translation",

@@ -164,6 +164,17 @@ describe('TranslationTab', () => {
         expect(mockOnTranslate).not.toHaveBeenCalled();
     });
 
+    it.each(['mods', 'quests'] as const)('defaults to Batch for two %s targets', async (tabType) => {
+        await openPreview({ tabType, translationTargets: ['one', 'two'].map(id => ({ id, name: id, type: 'ftb', path: `/test/${id}`, selected: true })) });
+        expect(screen.getByRole('radio', { name: /translationStart.batch/ })).toBeChecked();
+        expect(mockOnTranslate).not.toHaveBeenCalled();
+    });
+
+    it('defaults to standard for one small target', async () => {
+        await openPreview({ getTranslationItemCount: async () => 10 });
+        expect(screen.getByRole('radio', { name: /translationStart.standard/ })).toBeChecked();
+    });
+
     it('remembers a deliberate standard choice even for large quests', async () => {
         localStorage.setItem('mml.translation-mode.openai', 'false');
         await openPreview({ tabType: 'quests', getTranslationItemCount: async () => 1200 });

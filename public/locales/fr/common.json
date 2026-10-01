@@ -215,7 +215,7 @@
     "directorySelectionFailed": "Impossible de sélectionner le dossier",
     "scanFailed": "Échec de l’analyse",
     "translationFailed": "Échec de la traduction",
-    "allTargetsAlreadyTranslated": "Tous les éléments sélectionnés contiennent déjà {{language}}. Les traductions de quêtes sont conservées ; utilisez « Traduire quand même » pour remplacer celles des mods.",
+    "allTargetsAlreadyTranslated": "Tous les éléments sélectionnés contiennent déjà {{language}}. Pour les retraduire, cochez « Traduire quand même » dans la colonne des langues cibles existantes.",
     "apiKeyNotConfigured": "Aucune clé API configurée ou disponible dans l’environnement de l’application."
   },
   "info": {

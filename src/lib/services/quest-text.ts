@@ -1,3 +1,5 @@
+import { isRetranslationRequested } from "./translation-policy";
+
 export interface QuestTextSpan {
   key: string;
   start: number;
@@ -70,13 +72,13 @@ function isDirectBetterQuestSource(sourcePath: string): boolean {
 }
 
 /** Keep an existing target-language file instead of overwriting user translations. */
-export async function filterExistingQuestTranslations<T extends { path: string }>(
+export async function filterExistingQuestTranslations<T extends { path: string; forceTranslationLanguage?: string }>(
   targets: T[],
   targetLanguage: string,
   fileExists: (path: string) => Promise<boolean>
 ): Promise<T[]> {
   const exists = await Promise.all(targets.map((target) =>
-    isDirectQuestSource(target.path)
+    isRetranslationRequested(target, targetLanguage) || isDirectQuestSource(target.path)
       ? false
       : fileExists(getQuestOutputPath(target.path, targetLanguage))
   ));

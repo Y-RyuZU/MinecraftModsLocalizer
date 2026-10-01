@@ -215,7 +215,7 @@
     "directorySelectionFailed": "디렉터리를 선택하지 못했습니다",
     "scanFailed": "검색 실패",
     "translationFailed": "번역 실패",
-    "allTargetsAlreadyTranslated": "선택한 모든 항목에 {{language}}가 있습니다. 퀘스트 번역은 유지합니다. Mod 번역을 바꾸려면 다시 번역을 선택하세요.",
+    "allTargetsAlreadyTranslated": "선택한 모든 항목에 {{language}}가 있습니다. 다시 번역하려면 목록의 기존 대상 언어 열에서 다시 번역을 선택하세요.",
     "apiKeyNotConfigured": "설정이나 앱 환경에 API 키가 없습니다."
   },
   "info": {

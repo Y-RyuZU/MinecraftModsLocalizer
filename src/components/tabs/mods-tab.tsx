@@ -6,12 +6,11 @@ import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { invoke } from "@tauri-apps/api/core";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useAppTranslation } from "@/lib/i18n";
-import { applyStructuredJsonTranslations, groupEnglishLangFilesByNamespace, hasNamespaceLanguage, hasResourcePackLanguage, indexResourcePackLanguageFiles, normalizeLanguageId, shouldTranslateMod } from "@/lib/services/mod-language";
+import { RetranslationControl } from "@/components/tabs/common/retranslation-control";
+import { isRetranslationRequested } from "@/lib/services/translation-policy";
+import { applyStructuredJsonTranslations, groupEnglishLangFilesByNamespace, hasNamespaceLanguage, hasResourcePackLanguage, indexResourcePackLanguageFiles, hasExistingModTranslation, shouldTranslateMod } from "@/lib/services/mod-language";
 
 export function ModsTab() {
-  const { t } = useAppTranslation();
 
   const {
     config,
@@ -186,7 +185,7 @@ export function ModsTab() {
         }
 
         for (const group of groups) {
-          const forced = normalizeLanguageId(target.forceTranslationLanguage || "") === normalizeLanguageId(targetLanguage);
+          const forced = isRetranslationRequested(target, targetLanguage);
           if (!forced && (
             hasNamespaceLanguage(target, group.resourceNamespace, targetLanguage, group.fileExtension)
             || hasResourcePackLanguage(target, group.resourceNamespace, targetLanguage, group.fileExtension)
@@ -307,36 +306,7 @@ export function ModsTab() {
           key: "forceTranslation",
           label: "tables.existingTranslation",
           className: "min-w-[260px]",
-          render: (target, { targetLanguage, updateTarget }) => {
-            const language = normalizeLanguageId(targetLanguage);
-            const alreadyTranslated = target.availableLanguagesByNamespace
-              ? Object.values(target.availableLanguagesByNamespace).some((languages) =>
-                  languages.some((available) => normalizeLanguageId(available) === language)
-                )
-              : target.availableLanguages?.some((available) => normalizeLanguageId(available) === language);
-            const outputAlreadyTranslated = Object.values(target.resourcePackLanguagesByNamespaceAndFormat || {})
-              .some((formats) => Object.values(formats).some((languages) =>
-                languages?.some((available) => normalizeLanguageId(available) === language)
-              ));
-            if (!language || (!alreadyTranslated && !outputAlreadyTranslated)) return null;
-            return (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {t("tables.existingTranslationSkipped", { language })}
-                </span>
-                <label className="flex items-center gap-1.5 whitespace-nowrap">
-                  <Checkbox
-                    checked={normalizeLanguageId(target.forceTranslationLanguage || "") === language}
-                    onCheckedChange={(checked) => updateTarget({ forceTranslationLanguage: checked ? language : undefined })}
-                    disabled={isTranslating}
-                  />
-                  <span className="text-xs" title={t("tables.forceTranslationHint")}>
-                    {t("tables.translateAnyway")}
-                  </span>
-                </label>
-              </div>
-            );
-          }
+          render: (target, { targetLanguage, updateTarget }) => <RetranslationControl target={target} targetLanguage={targetLanguage} updateTarget={updateTarget} disabled={isTranslating} hasExistingTranslation={hasExistingModTranslation} />
         }
       ]}
       config={config}

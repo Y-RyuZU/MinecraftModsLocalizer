@@ -192,7 +192,7 @@
     "analyzingFiles": "ファイルを解析中..."
   },
   "errors": {
-    "allTargetsAlreadyTranslated": "選択した対象はすべて{{language}}訳を含んでいます。既存のクエスト訳は保持されます。Mod訳を置き換える場合は、Modsタブで「再翻訳する」を選んでください。",
+    "allTargetsAlreadyTranslated": "選択した対象はすべて{{language}}訳を含んでいます。訳し直す場合は、一覧の「既存の対象言語」列にある「再翻訳する」にチェックを入れてください。",
     "apiKeyNotConfigured": "APIキーが設定されておらず、アプリの環境変数からも取得できませんでした。",
     "noModsSelected": "翻訳するModが選択されていません",
     "noQuestsSelected": "翻訳するクエストが選択されていません",

@@ -320,7 +320,7 @@ export function TranslationTab({
             if (!targets.length) { setError(t('errors.allTargetsAlreadyTranslated', { language: tempTargetLanguage })); return; }
             // Counting is advisory: unavailable counts never appear as zero.
             const itemCount = getTranslationItemCount ? await getTranslationItemCount(targets).catch(() => undefined) : undefined;
-            const recommended = (itemCount ?? 0) >= 100 || targets.length >= 5;
+            const recommended = (itemCount ?? 0) >= 100 || targets.length >= 2;
             const provider = normalizeProvider(config.llm.provider);
             let hasPreviousChoice = false;
             try { hasPreviousChoice = localStorage.getItem(`mml.translation-mode.${provider}`) !== null; } catch {}

@@ -215,7 +215,7 @@
     "directorySelectionFailed": "Verzeichnis konnte nicht ausgewählt werden",
     "scanFailed": "Scan fehlgeschlagen",
     "translationFailed": "Übersetzung fehlgeschlagen",
-    "allTargetsAlreadyTranslated": "Alle gewählten Ziele enthalten bereits {{language}}. Questübersetzungen bleiben erhalten; Mods lassen sich mit „Trotzdem übersetzen“ ersetzen.",
+    "allTargetsAlreadyTranslated": "Alle gewählten Ziele enthalten bereits {{language}}. Zum erneuten Übersetzen aktivieren Sie „Trotzdem übersetzen“ in der Spalte für vorhandene Zielsprachen.",
     "apiKeyNotConfigured": "Kein API-Schlüssel in Einstellungen oder Anwendungsumgebung vorhanden."
   },
   "info": {

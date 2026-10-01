@@ -1,3 +1,5 @@
+import { isRetranslationRequested, normalizeLanguageId } from "./translation-policy";
+export { normalizeLanguageId } from "./translation-policy";
 import type { TranslationTarget } from "@/lib/types/minecraft";
 import type { LangFile } from "@/lib/types/minecraft";
 
@@ -94,9 +96,6 @@ export function applyStructuredJsonTranslations(
   return result;
 }
 
-export function normalizeLanguageId(language: string): string {
-  return language.trim().toLowerCase().replace(/-/g, "_");
-}
 
 export function indexResourcePackLanguageFiles(filePaths: string[]): Record<string, Partial<Record<"json" | "lang", string[]>>> {
   const languages: Record<string, Partial<Record<"json" | "lang", string[]>>> = {};
@@ -175,7 +174,7 @@ export function shouldTranslateMod(
   targetLanguage: string
 ): boolean {
   const language = normalizeLanguageId(targetLanguage);
-  if (normalizeLanguageId(target.forceTranslationLanguage || "") === language) return true;
+  if (isRetranslationRequested(target, language)) return true;
   if (target.availableLanguagesByNamespaceAndFormat) {
     const englishGroups = Object.entries(target.availableLanguagesByNamespaceAndFormat).flatMap(([namespace, byFormat]) =>
       (["json", "lang"] as const)
@@ -199,4 +198,14 @@ export function shouldTranslateMod(
     );
   }
   return !target.availableLanguages?.some((available) => normalizeLanguageId(available) === language);
+}
+
+export function hasExistingModTranslation(target: TranslationTarget, language: string): boolean {
+  const languages = [
+    ...(target.availableLanguages || []),
+    ...Object.values(target.availableLanguagesByNamespace || {}).flat(),
+    ...Object.values(target.availableLanguagesByNamespaceAndFormat || {}).flatMap(formats => Object.values(formats).flat()),
+    ...Object.values(target.resourcePackLanguagesByNamespaceAndFormat || {}).flatMap(formats => Object.values(formats).flat())
+  ];
+  return languages.some(available => normalizeLanguageId(available) === normalizeLanguageId(language));
 }

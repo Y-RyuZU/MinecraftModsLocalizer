@@ -215,7 +215,7 @@
     "directorySelectionFailed": "无法选择目录",
     "scanFailed": "扫描失败",
     "translationFailed": "翻译失败",
-    "allTargetsAlreadyTranslated": "所选项目均已有 {{language}}。保留任务翻译；如需替换 Mod 翻译，请选择“仍然翻译”。",
+    "allTargetsAlreadyTranslated": "所选项目均已有 {{language}}。如需重新翻译，请在列表的已有目标语言列中勾选“仍然翻译”。",
     "apiKeyNotConfigured": "未配置 API 密钥，应用环境中也没有可用密钥。"
   },
   "info": {

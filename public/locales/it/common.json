@@ -215,7 +215,7 @@
     "directorySelectionFailed": "Impossibile selezionare la cartella",
     "scanFailed": "Scansione non riuscita",
     "translationFailed": "Traduzione non riuscita",
-    "allTargetsAlreadyTranslated": "Tutti gli elementi contengono già {{language}}. Le traduzioni delle missioni vengono conservate; usa «Traduci comunque» per sostituire quelle dei mod.",
+    "allTargetsAlreadyTranslated": "Tutti gli elementi contengono già {{language}}. Per tradurre di nuovo, seleziona «Traduci comunque» nella colonna delle lingue di destinazione esistenti.",
     "apiKeyNotConfigured": "Nessuna chiave API configurata o disponibile nell’ambiente dell’applicazione."
   },
   "info": {

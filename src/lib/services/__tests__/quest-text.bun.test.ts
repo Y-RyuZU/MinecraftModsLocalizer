@@ -301,6 +301,13 @@ describe("quest translation output paths", () => {
     expect(translated).toEqual([targets[0]]);
   });
 
+  test("retranslates only the explicitly selected language and preserves other existing locales", async () => {
+    const target = { path: "C:/Pack/config/ftbquests/quests/lang/en_us/chapter.snbt", forceTranslationLanguage: "ja-JP" };
+    expect(await filterExistingQuestTranslations([target], "ja_jp", async () => true)).toEqual([target]);
+    expect(await filterExistingQuestTranslations([target], "ko_kr", async () => true)).toEqual([]);
+    expect(await filterExistingQuestTranslations([{ ...target, forceTranslationLanguage: undefined }], "ja_jp", async () => true)).toEqual([]);
+  });
+
   test("does not mistake the original inline quest file for an existing locale output", async () => {
     const target = { id: "legacy", path: "C:\\ATM9\\config\\ftbquests\\quests\\chapters\\main.snbt" };
     const translated = await filterExistingQuestTranslations([target], "ja_jp", async () => true);

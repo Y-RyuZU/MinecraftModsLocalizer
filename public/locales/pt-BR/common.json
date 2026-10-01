@@ -215,7 +215,7 @@
     "directorySelectionFailed": "Não foi possível selecionar o diretório",
     "scanFailed": "Falha na busca",
     "translationFailed": "Falha na tradução",
-    "allTargetsAlreadyTranslated": "Todos os itens já contêm {{language}}. As traduções de missões são preservadas; use “Traduzir mesmo assim” para substituir as dos mods.",
+    "allTargetsAlreadyTranslated": "Todos os itens já contêm {{language}}. Para traduzir novamente, marque “Traduzir mesmo assim” na coluna de idiomas de destino existentes.",
     "apiKeyNotConfigured": "Nenhuma chave API configurada ou disponível no ambiente do aplicativo."
   },
   "info": {
