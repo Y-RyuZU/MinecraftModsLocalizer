@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} 个旧格式任务文件没有独立的语言文件，将直接替换原文。原文件仅备份一次，保存为 .mml-original.bak。这些格式同一时间只能使用一种语言。是否继续？"
+  },
+  "translationStart": {
+    "title": "开始翻译",
+    "summary": "将所选的 {{count}} 个对象翻译为{{language}}",
+    "items": "去重前共有 {{count}} 个原文条目",
+    "method": "翻译方式",
+    "batch": "节省费用 — Batch",
+    "standard": "立即处理 — 标准API",
+    "recommended": "推荐用于大量翻译",
+    "batchHint": "适合可以等待的情况。支持的模型使用异步处理时费用更低。",
+    "standardHint": "适合小量测试或紧急任务。逐步接收翻译结果。",
+    "keepOpen": "批处理可能需要较长时间。重启后可从此标签页恢复。提交后立即关闭可能导致状态未知，需要到服务商处确认。",
+    "remember": "您的选择将保存为此提供商下次使用的默认方式。",
+    "start": "开始翻译",
+    "preparing": "准备中…",
+    "nextSteps": "在Minecraft中检查",
+    "modsNext": "启用生成的资源包，并切换到目标语言。",
+    "questsNext": "重新启动Minecraft，以目标语言打开任务。旧格式会直接替换原文。",
+    "guidebooksNext": "重新启动Minecraft，以目标语言打开指南书。",
+    "customNext": "检查translated文件夹，并将文件放在整合包读取的位置。",
+    "openOutput": "打开输出文件夹",
+    "openFailed": "无法打开输出文件夹",
+    "phase": {
+      "preparing": "正在准备翻译",
+      "submitting": "正在提交Batch",
+      "processing": "等待提供商处理／正在翻译",
+      "validating": "正在验证结果",
+      "saving": "正在保存结果"
+    }
+  },
+  "closeWarning": {
+    "title": "翻译期间关闭应用？",
+    "message": "关闭会中断处理。已保存的Batch可恢复获取结果，但提交后立即关闭时可能无法恢复。已提交的API请求可能继续执行并产生费用。",
+    "close": "关闭应用",
+    "stay": "继续翻译"
+  },
+  "batchRecovery": {
+    "available": "有可恢复的批量翻译。请勿更改原始文件。",
+    "resume": "恢复获取Batch结果",
+    "newRun": "开始其他翻译前，请恢复或删除此恢复记录。",
+    "discard": "删除恢复记录",
+    "discardWarning": "仅删除本地恢复信息？已提交的批处理不会取消，仍可能产生费用。"
   }
 }

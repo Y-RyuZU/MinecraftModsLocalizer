@@ -23,6 +23,28 @@ import {
   type QuestTextBundle
 } from "@/lib/services/quest-text";
 
+async function readQuestFile(target: TranslationTarget) {
+        const normalizedPath = target.path.replace(/\\/g, "/").toLowerCase();
+        const isBetterQuestData = target.type === "better" && /\/config\/betterquesting\/(?:defaultquests\.json|defaultquests\/.*\.json)$/.test(normalizedPath);
+        const isJsonLang = target.path.toLowerCase().endsWith(".json") && !isBetterQuestData;
+        const isJavaLang = target.path.toLowerCase().endsWith(".lang");
+        let source = await FileService.readTextFile(target.path);
+        if (isDirectQuestSource(target.path)) {
+          const backupPath = getDirectQuestBackupPath(target.path);
+          if (await FileService.invoke<boolean>("file_exists", { path: backupPath })) {
+            source = await FileService.readTextFile(backupPath);
+          }
+        }
+        const questText: QuestTextBundle = isBetterQuestData
+          ? extractBetterQuestJsonText(source)
+          : isJsonLang
+            ? { content: extractJsonLangText(source), spans: [] }
+            : isJavaLang
+              ? extractJavaLangText(source)
+              : extractQuestText(source);
+  return { source, questText, isJsonLang, isJavaLang, isBetterQuestData };
+}
+
 export function QuestsTab() {
   const { t } = useAppTranslation();
   const {
@@ -156,24 +178,7 @@ export function QuestsTab() {
     let totalChunksCount = 0;
     for (const target of orderedTargets) {
       try {
-        const normalizedPath = target.path.replace(/\\/g, "/").toLowerCase();
-        const isBetterQuestData = target.type === "better" && /\/config\/betterquesting\/(?:defaultquests\.json|defaultquests\/.*\.json)$/.test(normalizedPath);
-        const isJsonLang = target.path.toLowerCase().endsWith(".json") && !isBetterQuestData;
-        const isJavaLang = target.path.toLowerCase().endsWith(".lang");
-        let source = await FileService.readTextFile(target.path);
-        if (isDirectQuestSource(target.path)) {
-          const backupPath = getDirectQuestBackupPath(target.path);
-          if (await FileService.invoke<boolean>("file_exists", { path: backupPath })) {
-            source = await FileService.readTextFile(backupPath);
-          }
-        }
-        const questText: QuestTextBundle = isBetterQuestData
-          ? extractBetterQuestJsonText(source)
-          : isJsonLang
-            ? { content: extractJsonLangText(source), spans: [] }
-            : isJavaLang
-              ? extractJavaLangText(source)
-              : extractQuestText(source);
+        const { source, questText, isJsonLang, isJavaLang, isBetterQuestData } = await readQuestFile(target);
         const spanByKey = new Map(questText.spans.map((span) => [span.key, span]));
         const localCacheKeys: Record<string, string> = {};
         const jobCacheKeys: Record<string, string> = {};
@@ -385,6 +390,11 @@ export function QuestsTab() {
       ]}
       config={config}
       translationTargets={questTranslationTargets}
+      getTranslationItemCount={async targets => {
+        let count = 0;
+        for (const target of targets) count += Object.keys((await readQuestFile(target)).questText.content).length;
+        return count;
+      }}
       prepareTranslationTargets={async (targets, targetLanguage) => {
         if (config.translation.skipExistingTranslations === false) return targets;
         const filteredTargets = await filterExistingQuestTranslations(

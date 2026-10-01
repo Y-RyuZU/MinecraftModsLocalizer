@@ -1,3 +1,4 @@
+import { recoverBatch } from './batch-recovery';
 import { estimateTokens, DEFAULT_TOKEN_CONFIG, TokenEstimationConfig } from '../utils/token-counter';
 import { TRANSLATION_DEFAULTS } from '../constants/defaults';
 import { LLMAdapterFactory } from "../adapters/llm-adapter-factory";
@@ -54,6 +55,8 @@ export interface TranslationJob {
  * Translation service options
  */
 export interface TranslationServiceOptions {
+  recoverySessionId?: string;
+  onBatchProgress?: (progress: TranslationBatchProgress) => void;
   useTokenBasedChunking?: boolean;
   maxTokensPerChunk?: number;
   fallbackToEntryBased?: boolean;
@@ -96,6 +99,10 @@ export class TranslationService {
   private maxRetries: number;
 
   private useBatchApi: boolean;
+  private recoverySessionId?: string;
+  private recoveryIndex = 0;
+  private recoveryConfig: Omit<LLMConfig, "apiKey">;
+  private onBatchProgress?: (progress: TranslationBatchProgress) => void;
 
   /** Stop issuing provider requests after an account-wide authentication or billing failure. */
   private fatalApiError: Error | null = null;
@@ -120,6 +127,10 @@ export class TranslationService {
    * @param options Translation service options
    */
   constructor(options: TranslationServiceOptions) {
+    this.recoverySessionId = options.recoverySessionId;
+    const { apiKey: _key, ...safeConfig } = options.llmConfig;
+    this.recoveryConfig = safeConfig;
+    void _key;
     // Keep retry/backoff policy in this service. If adapters also retry, one
     // failed chunk can multiply API requests (service retries × adapter retries).
     this.adapter = LLMAdapterFactory.getAdapter({
@@ -134,6 +145,7 @@ export class TranslationService {
     this.maxRetries = options.maxRetries ?? 5;
     this.useBatchApi = options.llmConfig.useBatchApi === true;
     this.onProgress = options.onProgress;
+    this.onBatchProgress = options.onBatchProgress;
     this.onComplete = options.onComplete;
     this.onError = options.onError;
   }
@@ -391,14 +403,21 @@ export class TranslationService {
         systemPromptSupplement: TRANSLATION_INSTRUCTION
       } satisfies TranslationRequest
     }));
-    const responses = await translateBatch(prepared.map(({ request }) => request), {
-      onProgress,
+    this.onBatchProgress?.({ completed: 0, total: chunks.length, status: 'submitting' });
+    const requests = prepared.map(({ request }) => request);
+    const run = (recovery: { resumeJobId?: string; onSubmitted?: (id: string) => Promise<void> } = {}) => translateBatch(requests, {
+      ...recovery,
+      onProgress: progress => { onProgress?.(progress); this.onBatchProgress?.(progress); },
       shouldCancel: () => chunks.some(({ jobId }) => this.isJobInterrupted(jobId))
     });
+    const responses = this.recoverySessionId
+      ? await recoverBatch(`${this.recoverySessionId}:${this.recoveryIndex++}`, { requests, config: this.recoveryConfig }, run)
+      : await run();
     if (responses.length !== chunks.length) {
       throw new Error(`Batch API returned ${responses.length} results for ${chunks.length} translation chunks`);
     }
 
+    this.onBatchProgress?.({ completed: chunks.length, total: chunks.length, status: 'validating' });
     const results: Array<{ translatedContent?: Record<string, string>; error?: string }> = [];
     for (let index = 0; index < chunks.length; index++) {
       const chunk = chunks[index];
@@ -453,6 +472,7 @@ export class TranslationService {
         }
       }
     }
+    this.onBatchProgress?.({ completed: chunks.length, total: chunks.length, status: 'saving' });
     return results;
   }
 

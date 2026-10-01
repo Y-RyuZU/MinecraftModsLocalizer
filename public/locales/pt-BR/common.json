@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} arquivo(s) de missões antigos sem arquivos por idioma serão substituídos diretamente. O original é salvo uma vez como .mml-original.bak. Esses formatos permitem apenas um idioma ativo. Continuar?"
+  },
+  "translationStart": {
+    "title": "Iniciar tradução",
+    "summary": "Traduzir {{count}} itens para {{language}}",
+    "items": "{{count}} entradas de origem antes de remover duplicatas",
+    "method": "Modo de tradução",
+    "batch": "Reduzir custo — Batch",
+    "standard": "Começar agora — API padrão",
+    "recommended": "Recomendado para grandes volumes",
+    "batchHint": "Quando você pode esperar. O processamento assíncrono custa menos nos modelos compatíveis.",
+    "standardHint": "Para testes pequenos ou tarefas urgentes. Receba os resultados progressivamente.",
+    "keepOpen": "Lotes podem demorar. Retome nesta aba após reiniciar. Fechar logo após o envio pode deixar o resultado desconhecido; verifique no provedor.",
+    "remember": "Sua escolha será o próximo padrão para este provedor.",
+    "start": "Iniciar tradução",
+    "preparing": "Preparando…",
+    "nextSteps": "Conferir no Minecraft",
+    "modsNext": "Ative o pacote de recursos gerado e selecione o idioma de destino.",
+    "questsNext": "Reinicie o Minecraft e abra as missões no idioma de destino. Formatos antigos substituem a origem diretamente.",
+    "guidebooksNext": "Reinicie o Minecraft e abra o guia no idioma de destino.",
+    "customNext": "Confira a pasta translated e coloque os arquivos onde seu modpack os carrega.",
+    "openOutput": "Abrir pasta de saída",
+    "openFailed": "Não foi possível abrir a pasta de saída",
+    "phase": {
+      "preparing": "Preparando tradução",
+      "submitting": "Enviando Batch",
+      "processing": "Aguardando o provedor / traduzindo",
+      "validating": "Verificando resultados",
+      "saving": "Salvando resultados"
+    }
+  },
+  "closeWarning": {
+    "title": "Fechar durante a tradução?",
+    "message": "Fechar interrompe o processamento. Lotes salvos podem ser retomados, exceto às vezes logo após o envio. As solicitações de API podem continuar e gerar cobranças.",
+    "close": "Fechar",
+    "stay": "Continuar traduzindo"
+  },
+  "batchRecovery": {
+    "available": "Há uma tradução em lote para retomar. Não altere os arquivos originais.",
+    "resume": "Retomar lote",
+    "newRun": "Retome ou remova esta entrada antes de outra tradução.",
+    "discard": "Remover recuperação",
+    "discardWarning": "Remover apenas os dados locais de recuperação? O lote não será cancelado e pode gerar cobranças."
   }
 }

@@ -1,5 +1,10 @@
 # Tauri updater and release signing
 
+## Certificates and updater signatures are different
+
+A purchased Windows code-signing certificate or Apple notarization is not a prerequisite for this release. The Tauri updater signature described here uses the existing public/private key pair, without a purchased certificate. Keep it enabled for automatic updates. Installers without OS code signing can still have updater verification signatures.
+
+
 The desktop app uses Tauri's signed updater. Its configured endpoint is the `latest.json` asset on the latest **published** GitHub Release. The updater checks the signature against the public key in `src-tauri/tauri.conf.json` before installing an update.
 
 ## Required signing setup

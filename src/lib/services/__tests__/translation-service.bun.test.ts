@@ -61,10 +61,12 @@ describe('TranslationService', () => {
   });
 
   test('startJob submits a single Batch API request and preserves the output keys', async () => {
-    const service = new TranslationService({ llmConfig: { provider: 'openai', apiKey: 'synthetic', useBatchApi: true }, chunkSize: 1 });
+    const phases: string[] = [];
+    const service = new TranslationService({ llmConfig: { provider: 'openai', apiKey: 'synthetic', useBatchApi: true }, chunkSize: 1, onBatchProgress: progress => phases.push(progress.status) });
     mockAdapter.translateBatch.mockResolvedValue([{ content: { a: '訳A' } }, { content: { b: '訳B' } }]);
     const job = service.createJob({ a: 'A', b: 'B' }, 'ja_jp');
     await service.startJob(job.id);
+    expect(phases).toEqual(['submitting', 'validating', 'saving']);
     expect(mockAdapter.translateBatch).toHaveBeenCalledTimes(1);
     expect(mockAdapter.translate).not.toHaveBeenCalled();
     expect(job.status).toBe('completed');

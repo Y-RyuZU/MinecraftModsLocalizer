@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} file di missioni legacy senza file di lingua verranno sostituiti direttamente. L’originale viene salvato una sola volta come .mml-original.bak. Questi formati consentono una sola lingua attiva. Continuare?"
+  },
+  "translationStart": {
+    "title": "Avvia traduzione",
+    "summary": "Traduci {{count}} elementi in {{language}}",
+    "items": "{{count}} voci originali prima della deduplicazione",
+    "method": "Modalità di traduzione",
+    "batch": "Riduci i costi — Batch",
+    "standard": "Avvia subito — API standard",
+    "recommended": "Consigliato per grandi quantità",
+    "batchHint": "Se puoi aspettare. L’elaborazione asincrona costa meno con i modelli compatibili.",
+    "standardHint": "Per piccole prove o lavori urgenti. Ricevi i risultati progressivamente.",
+    "keepOpen": "I batch richiedono tempo. Riprendi qui dopo il riavvio. Chiudere subito dopo l’invio può lasciare un esito sconosciuto da verificare presso il fornitore.",
+    "remember": "La scelta viene salvata come impostazione predefinita per questo fornitore.",
+    "start": "Avvia traduzione",
+    "preparing": "Preparazione…",
+    "nextSteps": "Verifica in Minecraft",
+    "modsNext": "Attiva il pacchetto di risorse generato e seleziona la lingua di destinazione.",
+    "questsNext": "Riavvia Minecraft e apri le missioni nella lingua di destinazione. I formati precedenti sostituiscono direttamente l’originale.",
+    "guidebooksNext": "Riavvia Minecraft e apri la guida nella lingua di destinazione.",
+    "customNext": "Controlla la cartella translated e posiziona i file dove vengono caricati dal modpack.",
+    "openOutput": "Apri cartella di output",
+    "openFailed": "Impossibile aprire la cartella di output",
+    "phase": {
+      "preparing": "Preparazione della traduzione",
+      "submitting": "Invio Batch",
+      "processing": "In attesa del fornitore / traduzione",
+      "validating": "Verifica dei risultati",
+      "saving": "Salvataggio dei risultati"
+    }
+  },
+  "closeWarning": {
+    "title": "Chiudere durante la traduzione?",
+    "message": "La chiusura interrompe il processo. I batch salvati possono essere ripresi, tranne talvolta subito dopo l’invio. Le richieste API possono continuare e comportare costi.",
+    "close": "Chiudi",
+    "stay": "Continua"
+  },
+  "batchRecovery": {
+    "available": "È disponibile una traduzione batch da riprendere. Non modificare i file originali.",
+    "resume": "Riprendi batch",
+    "newRun": "Riprendi o rimuovi questa voce prima di una nuova traduzione.",
+    "discard": "Rimuovi recupero",
+    "discardWarning": "Rimuovere solo i dati locali di recupero? Il batch non viene annullato e può comportare costi."
   }
 }

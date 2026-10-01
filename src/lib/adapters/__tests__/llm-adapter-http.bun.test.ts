@@ -17,6 +17,7 @@ type RecordedRequest = {
 const requests: RecordedRequest[] = [];
 let retryableFailures = 0;
 let batchOutput = "";
+let geminiBatchResponse: unknown;
 let batchErrorOutput = "";
 let batchErrorCustomId: string | null = null;
 let anthropicBatchOutput = "";
@@ -81,6 +82,10 @@ beforeAll(() => {
         });
       }
 
+      if (path.endsWith('/batches/batch-test') && request.method === 'GET') return Response.json({
+        id: 'batch-test', status: 'completed', output_file_id: 'file-output', request_counts: { completed: 1, failed: 0, total: 1 }
+      });
+      if (path.endsWith('/batches/gemini-batch-test') && request.method === 'GET') return Response.json(geminiBatchResponse);
       if (path.endsWith("/files/file-output/content")) return new Response(batchOutput, { headers: { "content-type": "text/plain" } });
       if (path.endsWith("/files/file-error/content")) return new Response(batchErrorOutput, { headers: { "content-type": "text/plain" } });
       if (/\/files\/[^/]+$/.test(path) && request.method === "DELETE") {
@@ -133,7 +138,7 @@ beforeAll(() => {
             usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 3, totalTokenCount: 13 }
           }
         }));
-        return Response.json({
+        return Response.json(geminiBatchResponse = {
           name: "batches/gemini-batch-test",
           metadata: {
             state: "JOB_STATE_SUCCEEDED", model: "gemini-3.8-flash",
@@ -386,4 +391,19 @@ describe("LLM adapter HTTP integrations", () => {
     await expect(adapter.translate(request)).rejects.toThrow();
     expect(requests.length - requestCountBefore).toBe(1);
   });
+  for (const provider of ['openai', 'anthropic', 'gemini']) {
+    test(`${provider} retrieves a saved batch without another submission`, async () => {
+      const config = {provider, apiKey: 'test-key', baseUrl: server.url.toString(), model: provider === 'gemini' ? 'gemini-3.8-flash' : provider === 'openai' ? 'gpt-6-luna' : 'claude-sonnet-4-6', maxRetries: 0};
+      let id = '';
+      const first = LLMAdapterFactory.getAdapter(config);
+      const expected = await first.translateBatch!([request], {onSubmitted: async value => {id=value;}});
+      expect(id).not.toBe('');
+      const submitted = requests.length;
+      const restarted = LLMAdapterFactory.getAdapter(config);
+      const actual = await restarted.translateBatch!([request], {resumeJobId:id, onSubmitted:async () => {}});
+      expect(actual).toEqual(expected);
+      expect(requests.length).toBe(submitted);
+    });
+  }
+
 });

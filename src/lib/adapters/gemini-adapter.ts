@@ -176,6 +176,8 @@ export class GeminiAdapter extends BaseLLMAdapter {
     options: {
       onProgress?: (progress: TranslationBatchProgress) => void;
       shouldCancel?: () => boolean;
+      resumeJobId?: string;
+      onSubmitted?: (id: string) => Promise<void>;
     } = {}
   ): Promise<TranslationResponse[]> {
     if (!this.config.apiKey) throw new Error("Gemini API key is not configured");
@@ -214,13 +216,15 @@ export class GeminiAdapter extends BaseLLMAdapter {
     let batchName: string | undefined;
     try {
       await this.logApiRequest(`Submitting ${requests.length} chunks to Gemini Batch API (model: ${model})`);
-      let batch = await genAI.batches.create({
+      let batch = options.resumeJobId ? await genAI.batches.get({ name: options.resumeJobId }) : await genAI.batches.create({
         model,
         src: inlinedRequests,
         config: { displayName: `MML-${Date.now()}` }
       });
       batchName = batch.name;
       if (!batchName) throw new Error("Gemini Batch API did not return a job name");
+
+      await options.onSubmitted?.(batchName);
 
       const terminalStates = new Set(["JOB_STATE_SUCCEEDED", "JOB_STATE_PARTIALLY_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_EXPIRED"]);
       while (!terminalStates.has(batch.state || "")) {

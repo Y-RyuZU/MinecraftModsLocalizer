@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} fichier(s) de quêtes anciens sans fichiers de langue seront remplacés directement. L’original est sauvegardé une fois dans .mml-original.bak. Ces formats ne permettent qu’une langue active à la fois. Continuer ?"
+  },
+  "translationStart": {
+    "title": "Lancer la traduction",
+    "summary": "Traduire {{count}} éléments en {{language}}",
+    "items": "{{count}} entrées sources avant déduplication",
+    "method": "Mode de traduction",
+    "batch": "Réduire le coût — Batch",
+    "standard": "Démarrer maintenant — API standard",
+    "recommended": "Conseillé pour les grands volumes",
+    "batchHint": "Si vous pouvez attendre. Le traitement asynchrone coûte moins cher sur les modèles compatibles.",
+    "standardHint": "Pour un petit essai ou un besoin urgent. Les résultats arrivent progressivement.",
+    "keepOpen": "Les lots prennent du temps. Reprenez ici après redémarrage. Fermer juste après l’envoi peut laisser un état inconnu à vérifier chez le fournisseur.",
+    "remember": "Votre choix devient la valeur par défaut pour ce fournisseur.",
+    "start": "Lancer la traduction",
+    "preparing": "Préparation…",
+    "nextSteps": "Vérifier dans Minecraft",
+    "modsNext": "Activez le pack de ressources généré et choisissez la langue cible.",
+    "questsNext": "Redémarrez Minecraft et ouvrez les quêtes dans la langue cible. Les anciens formats remplacent directement la source.",
+    "guidebooksNext": "Redémarrez Minecraft et ouvrez le guide dans la langue cible.",
+    "customNext": "Vérifiez le dossier translated et placez les fichiers à l’emplacement chargé par votre modpack.",
+    "openOutput": "Ouvrir le dossier de sortie",
+    "openFailed": "Impossible d’ouvrir le dossier de sortie",
+    "phase": {
+      "preparing": "Préparation de la traduction",
+      "submitting": "Envoi du Batch",
+      "processing": "En attente du fournisseur / traduction",
+      "validating": "Vérification des résultats",
+      "saving": "Enregistrement des résultats"
+    }
+  },
+  "closeWarning": {
+    "title": "Fermer pendant la traduction ?",
+    "message": "La fermeture interrompt le traitement. Les lots enregistrés peuvent être repris, sauf parfois juste après l’envoi. Les requêtes API peuvent continuer et être facturées.",
+    "close": "Fermer",
+    "stay": "Continuer"
+  },
+  "batchRecovery": {
+    "available": "Une traduction par lot peut être reprise. Ne modifiez pas les fichiers sources.",
+    "resume": "Reprendre le lot",
+    "newRun": "Reprenez ou supprimez cette entrée avant une nouvelle traduction.",
+    "discard": "Supprimer la reprise",
+    "discardWarning": "Supprimer uniquement les données locales de reprise ? Le lot ne sera pas annulé et peut être facturé."
   }
 }

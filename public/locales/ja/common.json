@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} 個の旧形式クエストファイルには言語別ファイルがないため、原文を直接置き換えます。元ファイルは .mml-original.bak に一度だけ保存します。この形式では一度に一言語だけ適用できます。続行しますか？"
+  },
+  "translationStart": {
+    "title": "翻訳を始める",
+    "summary": "{{count}}件を{{language}}に翻訳します",
+    "items": "原文 {{count}}項目（重複除外前）",
+    "method": "翻訳の進め方",
+    "batch": "料金を抑える — Batch",
+    "standard": "すぐに進める — 通常API",
+    "recommended": "大量の翻訳におすすめ",
+    "batchHint": "時間に余裕があるときに。非同期でまとめて処理し、対応モデルでは通常APIより料金を抑えられます。",
+    "standardHint": "少量の確認や急ぐときに。翻訳結果を順次受け取ります。",
+    "keepOpen": "Batchは完了まで時間がかかります。再起動後はこのタブから結果取得を再開できます。送信直後に終了すると送信結果が不明になり、プロバイダー側の確認が必要になる場合があります。",
+    "remember": "選んだ方式をこのプロバイダーの次回の初期値として保存します。",
+    "start": "翻訳を開始",
+    "preparing": "準備中…",
+    "nextSteps": "ゲームで確認する",
+    "modsNext": "Minecraftで生成されたリソースパックを有効にし、翻訳先の言語に切り替えてください。",
+    "questsNext": "Minecraftを再起動し、翻訳先の言語でクエストを開いてください。旧形式では原文を直接置き換えています。",
+    "guidebooksNext": "Minecraftを再起動し、翻訳先の言語でガイドブックを開いてください。",
+    "customNext": "translatedフォルダーの出力を確認し、対象ModPackが読み込む場所へ配置してください。",
+    "openOutput": "保存先を開く",
+    "openFailed": "保存先を開けませんでした",
+    "phase": {
+      "preparing": "翻訳を準備しています",
+      "submitting": "Batchを送信しています",
+      "processing": "プロバイダーで処理待ち・翻訳中です",
+      "validating": "結果を検証しています",
+      "saving": "結果を保存しています"
+    }
+  },
+  "closeWarning": {
+    "title": "翻訳中に終了しますか？",
+    "message": "終了すると処理を中断します。Batchは保存済みの情報から結果取得を再開できますが、送信直後など再開できない場合があります。送信済みAPI処理は継続し、料金が発生する場合があります。",
+    "close": "終了する",
+    "stay": "翻訳を続ける"
+  },
+  "batchRecovery": {
+    "available": "再開できるBatch翻訳があります。元のファイルを変更せずに再開してください。",
+    "resume": "Batchの結果取得を再開",
+    "newRun": "別の翻訳を始めるには、先に再開するか、この再開情報を削除してください。",
+    "discard": "再開情報を削除",
+    "discardWarning": "再開情報だけを削除します。送信済みBatchはキャンセルされず、料金が発生する場合があります。削除しますか？"
   }
 }

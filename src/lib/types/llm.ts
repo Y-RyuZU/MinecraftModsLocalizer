@@ -75,6 +75,8 @@ export interface LLMAdapter {
     options?: {
       onProgress?: (progress: TranslationBatchProgress) => void;
       shouldCancel?: () => boolean;
+      resumeJobId?: string;
+      onSubmitted?: (id: string) => Promise<void>;
     }
   ): Promise<TranslationResponse[]>;
   /** Validate API key */

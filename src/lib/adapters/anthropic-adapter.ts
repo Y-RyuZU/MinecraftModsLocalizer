@@ -172,6 +172,8 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     options: {
       onProgress?: (progress: TranslationBatchProgress) => void;
       shouldCancel?: () => boolean;
+      resumeJobId?: string;
+      onSubmitted?: (id: string) => Promise<void>;
     } = {}
   ): Promise<TranslationResponse[]> {
     if (!this.config.apiKey) throw new Error("Anthropic API key is not configured");
@@ -198,8 +200,11 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     let batchId: string | undefined;
     try {
       await this.logApiRequest(`Submitting ${requests.length} chunks to Anthropic Message Batches API (model: ${model})`);
-      let batch = await anthropic.messages.batches.create({ requests: batchRequests });
+      let batch = options.resumeJobId
+        ? await anthropic.messages.batches.retrieve(options.resumeJobId)
+        : await anthropic.messages.batches.create({ requests: batchRequests });
       batchId = batch.id;
+      await options.onSubmitted?.(batch.id);
       const isTerminal = () => batch.processing_status === "ended";
       while (!isTerminal()) {
         if (options.shouldCancel?.()) {

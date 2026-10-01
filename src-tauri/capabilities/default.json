@@ -9,6 +9,8 @@
     "core:default",
     "dialog:allow-open",
     "process:allow-restart",
-    "updater:default"
+    "updater:default",
+    "dialog:allow-confirm",
+    "core:window:allow-destroy"
   ]
 }

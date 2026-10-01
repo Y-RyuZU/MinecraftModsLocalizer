@@ -30,6 +30,14 @@ The Windows `.exe` installer automatically uses the OS language from the ten bun
 7. Start Minecraft with that same instance. Open **Options → Resource Packs**, enable the generated pack under `resourcepacks`, and place it above packs that contain competing translations. Choose the matching game language.
 8. Find an item or block from the selected mod. Seeing its translated name in game is the first success checkpoint. Only then increase the selection.
 
+## Translate a pack's quests
+
+Scan in **Quests**, select a target language and files, then click **Translate**. Review the workload, choose **Lower cost — Batch** or **Start right away — Standard API**, and confirm.
+
+If you close the app while Batch is waiting, reopen the same tab and choose **Resume Batch results**. MML restores the original selection and settings and retrieves the saved provider job. Keep the source files unchanged. Once saved, follow the completion screen's instructions and check the same quest in Minecraft.
+
+A connection loss immediately after submission can leave the submission outcome unknown. MML stops instead of automatically resubmitting; check the provider dashboard. Results may also expire at the provider. Standard API jobs cannot resume after restarting.
+
 ## Choose the right translation mode
 
 | Content | Mode and result |
@@ -39,7 +47,7 @@ The Windows `.exe` installer automatically uses the OS language from the ten bun
 | Patchouli books inside mod JARs | **Guidebooks**. Check both the output and the book in game. |
 | A specific JSON/SNBT file outside discovery | **Custom Files** lets you choose files and an output directory. It prefixes output with the target language; the consuming mod may require a different filename/location. |
 
-**Known acceptance gaps:** BetterQuest `DefaultQuests.lang` currently produces `DefaultQuests.<language>.lang`. A pack that reads only `DefaultQuests.lang` will not automatically use that copy. Do not assume successful export means it is active in game. Create: Astral's `resources/createastral/lang/en_us.json` needs pack-specific verification as well. Test these on a copied instance; track [#11](https://github.com/Y-RyuZU/MinecraftModsLocalizer/issues/11) and [#17](https://github.com/Y-RyuZU/MinecraftModsLocalizer/issues/17).
+**Legacy and pack-specific placement:** BetterQuest `config/betterquesting/DefaultQuests.lang` is backed up as `.mml-original.bak` and translated in place so packs reading the fixed filename can load it. The Quests tab discovers Create: Astral's `resources/createastral/lang/en_us.json` and writes `ja_jp.json` beside it. Earlier instructions describing renamed outputs and manual copying applied to the old implementation. Multiplayer FTB Quests may require translations on the server that supplies the quests.
 
 ## Troubleshooting
 

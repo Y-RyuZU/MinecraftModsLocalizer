@@ -1,6 +1,10 @@
 "use client";
 
-import {useState, useRef, ReactNode} from "react";
+import {useState, useRef, useEffect, ReactNode} from "react";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter} from "@/components/ui/dialog";
+import { recoveryRead, recoveryWrite, recoveryClearSession } from '@/lib/services/batch-recovery';
+import {ConfigService} from "@/lib/services/config-service";
+import {DEFAULT_LANGUAGES} from "@/lib/types/llm";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
@@ -16,6 +20,7 @@ import {FileService} from "@/lib/services/file-service";
 import {useAppTranslation} from "@/lib/i18n";
 import {TargetLanguageSelector} from "@/components/tabs/target-language-selector";
 import {TranslationService} from "@/lib/services/translation-service";
+import { confirm } from '@tauri-apps/plugin-dialog';
 import {invoke} from "@tauri-apps/api/core";
 import { normalizeProvider } from "@/lib/types/config";
 import type {AppConfig} from "@/lib/types/config";
@@ -38,6 +43,10 @@ const getChunkSizeForTabType = (config: AppConfig, tabType: 'mods' | 'quests' | 
             return 50; // Default chunk size
     }
 };
+
+interface RecoverySession {
+    id: string; targets: TranslationTarget[]; language: string; directory: string; config: AppConfig;
+}
 
 export interface TranslationTabProps {
     // Tab specific configuration
@@ -62,6 +71,7 @@ export interface TranslationTabProps {
 
     // State and handlers
     config: AppConfig;
+    getTranslationItemCount?: (targets: TranslationTarget[]) => Promise<number>;
     prepareTranslationTargets?: (targets: TranslationTarget[], language: string) => TranslationTarget[] | Promise<TranslationTarget[]>;
     confirmBeforeTranslate?: (targets: TranslationTarget[], language: string) => boolean | Promise<boolean>;
     translationTargets: TranslationTarget[];
@@ -125,6 +135,7 @@ export function TranslationTab({
                                    // State and handlers
                                    config,
                                    prepareTranslationTargets,
+                                   getTranslationItemCount,
                                    confirmBeforeTranslate,
                                    translationTargets,
                                    setTranslationTargets,
@@ -159,6 +170,23 @@ export function TranslationTab({
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [translationResults, setTranslationResults] = useState<TranslationResult[]>([]);
     const [totalTargets, setTotalTargets] = useState(0);
+    const [preview, setPreview] = useState<{ targets: TranslationTarget[]; language: string; itemCount?: number; recommended: boolean } | null>(null);
+    const [isPreparing, setIsPreparing] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
+    const startingRef = useRef(false);
+    const [useBatch, setUseBatch] = useState(false);
+    const [activeBatch, setActiveBatch] = useState(false);
+    const [batchPhase, setBatchPhase] = useState('preparing');
+    const [pendingRecovery, setPendingRecovery] = useState<RecoverySession | null>(null);
+    const [resumeId, setResumeId] = useState<string>();
+    const [recoveryLoaded, setRecoveryLoaded] = useState(typeof indexedDB === 'undefined');
+    useEffect(() => {
+        let active = true;
+        if (typeof indexedDB !== 'undefined') void recoveryRead<RecoverySession>(`session:${tabType}`)
+            .then(saved => { if (active) { setPendingRecovery(saved ?? null); setRecoveryLoaded(true); } })
+            .catch(error => { if (active) setError(String(error)); });
+        return () => { active = false; };
+    }, [tabType, setError]);
     const {t} = useAppTranslation();
     
     // Get shared profile directory from store
@@ -277,47 +305,41 @@ export function TranslationTab({
         setCurrentJobId(null);
     };
 
-    // Translate selected items
-    const handleTranslate = async () => {
+    // Preview does not submit requests or mutate files.
+    const handlePreview = async () => {
+        if (isPreparing || isTranslating) return;
+        setError(null);
+        setResumeId(undefined);
+        const selected = translationTargets.filter(target => target.selected);
+        if (!selected.length) { setError(t(noItemsSelectedError)); return; }
+        if (!tempTargetLanguage) { setError(t('errors.noTargetLanguageSelected')); return; }
+        if (!profileDirectory) { setError(t('errors.selectProfileDirectoryFirst')); return; }
+        setIsPreparing(true);
         try {
-            // Reset cancellation flag
-            wasCancelledRef.current = false;
+            const targets = prepareTranslationTargets ? await prepareTranslationTargets(selected, tempTargetLanguage) : selected;
+            if (!targets.length) { setError(t('errors.allTargetsAlreadyTranslated', { language: tempTargetLanguage })); return; }
+            // Counting is advisory: unavailable counts never appear as zero.
+            const itemCount = getTranslationItemCount ? await getTranslationItemCount(targets).catch(() => undefined) : undefined;
+            const recommended = (itemCount ?? 0) >= 100 || targets.length >= 5;
+            const provider = normalizeProvider(config.llm.provider);
+            let hasPreviousChoice = false;
+            try { hasPreviousChoice = localStorage.getItem(`mml.translation-mode.${provider}`) !== null; } catch {}
+            const configuredBatch = config.llm.batchApiByProvider?.[provider] ?? false;
+            setUseBatch(hasPreviousChoice || configuredBatch ? configuredBatch : recommended);
+            setPreview({ targets, language: tempTargetLanguage, itemCount, recommended });
+        } catch (error) {
+            setError(`${t('errors.translationFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+        } finally { setIsPreparing(false); }
+    };
 
-            // Reset translation state immediately
-            resetTranslationState();
-            setTranslating(true);
-            setProgress(0);
-            setWholeProgress(0);
-            setError(null);
-
-            const selectedTargets = translationTargets.filter(target => target.selected);
-
-            if (selectedTargets.length === 0) {
-                setError(t(noItemsSelectedError));
-                setTranslating(false);
-                return;
-            }
-
-            // Use temporary target language
-            const targetLanguage = tempTargetLanguage;
-            if (!targetLanguage || targetLanguage.trim() === "") {
-                setError(t('errors.noTargetLanguageSelected') || "No target language selected");
-                setTranslating(false);
-                return;
-            }
-            
-            const targetsToTranslate = prepareTranslationTargets
-                ? await prepareTranslationTargets(selectedTargets, targetLanguage)
-                : selectedTargets;
-            if (!targetsToTranslate.length) {
-                setError(t('errors.allTargetsAlreadyTranslated', { language: targetLanguage }));
-                setTranslating(false);
-                return;
-            }
-            if (confirmBeforeTranslate && !(await confirmBeforeTranslate(targetsToTranslate, targetLanguage))) {
-                setTranslating(false);
-                return;
-            }
+    const handleTranslate = async () => {
+        if (!preview || startingRef.current) return;
+        startingRef.current = true;
+        setIsStarting(true);
+        try {
+            const targetsToTranslate = preview.targets;
+            const targetLanguage = preview.language;
+            if (confirmBeforeTranslate && !(await confirmBeforeTranslate(targetsToTranslate, targetLanguage))) return;
 
             // Get provider-specific API key
             const provider = normalizeProvider(config.llm.provider);
@@ -329,11 +351,36 @@ export function TranslationTab({
                 return;
             }
             
+            const nextConfig = { ...config, llm: { ...config.llm, batchApiByProvider: { ...config.llm.batchApiByProvider, [provider]: useBatch } } };
+            await ConfigService.save(nextConfig);
+            useAppStore.getState().setConfig(nextConfig);
+            try { localStorage.setItem(`mml.translation-mode.${provider}`, String(useBatch)); } catch {}
+            wasCancelledRef.current = false;
+            resetTranslationState();
+            setTranslating(true);
+            setProgress(0);
+            setWholeProgress(0);
+            setError(null);
+            setActiveBatch(useBatch);
+            setBatchPhase('preparing');
+            setPreview(null);
+
+            const sessionId = resumeId || await invoke<string>('generate_session_id');
+            if (useBatch && typeof indexedDB !== 'undefined') {
+                const safeConfig = { ...config, llm: { ...config.llm, apiKey: '', apiKeys: {} } };
+                const saved = { id: sessionId, targets: targetsToTranslate, language: targetLanguage, directory: profileDirectory, config: safeConfig };
+                await recoveryWrite(`session:${tabType}`, saved);
+                setPendingRecovery(saved);
+            }
             // Create a translation service
             const translationService = new TranslationService({
+                recoverySessionId: useBatch && typeof indexedDB !== 'undefined' ? sessionId : undefined,
+                onBatchProgress: ({ status }) => setBatchPhase(
+                    ['submitting', 'validating', 'saving'].includes(status) ? status : 'processing'
+                ),
                 llmConfig: {
                     provider,
-                    useBatchApi: config.llm.batchApiByProvider?.[provider] ?? false,
+                    useBatchApi: useBatch,
                     systemPrompt: config.llm.systemPrompt,
                     userPrompt: config.llm.userPrompt,
                     temperature: config.llm.temperature,
@@ -362,7 +409,7 @@ export function TranslationTab({
             const actualPath = profileDirectory || "";
 
             // Generate a unique session ID for this translation job
-            const sessionId = await invoke<string>('generate_session_id');
+
 
             // Create a new logs directory for the entire translation session
             try {
@@ -386,7 +433,7 @@ export function TranslationTab({
 
                 await invoke('log_translation_process', {message: `Created unique session directory: ${logsDir}`});
                 await invoke('log_translation_process', {message: `Created temporary directory: ${tempDir}`});
-                await invoke('log_translation_process', {message: `Starting translation session ${sessionId} for ${selectedTargets.length} ${tabType} to ${targetLanguage}`});
+                await invoke('log_translation_process', {message: `Starting translation session ${sessionId} for ${targetsToTranslate.length} ${tabType} to ${targetLanguage}`});
             } catch (error) {
                 console.error('Failed to create logs directory:', error);
                 // Continue with translation even if log directory creation fails
@@ -397,13 +444,16 @@ export function TranslationTab({
             setTotalTargets(targetsToTranslate.length);
 
             // Create a wrapper for addTranslationResult to collect results locally
+            const savedResults: TranslationResult[] = [];
             const collectResults = (result: TranslationResult) => {
+                savedResults.push(result);
+                if (useBatch) setBatchPhase("saving");
                 setTranslationResults(prev => [...prev, result]);
                 addTranslationResult({ ...result, sessionId });
             };
 
-            // Call the custom translate function (do not await, so UI can update and cancel is possible)
-            void onTranslate(
+            // Await completion while React remains responsive.
+            await onTranslate(
                 targetsToTranslate,
                 targetLanguage,
                 translationService,
@@ -411,7 +461,13 @@ export function TranslationTab({
                 collectResults,
                 actualPath,
                 sessionId
-            ).catch((error: unknown) => {
+            ).then(async () => {
+                if (useBatch && !wasCancelledRef.current && savedResults.length > 0 && savedResults.every(result => result.success) && typeof indexedDB !== 'undefined') {
+                    await recoveryClearSession(`session:${tabType}`, sessionId);
+                    setPendingRecovery(null);
+                    setResumeId(undefined);
+                }
+            }).catch((error: unknown) => {
                 wasCancelledRef.current = true;
                 setError(`${t('errors.translationFailed')}: ${error instanceof Error ? error.message : String(error)}`);
                 setTranslating(false);
@@ -425,10 +481,13 @@ export function TranslationTab({
                 }
             });
 
-            // Progress will be updated by the translation process itself
         } catch (error) {
             console.error(`Failed to translate ${tabType}:`, error);
-            setError(`${t('errors.translationFailed')}: ${error}`);
+            setError(`${t('errors.translationFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+            setTranslating(false);
+        } finally {
+            startingRef.current = false;
+            setIsStarting(false);
         }
     };
 
@@ -436,12 +495,12 @@ export function TranslationTab({
         <div className="space-y-4">
             <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:gap-2">
-                    <Button onClick={handleSelectDirectory} disabled={isScanning || isTranslating}>
+                    <Button onClick={handleSelectDirectory} disabled={isScanning || isPreparing || isStarting || isTranslating}>
                         {t(directorySelectLabel)}
                     </Button>
                     <Button
                         onClick={handleScan}
-                        disabled={isScanning || isTranslating || !profileDirectory}
+                        disabled={isScanning || isPreparing || isStarting || isTranslating || !profileDirectory}
                         title={!profileDirectory ? t('errors.selectProfileDirectoryFirst') : ''}
                         className={isScanning ? 'animate-pulse' : ''}
                     >
@@ -451,14 +510,14 @@ export function TranslationTab({
                         {isScanning ? t(scanningLabel) : t(scanButtonLabel)}
                     </Button>
                     <Button
-                        onClick={handleTranslate}
-                        disabled={isScanning || isTranslating || translationTargets.length === 0}
+                        onClick={handlePreview}
+                        disabled={isScanning || isPreparing || isStarting || isTranslating || !recoveryLoaded || !!pendingRecovery || translationTargets.length === 0}
                         className={isTranslating ? 'animate-pulse' : ''}
                     >
                         {isTranslating && (
                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
                         )}
-                        {isTranslating ? t('buttons.translating') : t('buttons.translate')}
+                        {isPreparing ? t('translationStart.preparing') : isTranslating ? t('buttons.translating') : t('buttons.translate')}
                     </Button>
 
                     {/* Target Language Selector */}
@@ -487,7 +546,7 @@ export function TranslationTab({
                             <Input
                                 placeholder={t(filterPlaceholder)}
                                 className="pl-8 w-full"
-                                disabled={isScanning || isTranslating}
+                                disabled={isScanning || isPreparing || isStarting || isTranslating}
                                 value={filterText}
                                 onChange={(e) => setFilterText(e.target.value)}
                             />
@@ -512,6 +571,11 @@ export function TranslationTab({
                 <div className="space-y-2 animate-in fade-in-0 slide-in-from-top-2 duration-300">
                     <div className="flex items-center justify-between">
                         <div className="flex-1 mr-4 space-y-4">
+                            <div role="status" aria-live="polite" className="rounded-lg border p-3">
+                                <p className="font-medium">{activeBatch ? t(`translationStart.phase.${batchPhase}`) : t('translationStart.standard')}</p>
+                                {activeBatch && <p className="mt-1 text-sm text-muted-foreground">{t('translationStart.keepOpen')}</p>}
+                            </div>
+                            {(!activeBatch || batchPhase === 'saving') && <>
                             {/* Job Progress - Single file progress */}
                             <div>
                                 <Progress value={progress} className="h-2"/>
@@ -532,6 +596,7 @@ export function TranslationTab({
                                     {t('progress.wholeProgress')} {wholeProgress}%
                                 </p>
                             </div>
+                            </>}
                         </div>
                         <div className="flex items-center gap-2">
                             <LogButton variant="outline" size="sm"/>
@@ -557,7 +622,7 @@ export function TranslationTab({
                                 <TableHead className="w-[50px] 2xl:w-[60px] sticky top-0 bg-background z-10">
                                     <Checkbox
                                         onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                                        disabled={isScanning || isTranslating || translationTargets.length === 0}
+                                        disabled={isScanning || isPreparing || isStarting || isTranslating || translationTargets.length === 0}
                                     />
                                 </TableHead>
                                 {tableColumns.map((column) => (
@@ -681,7 +746,7 @@ export function TranslationTab({
                                                 <Checkbox
                                                     checked={target.selected}
                                                     onCheckedChange={(checked) => updateTranslationTarget(target, !!checked)}
-                                                    disabled={isScanning || isTranslating}
+                                                    disabled={isScanning || isPreparing || isStarting || isTranslating}
                                                 />
                                             </TableCell>
                                             {tableColumns.map((column) => (
@@ -698,6 +763,65 @@ export function TranslationTab({
                     </div>
                 </ScrollArea>
             </div>
+
+            {pendingRecovery && !isTranslating && <div className="rounded-lg border p-4 space-y-2">
+                <p>{t('batchRecovery.available')}</p>
+                <p className="text-xs text-muted-foreground break-all">{pendingRecovery.directory} · {pendingRecovery.language} · {pendingRecovery.config.llm.model}</p>
+                <Button disabled={isStarting} onClick={() => {
+                    const restored = { ...pendingRecovery.config, llm: { ...pendingRecovery.config.llm, apiKey: config.llm.apiKey, apiKeys: config.llm.apiKeys } };
+                    useAppStore.getState().setConfig(restored);
+                    useAppStore.getState().setProfileDirectory(pendingRecovery.directory);
+                    setResumeId(pendingRecovery.id);
+                    setUseBatch(true);
+                    setPreview({ targets: pendingRecovery.targets, language: pendingRecovery.language, recommended: true });
+                }}>{t('batchRecovery.resume')}</Button>
+                <Button variant="outline" disabled={isStarting} onClick={async () => {
+                    try {
+                        if (!await confirm(t('batchRecovery.discardWarning'), { kind: 'warning' })) return;
+                        await recoveryClearSession(`session:${tabType}`, pendingRecovery.id);
+                        setPendingRecovery(null);
+                        setResumeId(undefined);
+                    } catch (error) { setError(String(error)); }
+                }}>{t('batchRecovery.discard')}</Button>
+                <p className="text-xs text-muted-foreground">{t('batchRecovery.newRun')}</p>
+            </div>}
+            <Dialog open={!!preview} onOpenChange={open => { if (!open && !isStarting) setPreview(null); }}>
+                <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{t('translationStart.title')}</DialogTitle>
+                        <DialogDescription>{t('translationStart.summary', {
+                            count: preview?.targets.length ?? 0,
+                            language: config.translation.additionalLanguages?.find(lang => lang.id === preview?.language)?.name
+                                ?? DEFAULT_LANGUAGES.find(lang => lang.id === preview?.language)?.name ?? preview?.language
+                        })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {preview?.itemCount !== undefined && <p className="text-sm text-muted-foreground">{t('translationStart.items', { count: preview.itemCount })}</p>}
+                        <p className="text-xs text-muted-foreground">{config.llm.provider} · {config.llm.model}</p>
+                        <fieldset disabled={isStarting || !!resumeId} className="space-y-3">
+                            <legend className="mb-2 text-sm font-medium">{t('translationStart.method')}</legend>
+                            {[true, false].map(batch => (
+                                <label key={String(batch)} className={cn('flex cursor-pointer items-start gap-3 rounded-lg border p-4', useBatch === batch && 'border-primary bg-primary/5')}>
+                                    <input type="radio" name="translation-mode" className="mt-1 accent-primary" checked={useBatch === batch} onChange={() => setUseBatch(batch)} />
+                                    <span className="space-y-1">
+                                        <span className="block font-medium">{t(batch ? 'translationStart.batch' : 'translationStart.standard')}
+                                            {batch && preview?.recommended && <span className="ml-2 rounded bg-primary px-2 py-0.5 text-xs text-primary-foreground">{t('translationStart.recommended')}</span>}
+                                        </span>
+                                        <span className="block text-sm text-muted-foreground">{t(batch ? 'translationStart.batchHint' : 'translationStart.standardHint')}</span>
+                                    </span>
+                                </label>
+                            ))}
+                        </fieldset>
+                        {useBatch && <p className="rounded-md bg-amber-500/10 p-3 text-sm">{t('translationStart.keepOpen')}</p>}
+                        <p className="text-xs text-muted-foreground">{t('translationStart.remember')}</p>
+                        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" disabled={isStarting} onClick={() => setPreview(null)}>{t('buttons.cancel')}</Button>
+                        <Button disabled={isStarting} onClick={handleTranslate}>{t(isStarting ? 'translationStart.preparing' : 'translationStart.start')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Completion Dialog */}
             <CompletionDialog

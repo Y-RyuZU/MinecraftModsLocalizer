@@ -1,3 +1,4 @@
+import { useTranslationCloseGuard } from '@/lib/hooks/use-translation-close-guard';
 import React, { useEffect, useState } from 'react';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { LogDialog } from '@/components/ui/log-dialog';
@@ -11,6 +12,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
+  useTranslationCloseGuard();
   const isTranslating = useAppStore((state) => state.isTranslating);
   const isLogDialogOpen = useAppStore((state) => state.isLogDialogOpen);
   const setLogDialogOpen = useAppStore((state) => state.setLogDialogOpen);

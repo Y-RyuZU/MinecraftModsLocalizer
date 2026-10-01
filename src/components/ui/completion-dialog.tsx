@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './dialog';
 import { Button } from './button';
@@ -46,6 +48,12 @@ export function CompletionDialog({
   );
 
 
+  const outputPaths = [...new Set(successfulResults.map(result => result.outputPath).filter(Boolean))];
+  const openOutput = async (path: string) => {
+    try { await invoke('open_output_directory', { path }); }
+    catch { toast.error(t('translationStart.openFailed')); }
+  };
+
   const getStatusIcon = () => {
     if (failureCount > 0 && successCount === 0) {
       return <XCircle className="h-12 w-12 text-red-500" />;
@@ -88,7 +96,7 @@ export function CompletionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] 2xl:max-w-[1400px] max-h-[80vh] 2xl:max-h-[85vh] pr-12">
+      <DialogContent className="sm:max-w-[900px] 2xl:max-w-[1400px] max-h-[80vh] 2xl:max-h-[85vh] overflow-y-auto pr-12">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             {getStatusIcon()}
@@ -125,6 +133,23 @@ export function CompletionDialog({
             </div>
           </div>
           
+          {successCount > 0 && (
+            <section className="space-y-2 rounded-lg border bg-muted/30 p-4">
+              <h4 className="font-medium">{t('translationStart.nextSteps')}</h4>
+              <p className="text-sm text-muted-foreground">{t(
+                translationType === 'mods' ? 'translationStart.modsNext' :
+                translationType === 'quests' ? 'translationStart.questsNext' :
+                translationType === 'guidebooks' ? 'translationStart.guidebooksNext' : 'translationStart.customNext'
+              )}</p>
+              <div className="max-h-28 overflow-y-auto space-y-2">
+                {outputPaths.map(path => <div key={path} className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openOutput(path)}>{t('translationStart.openOutput')}</Button>
+                  <span className="truncate text-xs text-muted-foreground" title={path}>{path}</span>
+                </div>)}
+              </div>
+            </section>
+          )}
+
           {results.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">

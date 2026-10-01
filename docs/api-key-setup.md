@@ -33,8 +33,15 @@ The desktop app saves provider keys in the operating system credential store. Sa
 
 For OpenAI's official guidance, see [Where do I find my API key?](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key) and [Best practices for API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety).
 
-## Enable Batch API
+## Choose a translation mode
 
-In **Settings → LLM Settings**, choose the provider and model, enable **Use Batch API for this provider**, then save. The setting is independent for OpenAI, Anthropic, and Gemini and defaults to off. Translation uses the selected provider’s asynchronous Batch API, including one-chunk jobs. Invalid batch results may be retried with the regular API, which can incur regular request charges.
+Select the targets and language, then click Translate to review the workload and choose a mode. For quests, the preview also counts source entries before deduplication.
 
-Keep the app open until results are saved. Restart/resume of a submitted batch is not implemented. A batch can take up to 24 hours depending on the provider. Saving settings does not submit a request.
+- **Lower cost — Batch**: recommended for at least 100 source entries or five targets.
+- **Start right away — Standard API**: choose this to check results sooner.
+
+The first selection follows the workload recommendation. Later runs remember your choice for each provider. Nothing is submitted until you confirm Start translation. You can also change the mode in Settings → LLM Settings.
+
+After restarting, use Resume Batch results in the same tab to retrieve the saved job. Keep source files unchanged. If the job ID could not be saved immediately after submission, MML stops instead of resubmitting; check the provider dashboard. A batch can take up to 24 hours depending on the provider. Invalid batch results may be retried with the regular API, which can incur regular request charges.
+
+The completion screen explains how to load the translations in Minecraft and lets you open the output folder.

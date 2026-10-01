@@ -15,8 +15,8 @@ use backup::{
 use config::{get_api_key_from_environment, load_config, save_config};
 use filesystem::{
   create_directory, create_resource_pack, file_exists, get_better_quest_files, get_files_with_extension,
-  get_ftb_quest_files, get_mod_files, open_directory_dialog, open_external_url, read_text_file, write_lang_file,
-  write_text_file,
+  get_ftb_quest_files, get_mod_files, open_directory_dialog, open_external_url, open_output_directory, read_text_file,
+  write_lang_file, write_text_file,
 };
 use logging::{
   clear_logs, create_logs_directory, create_logs_directory_with_session, create_temp_directory,
@@ -106,6 +106,7 @@ pub fn run() {
       write_text_file,
       create_directory,
       open_directory_dialog,
+      open_output_directory,
       // Resource pack operations
       create_resource_pack,
       write_lang_file,

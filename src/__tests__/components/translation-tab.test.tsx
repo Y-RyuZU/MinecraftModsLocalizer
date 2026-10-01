@@ -3,10 +3,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TranslationTab, TranslationTabProps } from '@/components/tabs/common/translation-tab';
 import { TranslationService } from '@/lib/services/translation-service';
+import { ConfigService } from "@/lib/services/config-service";
 import { FileService } from '@/lib/services/file-service';
 import { useAppStore } from '@/lib/store';
+import { recoveryRead, recoveryWrite } from '@/lib/services/batch-recovery';
 import { AppConfig } from '@/lib/types/config';
 
+vi.mock("@/lib/services/config-service", () => ({ ConfigService: { save: vi.fn().mockResolvedValue(undefined) } }));
+
+vi.mock('@/lib/services/batch-recovery', async importOriginal => ({
+    ...await importOriginal<typeof import('@/lib/services/batch-recovery')>(),
+    recoveryRead: vi.fn().mockResolvedValue(undefined), recoveryWrite: vi.fn().mockResolvedValue(undefined), recoveryRemove: vi.fn().mockResolvedValue(undefined), recoveryClearSession: vi.fn().mockResolvedValue(undefined)
+}));
 // Mock dependencies
 vi.mock('@/lib/services/file-service');
 vi.mock('@/lib/services/translation-service');
@@ -38,11 +46,14 @@ describe('TranslationTab', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        localStorage.clear();
+        vi.unstubAllGlobals();
+        vi.mocked(recoveryRead).mockResolvedValue(undefined);
         useAppStore.setState({ profileDirectory: '' });
 
         // Setup mock functions
         mockOnScan = vi.fn();
-        mockOnTranslate = vi.fn();
+        mockOnTranslate = vi.fn().mockResolvedValue(undefined);
         mockSetTranslationTargets = vi.fn();
         mockUpdateTranslationTarget = vi.fn();
         mockSetTranslating = vi.fn();
@@ -129,6 +140,43 @@ describe('TranslationTab', () => {
 
         // Mock FileService
         (FileService.openDirectoryDialog as Mock).mockResolvedValue('/test/directory');
+    });
+
+    async function openPreview(props: Partial<TranslationTabProps> = {}) {
+        useAppStore.setState({ profileDirectory: '/test/minecraft' });
+        render(<TranslationTab {...defaultProps} translationTargets={[{ id: 'quest', name: 'en_us.snbt', type: 'ftb', path: '/test/en_us.snbt', selected: true }]} {...props} />);
+        const user = userEvent.setup();
+        await user.click(screen.getByRole('combobox'));
+        await user.click(screen.getByRole('option', { name: 'Japanese (ja_jp)' }));
+        await user.click(screen.getByText('buttons.translate'));
+        await screen.findByRole('dialog');
+        return user;
+    }
+
+    it('recommends Batch for a large quest file without sending or saving anything before confirmation', async () => {
+        const user = await openPreview({ tabType: 'quests', getTranslationItemCount: async () => 1200 });
+        expect(screen.getByRole('radio', { name: /translationStart.batch/ })).toBeChecked();
+        expect(screen.getByText('translationStart.keepOpen')).toBeVisible();
+        expect(mockOnTranslate).not.toHaveBeenCalled();
+        expect(ConfigService.save).not.toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'buttons.cancel' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(mockOnTranslate).not.toHaveBeenCalled();
+    });
+
+    it('remembers a deliberate standard choice even for large quests', async () => {
+        localStorage.setItem('mml.translation-mode.openai', 'false');
+        await openPreview({ tabType: 'quests', getTranslationItemCount: async () => 1200 });
+        expect(screen.getByRole('radio', { name: /translationStart.standard/ })).toBeChecked();
+    });
+
+    it('uses and saves the mode selected at the point of translation', async () => {
+        const user = await openPreview({ tabType: 'quests', getTranslationItemCount: async () => 1200 });
+        await user.click(screen.getByRole('button', { name: 'translationStart.start' }));
+        await waitFor(() => expect(mockOnTranslate).toHaveBeenCalledTimes(1));
+        expect(TranslationService).toHaveBeenCalledWith(expect.objectContaining({ llmConfig: expect.objectContaining({ useBatchApi: true }) }));
+        expect(ConfigService.save).toHaveBeenCalledWith(expect.objectContaining({ llm: expect.objectContaining({ batchApiByProvider: { openai: true } }) }));
+        expect(localStorage.getItem('mml.translation-mode.openai')).toBe('true');
     });
 
     describe('Initial rendering', () => {
@@ -429,6 +477,9 @@ describe('TranslationTab', () => {
             const translateButton = screen.getByText('buttons.translate');
             await user.click(translateButton);
 
+            expect(mockOnTranslate).not.toHaveBeenCalled();
+            await user.click(await screen.findByRole('button', { name: 'translationStart.start' }));
+
             await waitFor(() => {
                 expect(mockSetTranslating).toHaveBeenCalledWith(true);
                 expect(mockOnTranslate).toHaveBeenCalled();
@@ -606,4 +657,21 @@ describe('TranslationTab', () => {
             expect(mockSetError).toHaveBeenCalledWith(null);
         });
     });
+    it('restores a pending batch selection while keeping the current credentials', async () => {
+        vi.stubGlobal('indexedDB', {});
+        const savedConfig = {...defaultProps.config, llm:{...defaultProps.config.llm, apiKey:'', apiKeys:{}}};
+        vi.mocked(recoveryRead).mockResolvedValue({id:'saved-session',targets:[{id:'q',name:'Quest',path:'/old/quest.snbt',selected:true,type:'ftb'}],language:'ja_jp',directory:'/original/minecraft',config:savedConfig});
+        render(<TranslationTab {...defaultProps} />);
+        await screen.findByText('batchRecovery.resume');
+        fireEvent.click(screen.getByText('batchRecovery.resume'));
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+        expect(useAppStore.getState().profileDirectory).toBe('/original/minecraft');
+        expect(useAppStore.getState().config.llm.apiKey).toBe(defaultProps.config.llm.apiKey);
+        expect(screen.getAllByRole('radio')[0]).toBeChecked();
+        expect(screen.getAllByRole('radio')[1]).toBeDisabled();
+        expect(mockOnTranslate).not.toHaveBeenCalled();
+        expect(recoveryWrite).not.toHaveBeenCalled();
+        vi.unstubAllGlobals();
+    });
+
 });

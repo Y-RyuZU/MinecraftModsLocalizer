@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} ältere Questdatei(en) haben keine Sprachdateien und werden direkt ersetzt. Das Original wird einmal als .mml-original.bak gesichert. In diesen Formaten kann jeweils nur eine Sprache aktiv sein. Fortfahren?"
+  },
+  "translationStart": {
+    "title": "Übersetzung starten",
+    "summary": "{{count}} ausgewählte Ziele nach {{language}} übersetzen",
+    "items": "{{count}} Quelleinträge vor dem Entfernen von Duplikaten",
+    "method": "Übersetzungsmodus",
+    "batch": "Kosten sparen — Batch",
+    "standard": "Sofort starten — Standard-API",
+    "recommended": "Für große Mengen empfohlen",
+    "batchHint": "Wenn Sie warten können. Asynchrone Verarbeitung ist bei unterstützten Modellen günstiger.",
+    "standardHint": "Für kurze Prüfungen oder dringende Aufgaben. Ergebnisse werden schrittweise geliefert.",
+    "keepOpen": "Batches benötigen Zeit. Nach einem Neustart hier fortsetzen. Direkt nach dem Senden kann der Status unbekannt sein; dann beim Anbieter prüfen.",
+    "remember": "Ihre Wahl wird für diesen Anbieter als nächster Standard gespeichert.",
+    "start": "Übersetzung starten",
+    "preparing": "Vorbereitung…",
+    "nextSteps": "In Minecraft prüfen",
+    "modsNext": "Aktivieren Sie das erzeugte Ressourcenpaket und wählen Sie die Zielsprache.",
+    "questsNext": "Starten Sie Minecraft neu und öffnen Sie die Quests in der Zielsprache. Alte Formate ersetzen die Quelle direkt.",
+    "guidebooksNext": "Starten Sie Minecraft neu und öffnen Sie das Handbuch in der Zielsprache.",
+    "customNext": "Prüfen Sie den Ordner translated und legen Sie die Dateien im Ladepfad Ihres Modpacks ab.",
+    "openOutput": "Ausgabeordner öffnen",
+    "openFailed": "Ausgabeordner konnte nicht geöffnet werden",
+    "phase": {
+      "preparing": "Übersetzung vorbereiten",
+      "submitting": "Batch senden",
+      "processing": "Warten auf den Anbieter / Übersetzung läuft",
+      "validating": "Ergebnisse prüfen",
+      "saving": "Ergebnisse speichern"
+    }
+  },
+  "closeWarning": {
+    "title": "Während der Übersetzung schließen?",
+    "message": "Das Schließen unterbricht die Verarbeitung. Gespeicherte Batches können fortgesetzt werden, unmittelbar nach dem Senden eventuell nicht. API-Anfragen können weiterlaufen und Kosten verursachen.",
+    "close": "App schließen",
+    "stay": "Weiter übersetzen"
+  },
+  "batchRecovery": {
+    "available": "Eine Batch-Übersetzung kann fortgesetzt werden. Quelldateien unverändert lassen.",
+    "resume": "Batch fortsetzen",
+    "newRun": "Vor einer neuen Übersetzung fortsetzen oder den Eintrag entfernen.",
+    "discard": "Eintrag entfernen",
+    "discardWarning": "Nur lokale Wiederherstellungsdaten entfernen? Der Batch wird nicht abgebrochen und kann Kosten verursachen."
   }
 }

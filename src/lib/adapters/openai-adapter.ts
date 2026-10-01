@@ -157,6 +157,8 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     options: {
       onProgress?: (progress: TranslationBatchProgress) => void;
       shouldCancel?: () => boolean;
+      resumeJobId?: string;
+      onSubmitted?: (id: string) => Promise<void>;
     } = {}
   ): Promise<TranslationResponse[]> {
     if (!this.config.apiKey) throw new Error("OpenAI API key is not configured");
@@ -206,18 +208,19 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
     try {
       await this.logApiRequest(`Submitting ${requests.length} translation chunks to OpenAI Batch API (model: ${model})`);
-      const inputFile = await openai.files.create({
+      const inputFile = options.resumeJobId ? undefined : await openai.files.create({
         file: new File([lines], "minecraft-mods-localizer.jsonl", { type: "application/jsonl" }),
         purpose: "batch"
       });
-      inputFileId = inputFile.id;
+      inputFileId = inputFile?.id;
 
-      let batch = await openai.batches.create({
-        input_file_id: inputFile.id,
+      let batch = options.resumeJobId ? await openai.batches.retrieve(options.resumeJobId) : await openai.batches.create({
+        input_file_id: inputFile!.id,
         endpoint: "/v1/chat/completions",
         completion_window: "24h"
       });
       batchId = batch.id;
+      await options.onSubmitted?.(batch.id);
       options.onProgress?.({ completed: 0, total: requests.length, status: batch.status });
       await this.logApiRequest(`OpenAI Batch job ${batch.id} created (${requests.length} chunks)`);
 
@@ -339,7 +342,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       throw error;
     } finally {
       // Batch input/output files are provider-hosted; remove them once results are collected.
-      if (terminal) {
+      if (terminal && !options.onSubmitted) {
         const cleanupFiles = resultFilesRetrieved
           ? [inputFileId, outputFileId, errorFileId]
           : [inputFileId];

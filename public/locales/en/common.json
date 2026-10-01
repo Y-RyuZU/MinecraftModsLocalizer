@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "{{count}} legacy quest file(s) have no locale files and will be translated in place. The original is backed up once as .mml-original.bak. Only one language can be active in these formats. Continue?"
+  },
+  "translationStart": {
+    "title": "Start translation",
+    "summary": "Translate {{count}} selected targets into {{language}}",
+    "items": "{{count}} source entries before deduplication",
+    "method": "How to translate",
+    "batch": "Lower cost — Batch",
+    "standard": "Start right away — Standard API",
+    "recommended": "Recommended for bulk translation",
+    "batchHint": "For when you can wait. Asynchronous processing costs less than standard requests on supported models.",
+    "standardHint": "For small checks or urgent work. Receive translations as requests finish.",
+    "keepOpen": "Batch processing can take time. After restarting, resume result retrieval from this tab. Closing immediately after submission may leave the outcome unknown and require checking the provider dashboard.",
+    "remember": "Your choice is saved as the next default for this provider.",
+    "start": "Start translation",
+    "preparing": "Preparing…",
+    "nextSteps": "Check in Minecraft",
+    "modsNext": "Enable the generated resource pack in Minecraft and switch to the target language.",
+    "questsNext": "Restart Minecraft and open the quests in the target language. Legacy formats replace the source directly.",
+    "guidebooksNext": "Restart Minecraft and open the guidebook in the target language.",
+    "customNext": "Review the translated folder and place its files where your modpack loads them.",
+    "openOutput": "Open output folder",
+    "openFailed": "Could not open the output folder",
+    "phase": {
+      "preparing": "Preparing translation",
+      "submitting": "Submitting Batch",
+      "processing": "Waiting for the provider / translating",
+      "validating": "Validating results",
+      "saving": "Saving results"
+    }
+  },
+  "closeWarning": {
+    "title": "Close during translation?",
+    "message": "Closing interrupts processing. Saved Batch jobs can resume result retrieval, but recovery may be unavailable immediately after submission. Submitted API requests may continue and incur charges.",
+    "close": "Close app",
+    "stay": "Keep translating"
+  },
+  "batchRecovery": {
+    "available": "A Batch translation can be resumed. Keep the original source files unchanged.",
+    "resume": "Resume Batch results",
+    "newRun": "Resume or remove this recovery entry before starting another translation.",
+    "discard": "Remove recovery entry",
+    "discardWarning": "Only local recovery information will be removed. The submitted batch is not cancelled and may incur charges. Remove it?"
   }
 }

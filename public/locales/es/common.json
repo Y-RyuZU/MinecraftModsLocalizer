@@ -347,5 +347,47 @@
   },
   "confirmation": {
     "overwriteLegacyQuests": "Se reemplazarán directamente {{count}} archivos de misiones antiguos que no tienen archivos por idioma. El original se guarda una vez como .mml-original.bak. Estos formatos solo permiten un idioma activo. ¿Continuar?"
+  },
+  "translationStart": {
+    "title": "Iniciar traducción",
+    "summary": "Traducir {{count}} elementos al idioma {{language}}",
+    "items": "{{count}} entradas originales antes de eliminar duplicados",
+    "method": "Modo de traducción",
+    "batch": "Reducir el costo — Batch",
+    "standard": "Empezar ahora — API estándar",
+    "recommended": "Recomendado para grandes cantidades",
+    "batchHint": "Si puedes esperar. El procesamiento asíncrono cuesta menos con modelos compatibles.",
+    "standardHint": "Para pruebas pequeñas o trabajo urgente. Recibe los resultados progresivamente.",
+    "keepOpen": "Los lotes pueden tardar. Reanuda aquí después de reiniciar. Cerrar justo después del envío puede dejar un estado desconocido que debe comprobarse con el proveedor.",
+    "remember": "Tu elección se guarda como valor predeterminado para este proveedor.",
+    "start": "Iniciar traducción",
+    "preparing": "Preparando…",
+    "nextSteps": "Comprobar en Minecraft",
+    "modsNext": "Activa el paquete de recursos generado y selecciona el idioma de destino.",
+    "questsNext": "Reinicia Minecraft y abre las misiones en el idioma de destino. Los formatos antiguos reemplazan el original directamente.",
+    "guidebooksNext": "Reinicia Minecraft y abre la guía en el idioma de destino.",
+    "customNext": "Revisa la carpeta translated y coloca los archivos donde los carga tu modpack.",
+    "openOutput": "Abrir carpeta de salida",
+    "openFailed": "No se pudo abrir la carpeta de salida",
+    "phase": {
+      "preparing": "Preparando traducción",
+      "submitting": "Enviando Batch",
+      "processing": "Esperando al proveedor / traduciendo",
+      "validating": "Verificando resultados",
+      "saving": "Guardando resultados"
+    }
+  },
+  "closeWarning": {
+    "title": "¿Cerrar durante la traducción?",
+    "message": "Cerrar interrumpe el proceso. Los lotes guardados pueden reanudarse, salvo a veces justo después del envío. Las solicitudes API pueden continuar y generar cargos.",
+    "close": "Cerrar",
+    "stay": "Seguir traduciendo"
+  },
+  "batchRecovery": {
+    "available": "Hay una traducción por lotes recuperable. No modifiques los archivos originales.",
+    "resume": "Reanudar lote",
+    "newRun": "Reanuda o elimina esta entrada antes de iniciar otra traducción.",
+    "discard": "Eliminar recuperación",
+    "discardWarning": "¿Eliminar solo los datos locales de recuperación? El lote no se cancela y puede generar cargos."
   }
 }

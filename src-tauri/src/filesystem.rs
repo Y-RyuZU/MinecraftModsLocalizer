@@ -416,6 +416,21 @@ pub async fn open_directory_dialog(
   }
 }
 
+/// Open the directory containing a translation output.
+#[tauri::command]
+pub fn open_output_directory(path: String) -> std::result::Result<(), String> {
+  let output = Path::new(&path);
+  let directory = if output.is_dir() {
+    output
+  } else {
+    output.parent().ok_or("Output has no parent directory")?
+  };
+  if !directory.is_dir() {
+    return Err("Output directory does not exist".into());
+  }
+  tauri_plugin_opener::open_path(directory, None::<&str>).map_err(|error| error.to_string())
+}
+
 /// Create a resource pack
 #[tauri::command]
 pub async fn create_resource_pack(
