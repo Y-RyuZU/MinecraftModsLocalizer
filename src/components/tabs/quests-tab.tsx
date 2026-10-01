@@ -95,6 +95,7 @@ export function QuestsTab() {
     for (let i = 0; i < ftbQuestFiles.length; i++) {
       const questFile = ftbQuestFiles[i];
       try {
+        if (/\.snbt(?:_merged)?$/i.test(questFile) && Object.keys(extractQuestText(await read(questFile)).content).length === 0) continue;
         const name = await getQuestDisplayName(questFile, read);
         const questNumber = i + 1;
 

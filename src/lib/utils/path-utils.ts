@@ -43,8 +43,9 @@ export function getRelativePath(fullPath: string, basePath: string): string {
   if (!fullPath || !basePath) return fullPath || "";
   
   // Normalize paths by replacing backslashes with forward slashes
-  const normalizedFullPath = fullPath.replace(/\\/g, '/');
-  const normalizedBasePath = basePath.replace(/\\/g, '/');
+  const normalize = (path: string) => path.replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/, "").replace(/\\/g, '/');
+  const normalizedFullPath = normalize(fullPath);
+  const normalizedBasePath = normalize(basePath);
   
   // Ensure base path ends with a slash for proper comparison
   const baseWithSlash = normalizedBasePath.endsWith('/') 
