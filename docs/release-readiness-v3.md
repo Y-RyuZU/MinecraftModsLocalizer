@@ -1,5 +1,16 @@
 # v3 リリース判定と作業順
 
+## v3.0.3 自動更新の実機検証
+
+[リリース](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/tag/v3.0.3)・[CI](https://github.com/Y-RyuZU/MinecraftModsLocalizer/actions/runs/36878448540)。Test、全4環境のビルド、配布ファイル検証が成功。
+
+- 更新のダウンロード量を累計で表示し、再起動を後回しにした場合も画面の処理中状態を解除する。失敗後の再試行を含む3件のテストで確認。
+- Windowsのmanifestに `windows-x86_64-nsis` と `windows-x86_64-msi` を追加。形式指定のないクライアントにはEXEを配信。既存の署名検証を保持。
+- 公開ファイルの6署名、改変拒否、6つの更新エントリー、全チェックサムを検証。
+- 公開済みv3.0.2 EXEを専用フォルダーにインストールし、起動時にv3.0.3を検出。「今すぐインストール」を操作して、ダウンロード・インストール・自動再起動まで成功。
+- インストール先の維持、起動後の通常画面、実行ファイルのFileVersion/ProductVersionとWindows登録バージョンがすべて3.0.3であることを確認。更新後のEXE SHA256: `BDA864877792793C43D0698E776AFA02EC0502587119DCC3D545E83285DD5EC6`。
+- MSI、macOS、Linuxの更新完了までは実機未検証。進捗表示と再起動延期の修正は自動テストで確認し、実機更新は公開版v3.0.2からの経路を検証した。
+
 ## v3.0.1 正式公開（2026年10月1日）
 
 [正式リリース](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/tag/v3.0.1)をLatestとして公開。対象は `d614a1aedcb36933259e207ad9843d279718e635`。
