@@ -1,5 +1,5 @@
 use crate::filesystem::serialize_json_sorted;
-use log::{error, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
@@ -32,6 +32,7 @@ pub struct AppConfig {
     /// UI configuration
     pub ui: UIConfig,
     /// File paths configuration
+    #[serde(default)]
     pub paths: PathsConfig,
 }
 
@@ -75,7 +76,7 @@ pub struct UIConfig {
 }
 
 /// Paths configuration
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct PathsConfig {
     /// Minecraft directory
     pub minecraft_dir: String,
@@ -107,7 +108,7 @@ pub fn default_config() -> AppConfig {
             provider: "openai".to_string(),
             api_key: "".to_string(),
             base_url: None,
-            model: Some("o4-mini-2025-04-16".to_string()),
+            model: Some("gpt-4o-mini".to_string()),
             max_retries: 5,
             prompt_template: None,
         },
@@ -195,7 +196,7 @@ pub fn load_config() -> std::result::Result<String, String> {
     }
 
     // Parse the config
-    let config: AppConfig = match serde_json::from_str(&config_json) {
+    let config = match parse_config_preserving_fields(&config_json) {
         Ok(config) => config,
         Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
@@ -217,7 +218,7 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     info!("Saving configuration");
 
     // Parse the config
-    let config: AppConfig = match serde_json::from_str(config_json) {
+    let mut config = match parse_config_preserving_fields(config_json) {
         Ok(config) => config,
         Err(e) => return Err(format!("Failed to parse config: {e}")),
     };
@@ -227,6 +228,17 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
         Ok(path) => path,
         Err(e) => return Err(format!("Failed to get config path: {e}")),
     };
+
+    // The current frontend no longer sends the legacy paths section.
+    if config.get("paths").is_none() {
+        if let Some(paths) = fs::read_to_string(&config_path)
+            .ok()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+            .and_then(|old| old.get("paths").cloned())
+        {
+            config["paths"] = paths;
+        }
+    }
 
     // Create the config file
     let mut config_file = match File::create(&config_path) {
@@ -246,4 +258,34 @@ pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
     }
 
     Ok(true)
+}
+
+// Validate the required backend fields while retaining frontend settings unknown to Rust.
+fn parse_config_preserving_fields(config_json: &str) -> serde_json::Result<serde_json::Value> {
+    let value: serde_json::Value = serde_json::from_str(config_json)?;
+    serde_json::from_value::<AppConfig>(value.clone())?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod persistence_tests {
+    use super::*;
+
+    #[test]
+    fn retains_frontend_settings_and_validates_required_fields() {
+        let mut value = serde_json::to_value(default_config()).unwrap();
+        value["llm"]["api_keys"] = serde_json::json!({"google": "synthetic-test-key"});
+        value["llm"]["temperature"] = serde_json::json!(0);
+        value["llm"]["system_prompt"] = serde_json::json!("Custom prompt");
+        value["translation"]["skip_existing_translations"] = serde_json::json!(false);
+        value["update"] = serde_json::json!({"check_on_startup": false});
+        let saved = parse_config_preserving_fields(&value.to_string()).unwrap();
+        let loaded =
+            parse_config_preserving_fields(&serialize_json_sorted(&saved).unwrap()).unwrap();
+        assert_eq!(loaded, value);
+        value.as_object_mut().unwrap().remove("paths");
+        assert!(parse_config_preserving_fields(&value.to_string()).is_ok());
+        value["llm"]["max_retries"] = serde_json::json!("invalid");
+        assert!(parse_config_preserving_fields(&value.to_string()).is_err());
+    }
 }

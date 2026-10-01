@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppTranslation } from "@/lib/i18n";
+
 import {useAppStore} from "@/lib/store";
 import {TranslationResult, TranslationTarget} from "@/lib/types/minecraft";
 import {FileService} from "@/lib/services/file-service";
@@ -11,8 +13,17 @@ import {useEffect} from "react";
 import {runTranslationJobs} from "@/lib/services/translation-runner";
 import {parseLangFile} from "@/lib/utils/lang-parser";
 import {getFileName, getRelativePath} from "@/lib/utils/path-utils";
+import type {FtbLangEntry} from "@/lib/utils/ftb-lang-snbt";
+import {
+    ftbQuestLangToMap,
+    getFtbQuestLangOutputPath,
+    mapToFtbQuestLang,
+    parseFtbQuestLang,
+    validateFtbQuestLangTranslation,
+} from "@/lib/utils/ftb-lang-snbt";
 
 export function QuestsTab() {
+  const { t } = useAppTranslation();
     const {
         config,
         questTranslationTargets,
@@ -99,7 +110,7 @@ export function QuestsTab() {
             
             // Set initial scan progress immediately
             setScanProgress({
-                currentFile: 'Initializing scan...',
+                currentFile: t('progress.initializingScan'),
                 processedCount: 0,
                 totalCount: undefined,
                 scanType: 'quests',
@@ -116,7 +127,7 @@ export function QuestsTab() {
 
         // Update progress immediately after file discovery
         setScanProgress({
-            currentFile: 'Analyzing quest files...',
+            currentFile: t('progress.analyzingFiles'),
             processedCount: 0,
             totalCount: ftbQuestFiles.length + betterQuestFiles.length,
             scanType: 'quests',
@@ -286,6 +297,8 @@ export function QuestsTab() {
                 content: string;
                 contentType?: string;
                 hasKubeJSFiles?: boolean;
+                ftbLangEntries?: FtbLangEntry[];
+                ftbLangOutputPath?: string;
             }> = [];
             let skippedCount = 0;
             
@@ -313,11 +326,15 @@ export function QuestsTab() {
                         }
                     }
                     
-                    // For SNBT files, detect content type
+                    const ftbLangOutputPath = target.questFormat === "ftb"
+                        ? getFtbQuestLangOutputPath(target.path, targetLanguage) ?? undefined
+                        : undefined;
+
+                    // For legacy SNBT files, detect content type
                     let contentType = "direct_text"; // Default
                     let hasKubeJSFiles = false;
                     
-                    if (target.path.endsWith('.snbt')) {
+                    if (target.path.endsWith('.snbt') || target.path.endsWith('.snbt_merged')) {
                         try {
                             contentType = await FileService.invoke<string>("detect_snbt_content_type", {
                                 filePath: target.path
@@ -334,23 +351,40 @@ export function QuestsTab() {
                     const content = await FileService.readTextFile(target.path);
                     
                     let processedContent = content;
+                    let ftbLangEntries: FtbLangEntry[] | undefined;
+                    let jobContent: Record<string, string>;
                     
-                    // If it's a .lang file, convert to JSON format for translation
-                    if (target.path.endsWith('.lang')) {
+                    if (ftbLangOutputPath) {
+                        ftbLangEntries = parseFtbQuestLang(content);
+                        if (ftbLangEntries.length === 0) {
+                            throw new Error(`No FTB Quests language entries found in ${target.path}`);
+                        }
+                        jobContent = ftbQuestLangToMap(ftbLangEntries);
+                    } else if (target.path.endsWith('.lang')) {
+                        // If it's a .lang file, convert to JSON format for translation
                         const langMap = parseLangFile(content);
-                        
-                        // Convert to JSON string for translation
                         processedContent = JSON.stringify(langMap, null, 2);
+                        jobContent = {content: processedContent};
+                    } else {
+                        jobContent = {content: processedContent};
                     }
                     
                     // Create a translation job
                     const job = translationService.createJob(
-                        {content: processedContent},
+                        jobContent,
                         targetLanguage,
                         target.name
                     );
                     
-                    jobs.push({ target, job, content: processedContent, contentType, hasKubeJSFiles });
+                    jobs.push({
+                        target,
+                        job,
+                        content: processedContent,
+                        contentType,
+                        hasKubeJSFiles,
+                        ftbLangEntries,
+                        ftbLangOutputPath,
+                    });
                 } catch (error) {
                     console.error(`Failed to prepare quest: ${target.name}`, error);
                     // Add failed result immediately
@@ -387,6 +421,19 @@ export function QuestsTab() {
                     // Find the corresponding quest data
                     const questData = jobs.find(j => j.job.id === job.id);
                     if (!questData) return;
+
+                    if (questData.ftbLangEntries && questData.ftbLangOutputPath) {
+                        validateFtbQuestLangTranslation(questData.ftbLangEntries, content);
+                        const translatedSnbt = mapToFtbQuestLang(questData.ftbLangEntries, content);
+                        const reparsed = parseFtbQuestLang(translatedSnbt);
+                        const sourceShape = questData.ftbLangEntries.map(({key, isArray, values}) => [key, isArray, values.length]);
+                        const outputShape = reparsed.map(({key, isArray, values}) => [key, isArray, values.length]);
+                        if (JSON.stringify(sourceShape) !== JSON.stringify(outputShape)) {
+                            throw new Error("FTB Quests SNBT validation failed: keys or array structure changed");
+                        }
+                        await FileService.writeTextFile(questData.ftbLangOutputPath, translatedSnbt);
+                        return;
+                    }
                     
                     let translatedText = content.content || `[${targetLanguage}] ${questData.content}`;
                     
@@ -558,7 +605,7 @@ export function QuestsTab() {
                 },
                 {
                     key: "hasExistingTranslation",
-                    label: "Translation",
+                    label: "tables.translation",
                     className: "w-24",
                     render: (target) => (
                         target.hasExistingTranslation !== undefined ? (
@@ -567,7 +614,7 @@ export function QuestsTab() {
                                     ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                     : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                             }`}>
-                                {target.hasExistingTranslation ? 'Exists' : 'New'}
+                                {t(target.hasExistingTranslation ? 'tables.existing' : 'tables.new')}
                             </span>
                         ) : null
                     )

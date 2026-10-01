@@ -143,7 +143,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         }
         
         // Parse the translation text into key-value pairs
-        const translatedContent = this.parseResponse(translationText, request.content);
+        const translatedContent = this.parseResponse(translationText);
         
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
@@ -223,7 +223,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       
       // Try to create a simple message as a validation check
       await anthropic.messages.create({
-        model: "claude-3-5-haiku-20241022",
+        model: this.config.model || DEFAULT_MODELS.anthropic,
         max_tokens: MODEL_TOKEN_LIMITS.anthropic.validationTokens,
         messages: [{ role: "user", content: "Hi" }]
       });

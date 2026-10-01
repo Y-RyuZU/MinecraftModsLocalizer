@@ -1,0 +1,63 @@
+# Your first translation
+
+[English](getting-started.md) | [日本語](ja/getting-started.md) | [README](../README.md)
+
+This guide describes the v3 desktop interface. Start with one small mod and check the result in Minecraft before translating a whole pack. The browser preview cannot read your Minecraft files; use the installed desktop app.
+
+## Install the right download
+
+Open [GitHub Releases](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases) and check the version heading. Until v3.0.0 is published, the latest public release is v2.1.3 and its interface and download names differ from this guide.
+
+| System | v3 download |
+| --- | --- |
+| Windows x64 | `.exe` installer, or `.msi` |
+| Mac with Apple Silicon | `.dmg` containing `aarch64-apple-darwin` |
+| Mac with Intel CPU | `.dmg` containing `x86_64-apple-darwin` |
+| Linux x64 | `.AppImage`, or `.deb` for Debian/Ubuntu |
+
+The `.sig`, `latest.json`, and `.app.tar.gz` files serve the updater. For an ordinary installation, choose an installer from the table. The v3 release includes `SHA256SUMS.txt` for checking downloads; see the [verification commands](updater.md#verify-downloads).
+
+The Windows `.exe` installer automatically uses the OS language from the ten bundled languages (English fallback). The `.msi` installer remains English. On first launch, MML selects a supported language from the OS preferences, falling back to English. The header language selector saves your choice for subsequent launches; existing saved choices are preserved. This controls the app interface, independently of the translation target language.
+
+## Prepare a small first run
+
+1. Back up your Minecraft instance and close the game. Choose a small mod with untranslated English language entries.
+2. Get an API key from your chosen provider using the [key setup guide](api-key-setup.md). API usage can incur charges. Check the model's availability in your provider account; old saved model names can stop working when a provider retires them.
+3. Open the gear button **Settings**, choose **LLM Settings**, then set the provider, API key, and model. Click **Save Settings**. Saving settings does not test the key or confirm billing access.
+4. In **Mods**, click **Select Profile**. Select the actual game folder containing `mods` and `config`. For Prism Launcher this is usually `instances/<instance>/minecraft`. Use the launcher's folder-opening option to locate it.
+5. Choose the translation language and click **Scan**. Select just one mod in the table, then click **Translate**. Header language changes the interface; the language beside **Translate** changes the game text.
+6. Wait for the progress/log dialog to finish. Confirm that it reports a completed translation, with no failed chunks. Keep the output path shown in the log.
+7. Start Minecraft with that same instance. Open **Options → Resource Packs**, enable the generated pack under `resourcepacks`, and place it above packs that contain competing translations. Choose the matching game language.
+8. Find an item or block from the selected mod. Seeing its translated name in game is the first success checkpoint. Only then increase the selection.
+
+## Choose the right translation mode
+
+| Content | Mode and result |
+| --- | --- |
+| Mod language files, including legacy `.lang` | **Mods** creates a resource pack. Enable it in the same game instance. |
+| FTB Quests | **Quests** discovers supported layouts. Chapter SNBT may be changed in place; back up the instance first. Consolidated language SNBT writes the target language beside the source. |
+| Patchouli books inside mod JARs | **Guidebooks**. Check both the output and the book in game. |
+| A specific JSON/SNBT file outside discovery | **Custom Files** lets you choose files and an output directory. It prefixes output with the target language; the consuming mod may require a different filename/location. |
+
+**Known acceptance gaps:** BetterQuest `DefaultQuests.lang` currently produces `DefaultQuests.<language>.lang`. A pack that reads only `DefaultQuests.lang` will not automatically use that copy. Do not assume successful export means it is active in game. Create: Astral's `resources/createastral/lang/en_us.json` needs pack-specific verification as well. Test these on a copied instance; track [#11](https://github.com/Y-RyuZU/MinecraftModsLocalizer/issues/11) and [#17](https://github.com/Y-RyuZU/MinecraftModsLocalizer/issues/17).
+
+## Troubleshooting
+
+| Symptom | Next step |
+| --- | --- |
+| **Scan** is disabled | Select the game profile first. |
+| No items after scanning | Check that you selected the folder containing `mods` and `config`, choose the correct tab, and clear the table filter. |
+| **Translate** is disabled | Select a target language and at least one item; wait for any scan to finish. |
+| API authentication or 401/403 error | Match the key to the provider, save settings, and check account/project permissions. Never include the key in an issue. |
+| Model not found or 404 | Enter a model available to your account. Provider defaults and old saved models can be retired. See the key guide for model lists. |
+| Quota, billing, or 429 error | Check provider usage/billing and rate limits; wait before trying a small selection again. |
+| Context or output length error | Reduce the chunk size in Settings or enable token-based chunking. |
+| JSON/translation response error | Keep the default JSON-oriented prompts, reduce the selection/chunk size, and inspect the error log. Do not treat partial output as complete. |
+| Everything is skipped | Check **Skip when translations exist** and whether the selected target language is already present. |
+| Export succeeded but game text is English | Check the output path, active instance, game language, and resource-pack priority. Quest/custom files may require their expected filename and location. |
+| Interrupted translation | Inspect completed output and logs before retrying. Do not assume all modes resume from the interruption point. Restore the instance backup if needed. |
+| Update check cannot find a manifest | v2.1.3 has no Tauri `latest.json`. Use the release page for installation until a signed v3 release is published. |
+
+## Ask for help
+
+Search [existing issues](https://github.com/Y-RyuZU/MinecraftModsLocalizer/issues) first. Include app version, OS/CPU, Minecraft and modpack versions, the selected tab, a relative source path, expected result, actual result, and the relevant error text. Remove API keys, account details, and private absolute paths. A minimal example you have permission to share helps reproduce file-format problems. Do not upload your `config.json`.

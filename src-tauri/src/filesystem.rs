@@ -1,7 +1,7 @@
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 use tauri_plugin_shell::ShellExt;
@@ -192,202 +192,298 @@ pub async fn get_ftb_quest_files_with_language(
         }
     };
 
-    let mut quest_files = Vec::new();
+    let quest_paths = collect_quest_translation_sources(&path, target_language)?;
+    let mut quest_files = Vec::with_capacity(quest_paths.len());
+    let total_files = quest_paths.len();
+    let mut last_emit = Instant::now();
+    const EMIT_INTERVAL: Duration = Duration::from_millis(200);
 
-    // First, check for KubeJS lang files - if they exist, use them exclusively
-    let kubejs_dir = path.join("kubejs");
-    let kubejs_assets_dir = kubejs_dir.join("assets").join("kubejs").join("lang");
-    let kubejs_en_us_file = kubejs_assets_dir.join("en_us.json");
+    for (index, entry_path) in quest_paths.iter().enumerate() {
+        let processed_count = index + 1;
+        let current_file = entry_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
-    if kubejs_en_us_file.exists() && kubejs_en_us_file.is_file() {
-        info!("Found KubeJS en_us.json file - using KubeJS lang file translation method");
-
-        if kubejs_assets_dir.exists() && kubejs_assets_dir.is_dir() {
-            info!(
-                "Scanning kubejs lang directory: {}",
-                kubejs_assets_dir.display()
+        if processed_count % 10 == 0 || last_emit.elapsed() >= EMIT_INTERVAL {
+            let _ = app_handle.emit(
+                "scan_progress",
+                ScanProgressPayload {
+                    current_file,
+                    processed_count,
+                    total_count: Some(total_files),
+                    scan_type: "quests".to_string(),
+                    completed: false,
+                },
             );
-            // Walk through the directory and find all JSON files
-            for entry in WalkDir::new(&kubejs_assets_dir).max_depth(1).into_iter() {
-                match entry {
-                    Ok(entry) => {
-                        let entry_path = entry.path();
-
-                        // Check if the file is a JSON file and not already translated
-                        if entry_path.is_file()
-                            && entry_path.extension().is_some_and(|ext| ext == "json")
-                        {
-                            // Skip files that already have language suffixes
-                            if let Some(file_name) = entry_path.file_name().and_then(|n| n.to_str())
-                            {
-                                if file_name.contains(".ja_jp.")
-                                    || file_name.contains(".zh_cn.")
-                                    || file_name.contains(".ko_kr.")
-                                    || file_name.contains(".de_de.")
-                                    || file_name.contains(".fr_fr.")
-                                    || file_name.contains(".es_es.")
-                                    || file_name.contains(".it_it.")
-                                    || file_name.contains(".pt_br.")
-                                    || file_name.contains(".ru_ru.")
-                                {
-                                    debug!("Skipping already translated file: {file_name}");
-                                    continue;
-                                }
-
-                                // If target language is specified, check if translation already exists
-                                if let Some(target_lang) = target_language {
-                                    if file_name == "en_us.json" {
-                                        let target_file =
-                                            kubejs_assets_dir.join(format!("{target_lang}.json"));
-                                        if target_file.exists() && target_file.is_file() {
-                                            debug!("Skipping {} - target language file already exists: {}", file_name, target_file.display());
-                                            continue;
-                                        }
-                                    }
-                                }
-                            }
-
-                            match entry_path.to_str() {
-                                Some(path_str) => quest_files.push(path_str.to_string()),
-                                None => {
-                                    error!(
-                                        "Failed to convert path to string: {}",
-                                        entry_path.display()
-                                    );
-                                    return Err(format!(
-                                        "Invalid path encoding: {}",
-                                        entry_path.display()
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        error!("Error reading KubeJS lang directory entry: {e}");
-                        return Err(format!("Failed to read KubeJS lang directory: {e}"));
-                    }
-                }
-            }
-        } else {
-            return Err(format!(
-                "KubeJS lang directory not accessible: {}",
-                kubejs_assets_dir.display()
-            ));
+            last_emit = Instant::now();
         }
-    } else {
-        info!("No KubeJS en_us.json found - falling back to SNBT file translation method");
 
-        // Look for FTB quests in multiple possible directories
-        let config_dir = path.join("config");
-        let quest_roots = vec![
-            config_dir.join("ftbquests").join("quests"), // Standard path
-            config_dir.join("ftbquests").join("normal"), // FTB Interactions Remastered path
-            config_dir.join("ftbquests"),                // Fallback to root directory
-        ];
-
-        let mut quest_dir_found = false;
-        for quest_root in quest_roots {
-            if quest_root.exists() && quest_root.is_dir() {
-                info!("Scanning FTB quests directory: {}", quest_root.display());
-                quest_dir_found = true;
-
-                // First, count total files for progress tracking
-                let total_files = WalkDir::new(&quest_root)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|entry| entry.path().is_file())
-                    .count();
-
-                // Walk through the directory and find all SNBT files
-                let mut processed_count = 0;
-                let mut last_emit = Instant::now();
-                const EMIT_INTERVAL: Duration = Duration::from_millis(200);
-
-                for entry in WalkDir::new(&quest_root).into_iter() {
-                    match entry {
-                        Ok(entry) => {
-                            let entry_path = entry.path();
-
-                            if entry_path.is_file() {
-                                processed_count += 1;
-                            }
-
-                            let current_file = entry_path
-                                .file_name()
-                                .unwrap_or_default()
-                                .to_string_lossy()
-                                .to_string();
-
-                            // Emit progress: every 10 files OR every 200ms
-                            let should_emit =
-                                processed_count % 10 == 0 || last_emit.elapsed() >= EMIT_INTERVAL;
-
-                            if should_emit {
-                                let _ = app_handle.emit(
-                                    "scan_progress",
-                                    ScanProgressPayload {
-                                        current_file,
-                                        processed_count,
-                                        total_count: Some(total_files),
-                                        scan_type: "quests".to_string(),
-                                        completed: false,
-                                    },
-                                );
-
-                                last_emit = Instant::now();
-                            }
-
-                            // Check if the file is an SNBT file
-                            if entry_path.is_file()
-                                && entry_path.extension().is_some_and(|ext| ext == "snbt")
-                            {
-                                match entry_path.to_str() {
-                                    Some(path_str) => quest_files.push(path_str.to_string()),
-                                    None => {
-                                        error!(
-                                            "Failed to convert SNBT path to string: {}",
-                                            entry_path.display()
-                                        );
-                                        return Err(format!(
-                                            "Invalid SNBT path encoding: {}",
-                                            entry_path.display()
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            error!("Error reading FTB quests directory entry: {e}");
-                            return Err(format!("Failed to read FTB quests directory: {e}"));
-                        }
-                    }
-                }
-
-                // Emit completion event after scanning this quest directory
-                let _ = app_handle.emit(
-                    "scan_progress",
-                    ScanProgressPayload {
-                        current_file: "".to_string(),
-                        processed_count,
-                        total_count: Some(total_files),
-                        scan_type: "quests".to_string(),
-                        completed: true,
-                    },
+        match entry_path.to_str() {
+            Some(path_str) => quest_files.push(path_str.to_string()),
+            None => {
+                error!(
+                    "Failed to convert quest path to string: {}",
+                    entry_path.display()
                 );
+                return Err(format!(
+                    "Invalid quest path encoding: {}",
+                    entry_path.display()
+                ));
             }
-        }
-
-        if !quest_dir_found {
-            info!("No FTB quests directory found in standard locations");
-            return Err("No FTB quests directory found. Checked: config/ftbquests/quests/, config/ftbquests/normal/, and config/ftbquests/".to_string());
         }
     }
+
+    let _ = app_handle.emit(
+        "scan_progress",
+        ScanProgressPayload {
+            current_file: String::new(),
+            processed_count: total_files,
+            total_count: Some(total_files),
+            scan_type: "quests".to_string(),
+            completed: true,
+        },
+    );
 
     debug!(
         "Found {} FTB quest files using conditional logic",
         quest_files.len()
     );
     Ok(quest_files)
+}
+
+fn is_snbt_translation_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            let name = name.to_ascii_lowercase();
+            name.ends_with(".snbt") || name.ends_with(".snbt_merged")
+        })
+}
+
+/// Collect both KubeJS and FTB Quests English sources. A pack may contain
+/// either format or both; the presence of one must not suppress the other.
+fn collect_quest_translation_sources(
+    profile_path: &Path,
+    target_language: Option<&str>,
+) -> Result<Vec<PathBuf>, String> {
+    let mut sources = Vec::new();
+    let kubejs_lang_dir = profile_path.join("kubejs/assets/kubejs/lang");
+    let kubejs_source = kubejs_lang_dir.join("en_us.json");
+    let kubejs_source_found = kubejs_source.is_file();
+
+    if kubejs_source_found {
+        let target_exists = target_language
+            .map(|locale| kubejs_lang_dir.join(format!("{locale}.json")).is_file())
+            .unwrap_or(false);
+        if target_exists {
+            debug!("Skipping KubeJS en_us.json because target language already exists");
+        } else {
+            sources.push(kubejs_source);
+        }
+    }
+
+    let ftbquests_dir = profile_path.join("config/ftbquests");
+    let leaf_roots = [ftbquests_dir.join("quests"), ftbquests_dir.join("normal")];
+    let mut quest_roots: Vec<PathBuf> = leaf_roots
+        .into_iter()
+        .filter(|root| root.is_dir())
+        .collect();
+    let has_leaf_root = !quest_roots.is_empty();
+
+    // The parent is a legacy fallback only. Scanning it alongside a leaf
+    // would rediscover the same files and enqueue duplicate translations.
+    if !has_leaf_root && ftbquests_dir.is_dir() {
+        quest_roots.push(ftbquests_dir.clone());
+    }
+
+    for quest_root in &quest_roots {
+        info!("Scanning FTB quests directory: {}", quest_root.display());
+        sources.extend(collect_ftb_quest_translation_sources(quest_root)?);
+    }
+
+    if sources.is_empty() && !kubejs_source_found && quest_roots.is_empty() {
+        return Err(
+            "No quest translation sources found. Checked KubeJS lang and config/ftbquests."
+                .to_string(),
+        );
+    }
+
+    sources.sort();
+    sources.dedup();
+    Ok(sources)
+}
+
+fn collect_snbt_files(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut files = Vec::new();
+    for entry in WalkDir::new(root) {
+        let entry = entry.map_err(|e| format!("Failed to read FTB quests directory: {e}"))?;
+        let path = entry.path();
+        if path.is_file() && is_snbt_translation_file(path) {
+            files.push(path.to_path_buf());
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn prefer_active_snbt_files(files: Vec<PathBuf>) -> Vec<PathBuf> {
+    let active_files: HashSet<PathBuf> = files
+        .iter()
+        .filter(|path| {
+            !path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.ends_with(".snbt_merged"))
+        })
+        .cloned()
+        .collect();
+
+    files
+        .into_iter()
+        .filter(|path| {
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                return true;
+            };
+            let Some(active_name) = name.strip_suffix("_merged") else {
+                return true;
+            };
+            !active_files.contains(&path.with_file_name(active_name))
+        })
+        .collect()
+}
+
+/// Select text-bearing FTB language files, falling back to legacy direct-text SNBT.
+fn collect_ftb_quest_translation_sources(quest_root: &Path) -> Result<Vec<PathBuf>, String> {
+    let lang_root = quest_root.join("lang");
+    let split_english = lang_root.join("en_us");
+    let consolidated_english = lang_root.join("en_us.snbt");
+
+    if split_english.is_dir() {
+        let split_files = prefer_active_snbt_files(collect_snbt_files(&split_english)?);
+        if !split_files.is_empty() {
+            return Ok(split_files);
+        }
+    }
+
+    if consolidated_english.is_file() {
+        return Ok(vec![consolidated_english]);
+    }
+
+    if split_english.is_dir() {
+        // An empty modern language folder is not a cue to translate structural
+        // chapter files as if they were user-facing text.
+        return Ok(Vec::new());
+    }
+
+    Ok(collect_snbt_files(quest_root)?
+        .into_iter()
+        .filter(|file| {
+            file.extension()
+                .is_some_and(|extension| extension == "snbt")
+                && !file.starts_with(&lang_root)
+        })
+        .collect())
+}
+
+#[cfg(test)]
+mod ftb_quest_source_tests {
+    use super::{collect_ftb_quest_translation_sources, collect_quest_translation_sources};
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn write_file(path: &std::path::Path) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, "{}").unwrap();
+    }
+
+    #[test]
+    fn consolidated_format_selects_only_english_language_file() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("config/ftbquests/quests");
+        let source = root.join("lang/en_us.snbt");
+        write_file(&source);
+        write_file(&root.join("lang/ja_jp.snbt"));
+        write_file(&root.join("chapters/chapter.snbt"));
+
+        assert_eq!(
+            collect_ftb_quest_translation_sources(&root).unwrap(),
+            vec![source]
+        );
+    }
+
+    #[test]
+    fn splitter_format_selects_english_split_files_and_prefers_them_to_merged_file() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("config/ftbquests/quests");
+        let split_source = root.join("lang/en_us/chapters/start.snbt");
+        let merged_source = root.join("lang/en_us/chapters/start.snbt_merged");
+        write_file(&split_source);
+        write_file(&merged_source);
+        write_file(&root.join("lang/en_us.snbt"));
+        write_file(&root.join("lang/ja_jp/chapters/start.snbt"));
+        write_file(&root.join("chapters/start.snbt"));
+
+        assert_eq!(
+            collect_ftb_quest_translation_sources(&root).unwrap(),
+            vec![split_source]
+        );
+    }
+
+    #[test]
+    fn legacy_direct_text_scan_excludes_existing_language_outputs() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("config/ftbquests/quests");
+        let chapter = root.join("chapters/start.snbt");
+        write_file(&chapter);
+        write_file(&root.join("lang/ja_jp.snbt"));
+
+        assert_eq!(
+            collect_ftb_quest_translation_sources(&root).unwrap(),
+            vec![chapter]
+        );
+    }
+
+    #[test]
+    fn empty_modern_language_folder_does_not_fall_back_to_structural_chapters() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("config/ftbquests/quests");
+        fs::create_dir_all(root.join("lang/en_us")).unwrap();
+        write_file(&root.join("chapters/start.snbt"));
+
+        assert!(collect_ftb_quest_translation_sources(&root)
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn mixed_profile_discovers_kubejs_and_ftb_quest_sources_together() {
+        let temp = tempdir().unwrap();
+        let profile = temp.path();
+        let kubejs_source = profile.join("kubejs/assets/kubejs/lang/en_us.json");
+        let ftb_source = profile.join("config/ftbquests/quests/lang/en_us.snbt");
+        write_file(&kubejs_source);
+        write_file(&profile.join("kubejs/assets/kubejs/lang/fr_fr.json"));
+        write_file(&ftb_source);
+        write_file(&profile.join("config/ftbquests/quests/lang/ja_jp.snbt"));
+
+        let sources = collect_quest_translation_sources(profile, None).unwrap();
+        assert_eq!(sources, vec![ftb_source, kubejs_source]);
+    }
+
+    #[test]
+    fn both_ftb_layout_roots_are_scanned_without_parent_duplicates() {
+        let temp = tempdir().unwrap();
+        let profile = temp.path();
+        let quests_source = profile.join("config/ftbquests/quests/lang/en_us.snbt");
+        let normal_source = profile.join("config/ftbquests/normal/lang/en_us.snbt");
+        write_file(&quests_source);
+        write_file(&normal_source);
+
+        let sources = collect_quest_translation_sources(profile, None).unwrap();
+        assert_eq!(sources, vec![normal_source, quests_source]);
+    }
 }
 
 /// Get Better Quests files from a directory

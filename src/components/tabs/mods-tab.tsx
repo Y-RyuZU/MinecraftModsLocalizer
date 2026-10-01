@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppTranslation } from "@/lib/i18n";
+
 import { useAppStore } from "@/lib/store";
 import { ModInfo, LangFile, TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
@@ -11,6 +13,7 @@ import { useEffect } from "react";
 import { getRelativePath } from "@/lib/utils/path-utils";
 
 export function ModsTab() {
+  const { t } = useAppTranslation();
 
   const { 
     config, 
@@ -96,7 +99,7 @@ export function ModsTab() {
       
       // Set initial scan progress immediately
       setScanProgress({
-        currentFile: 'Initializing scan...',
+        currentFile: t('progress.initializingScan'),
         processedCount: 0,
         totalCount: undefined,
         scanType: 'mods',
@@ -110,7 +113,7 @@ export function ModsTab() {
 
       // Update progress immediately after file discovery
       setScanProgress({
-        currentFile: 'Analyzing mod files...',
+        currentFile: t('progress.analyzingFiles'),
         processedCount: 0,
         totalCount: modFiles.length,
         scanType: 'mods',
@@ -449,7 +452,7 @@ export function ModsTab() {
         },
         {
           key: "langFormat",
-          label: "Format",
+          label: "tables.format",
           className: "w-20",
           render: (target) => (
             <span className={`px-2 py-1 text-xs rounded ${
@@ -463,7 +466,7 @@ export function ModsTab() {
         },
         {
           key: "hasExistingTranslation",
-          label: "Translation",
+          label: "tables.translation",
           className: "w-24",
           render: (target) => (
             target.hasExistingTranslation !== undefined ? (
@@ -472,7 +475,7 @@ export function ModsTab() {
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                   : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
               }`}>
-                {target.hasExistingTranslation ? 'Exists' : 'New'}
+                {t(target.hasExistingTranslation ? 'tables.existing' : 'tables.new')}
               </span>
             ) : null
           )

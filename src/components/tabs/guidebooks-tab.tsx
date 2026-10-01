@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppTranslation } from "@/lib/i18n";
+
 import { useAppStore } from "@/lib/store";
 import { LangFile, PatchouliBook, TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
@@ -11,6 +13,7 @@ import { useEffect } from "react";
 import { getRelativePath } from "@/lib/utils/path-utils";
 
 export function GuidebooksTab() {
+  const { t } = useAppTranslation();
   const {
     config,
     guidebookTranslationTargets,
@@ -97,7 +100,7 @@ export function GuidebooksTab() {
       
       // Set initial scan progress immediately
       setScanProgress({
-        currentFile: 'Initializing scan...',
+        currentFile: t('progress.initializingScan'),
         processedCount: 0,
         totalCount: undefined,
         scanType: 'guidebooks',
@@ -110,7 +113,7 @@ export function GuidebooksTab() {
 
       // Update progress immediately after file discovery
       setScanProgress({
-        currentFile: 'Analyzing mod files...',
+        currentFile: t('progress.analyzingFiles'),
         processedCount: 0,
         totalCount: modFiles.length,
         scanType: 'guidebooks',
@@ -390,7 +393,7 @@ export function GuidebooksTab() {
         },
         {
           key: "hasExistingTranslation",
-          label: "Translation",
+          label: "tables.translation",
           className: "w-24",
           render: (target) => (
             target.hasExistingTranslation !== undefined ? (
@@ -399,7 +402,7 @@ export function GuidebooksTab() {
                   ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                   : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
               }`}>
-                {target.hasExistingTranslation ? 'Exists' : 'New'}
+                {t(target.hasExistingTranslation ? 'tables.existing' : 'tables.new')}
               </span>
             ) : null
           )

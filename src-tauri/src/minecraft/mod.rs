@@ -887,6 +887,11 @@ pub async fn check_quest_translation_exists(
     target_language: &str,
 ) -> Result<bool, String> {
     let path = PathBuf::from(quest_path);
+
+    if let Some(translated_paths) = ftb_quest_lang_translation_paths(&path, target_language) {
+        return Ok(translated_paths.iter().any(|candidate| candidate.is_file()));
+    }
+
     let parent = path.parent().ok_or("Failed to get parent directory")?;
     let file_stem = path
         .file_stem()
@@ -900,11 +905,129 @@ pub async fn check_quest_translation_exists(
         target_language.to_lowercase()
     ));
 
-    // Note: SNBT files are always translated in-place and cannot be detected
-    // as already translated by filename. This is intentional behavior to
-    // maintain Minecraft compatibility.
-    // Only check for JSON files with language suffix.
+    // Legacy SNBT files are translated in-place; only Better Quest JSON output
+    // uses a language suffix.
     Ok(translated_json.exists())
+}
+
+fn is_ftb_quest_lang_directory(path: &PathBuf) -> bool {
+    path.file_name().is_some_and(|name| name == "lang")
+        && path.parent().is_some_and(|quests| {
+            quests
+                .file_name()
+                .is_some_and(|name| name == "quests" || name == "normal")
+                && quests.parent().is_some_and(|ftbquests| {
+                    ftbquests
+                        .file_name()
+                        .is_some_and(|name| name == "ftbquests")
+                })
+        })
+}
+
+fn is_locale_code(locale: &str) -> bool {
+    let Some((language, region)) = locale.split_once('_') else {
+        return false;
+    };
+    language.len() == 2
+        && region.len() == 2
+        && language.bytes().all(|byte| byte.is_ascii_alphabetic())
+        && region.bytes().all(|byte| byte.is_ascii_alphabetic())
+}
+
+/// Return both active and Lang Splitter-merged target paths, if this is an
+/// English consolidated or split FTB Quests language source.
+fn ftb_quest_lang_translation_paths(path: &PathBuf, target_language: &str) -> Option<Vec<PathBuf>> {
+    let locale = target_language.to_ascii_lowercase();
+    if !is_locale_code(&locale) {
+        return None;
+    }
+
+    let file_name = path.file_name()?.to_str()?;
+    let parent = path.parent()?;
+
+    if is_ftb_quest_lang_directory(&parent.to_path_buf()) && file_name == "en_us.snbt" {
+        return Some(vec![parent.join(format!("{locale}.snbt"))]);
+    }
+
+    for english_dir in path.ancestors().skip(1) {
+        if english_dir.file_name().is_some_and(|name| name == "en_us")
+            && english_dir
+                .parent()
+                .is_some_and(|lang| is_ftb_quest_lang_directory(&lang.to_path_buf()))
+        {
+            let relative = path.strip_prefix(english_dir).ok()?;
+            let relative_name = relative.file_name()?.to_str()?;
+            let active_name = relative_name
+                .strip_suffix("_merged")
+                .unwrap_or(relative_name);
+            if !active_name.ends_with(".snbt") {
+                return None;
+            }
+
+            let target_root = english_dir.parent()?.join(locale);
+            let active_path = target_root.join(relative).with_file_name(active_name);
+            let mut merged_path = active_path.clone();
+            merged_path.set_file_name(format!("{active_name}_merged"));
+            return Some(vec![active_path, merged_path]);
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod ftb_quest_lang_translation_tests {
+    use super::ftb_quest_lang_translation_paths;
+    use std::path::PathBuf;
+    use tempfile::tempdir;
+
+    #[test]
+    fn consolidated_source_resolves_sibling_locale_file() {
+        let source = PathBuf::from("C:/pack/config/ftbquests/quests/lang/en_us.snbt");
+        assert_eq!(
+            ftb_quest_lang_translation_paths(&source, "ja_jp"),
+            Some(vec![PathBuf::from(
+                "C:/pack/config/ftbquests/quests/lang/ja_jp.snbt"
+            )])
+        );
+    }
+
+    #[test]
+    fn split_source_resolves_active_and_merged_target_files() {
+        let source =
+            PathBuf::from("C:/pack/config/ftbquests/quests/lang/en_us/chapters/start.snbt_merged");
+        let paths = ftb_quest_lang_translation_paths(&source, "ja_jp").unwrap();
+        assert_eq!(paths.len(), 2);
+        assert!(paths[0].ends_with("lang/ja_jp/chapters/start.snbt"));
+        assert!(paths[1].ends_with("lang/ja_jp/chapters/start.snbt_merged"));
+    }
+
+    #[tokio::test]
+    async fn split_translation_existence_checks_both_splitter_suffixes() {
+        let temp = tempdir().unwrap();
+        let source = temp
+            .path()
+            .join("config/ftbquests/quests/lang/en_us/chapters/start.snbt");
+        let translated = temp
+            .path()
+            .join("config/ftbquests/quests/lang/ja_jp/chapters/start.snbt_merged");
+        std::fs::create_dir_all(source.parent().unwrap()).unwrap();
+        std::fs::write(&source, "{}").unwrap();
+        std::fs::create_dir_all(translated.parent().unwrap()).unwrap();
+        std::fs::write(&translated, "{}").unwrap();
+
+        assert!(
+            super::check_quest_translation_exists(source.to_str().unwrap(), "ja_jp")
+                .await
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_target_locale() {
+        let source = PathBuf::from("C:/pack/config/ftbquests/quests/lang/en_us.snbt");
+        assert!(ftb_quest_lang_translation_paths(&source, "../../secrets").is_none());
+    }
 }
 
 /// Check if a translation exists for a Patchouli guidebook

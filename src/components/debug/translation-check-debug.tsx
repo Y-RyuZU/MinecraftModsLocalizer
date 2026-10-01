@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppTranslation } from '@/lib/i18n';
 import { useState } from "react";
 import { FileService } from "@/lib/services/file-service";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export function TranslationCheckDebug() {
+  const { t } = useAppTranslation();
   const [modPath, setModPath] = useState("");
   const [modId, setModId] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("ja_jp");
@@ -15,7 +17,7 @@ export function TranslationCheckDebug() {
 
   const handleCheck = async () => {
     if (!modPath || !modId) {
-      setResult("Please provide both mod path and mod ID");
+      setResult(t('debug.requiredMod'));
       return;
     }
 
@@ -28,7 +30,7 @@ export function TranslationCheckDebug() {
         targetLanguage,
       });
       
-      setResult(`Translation exists: ${exists}`);
+      setResult(`${t('tables.translation')}: ${t(exists ? 'tables.existing' : 'tables.new')}`);
 
       // If debug command is available, run it for more details
       if (process.env.NODE_ENV === 'development') {
@@ -37,14 +39,14 @@ export function TranslationCheckDebug() {
             modPath,
             modId,
           });
-          setResult(`Translation exists: ${exists}\n\nDebug Info:\n${debugInfo}`);
+          setResult(`${t('tables.translation')}: ${t(exists ? 'tables.existing' : 'tables.new')}\n\n${debugInfo}`);
         } catch (error) {
           // Debug command might not be available
           console.log("Debug command not available:", error);
         }
       }
     } catch (error) {
-      setResult(`Error: ${error}`);
+      setResult(`${t('errors.failedToLoad')}: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -53,8 +55,8 @@ export function TranslationCheckDebug() {
   const handleSelectFile = async () => {
     try {
       const selected = await FileService.invoke<string>("open_file_dialog", {
-        title: "Select Mod JAR",
-        filters: [{ name: "JAR Files", extensions: ["jar"] }],
+        title: t('debug.selectMod'),
+        filters: [{ name: "JAR", extensions: ["jar"] }],
       });
       if (selected) {
         setModPath(selected);
@@ -73,11 +75,11 @@ export function TranslationCheckDebug() {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Translation Check Debug</CardTitle>
+        <CardTitle>{t('debug.checkTranslation')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="text-sm font-medium">Mod Path</label>
+          <label className="text-sm font-medium">{t('debug.modPath')}</label>
           <div className="flex gap-2">
             <Input
               value={modPath}
@@ -85,13 +87,13 @@ export function TranslationCheckDebug() {
               placeholder="/path/to/mod.jar"
             />
             <Button onClick={handleSelectFile} variant="outline">
-              Browse
+              {t('settings.select')}
             </Button>
           </div>
         </div>
         
         <div>
-          <label className="text-sm font-medium">Mod ID</label>
+          <label className="text-sm font-medium">{t('tables.modId')}</label>
           <Input
             value={modId}
             onChange={(e) => setModId(e.target.value)}
@@ -100,7 +102,7 @@ export function TranslationCheckDebug() {
         </div>
         
         <div>
-          <label className="text-sm font-medium">Target Language</label>
+          <label className="text-sm font-medium">{t('tabs.targetLanguage')}</label>
           <Input
             value={targetLanguage}
             onChange={(e) => setTargetLanguage(e.target.value)}
@@ -109,7 +111,7 @@ export function TranslationCheckDebug() {
         </div>
         
         <Button onClick={handleCheck} disabled={loading} className="w-full">
-          {loading ? "Checking..." : "Check Translation"}
+          {t(loading ? 'common.loading' : 'debug.checkTranslation')}
         </Button>
         
         {result && (

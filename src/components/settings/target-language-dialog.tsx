@@ -46,7 +46,7 @@ export function TargetLanguageDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('settings.targetLanguage')}</DialogTitle>
+          <DialogTitle>{t('tabs.targetLanguage')}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">

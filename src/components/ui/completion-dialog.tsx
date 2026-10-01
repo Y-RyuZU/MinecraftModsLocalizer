@@ -68,7 +68,7 @@ export function CompletionDialog({
 
   const getStatusMessage = () => {
     // Translate the type name
-    const translatedType = t(`tabs.${translationType}`);
+    const translatedType = t(`tabs.${translationType === 'custom-files' ? 'customFiles' : translationType}`);
     
     if (failureCount > 0 && successCount === 0) {
       return t('completion.failedMessage', { type: translatedType });

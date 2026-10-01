@@ -232,7 +232,7 @@ function SessionRow({ sessionSummary, onToggle, minecraftDir, updateSession, onV
         tabIndex={0}
         role="button"
         aria-expanded={sessionSummary.expanded}
-        aria-label={`${sessionSummary.expanded ? 'Collapse' : 'Expand'} session ${formatSessionId(sessionSummary.sessionId)}`}
+        aria-label={t(sessionSummary.expanded ? 'history.collapseSession' : 'history.expandSession', { session: formatSessionId(sessionSummary.sessionId) })}
       >
         <TableCell>
           <div className="flex items-center space-x-2">
@@ -356,7 +356,7 @@ export function TranslationHistoryDialog({ open, onOpenChange }: TranslationHist
     } catch (error) {
       console.error('Failed to select history directory:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+      setError(`${t('errors.directorySelectionFailed')}: ${errorMessage}`);
     }
   };
 

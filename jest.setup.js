@@ -2,9 +2,7 @@ require('@testing-library/jest-dom')
 
 // Mock Tauri API
 global.window = global.window || {};
-global.window.__TAURI_INTERNALS__ = {
-  invoke: jest.fn()
-};
+global.window.__TAURI_INTERNALS__ = {};
 global.window.isTauri = true;
 
 // Mock Tauri invoke function

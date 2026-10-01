@@ -14,7 +14,7 @@ interface HistoryDialogProps {
 }
 
 export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
-  const { t } = useAppTranslation();
+  const { t, i18n } = useAppTranslation();
   const [filterText, setFilterText] = useState("");
   const historicalResults = useAppStore((state) => state.historicalResults);
   const clearHistoricalResults = useAppStore((state) => state.clearHistoricalResults);
@@ -112,7 +112,7 @@ export function HistoryDialog({ open, onOpenChange }: HistoryDialogProps) {
                 {groupedResults.map((group, groupIndex) => (
                   <div key={groupIndex} className="space-y-2">
                     <h4 className="text-sm font-medium text-muted-foreground">
-                      {group.timestamp.toLocaleString()}
+                      {group.timestamp.toLocaleString(i18n.resolvedLanguage)}
                     </h4>
                     <div className="space-y-1 pl-4">
                       {group.results.map((result, index) => (

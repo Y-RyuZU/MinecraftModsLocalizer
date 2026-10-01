@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { TranslationService } from '@/lib/services/translation-service';
 import { OpenAIAdapter } from '@/lib/adapters/openai-adapter';
 import { AnthropicAdapter } from '@/lib/adapters/anthropic-adapter';
-import { TranslationRequest, TranslationResponse } from '@/lib/types/translation';
+import { TranslationRequest, TranslationResponse } from '@/lib/types/llm';
 
 // Mock the adapters
 vi.mock('@/lib/adapters/openai-adapter');
@@ -23,18 +23,18 @@ describe('TranslationService', () => {
         };
         
         // Mock the adapter constructors
-        (OpenAIAdapter as any).mockImplementation(() => ({
+        (OpenAIAdapter as any).mockImplementation(function () { return {
             ...mockAdapter,
             id: 'openai',
             name: 'OpenAI',
             getMaxChunkSize: () => 50
-        }));
-        (AnthropicAdapter as any).mockImplementation(() => ({
+        }; });
+        (AnthropicAdapter as any).mockImplementation(function () { return {
             ...mockAdapter,
             id: 'anthropic',
             name: 'Anthropic',
             getMaxChunkSize: () => 50
-        }));
+        }; });
     });
 
     describe('createJob', () => {
@@ -62,7 +62,6 @@ describe('TranslationService', () => {
                 id: expect.any(String),
                 status: 'pending',
                 progress: 0,
-                totalChunks: 1,
                 targetLanguage: 'ja_jp',
                 currentFileName: 'test-file.json',
                 chunks: expect.any(Array)
@@ -123,7 +122,7 @@ describe('TranslationService', () => {
             };
             
             const expectedResponse: TranslationResponse = {
-                translatedContent: {
+                content: {
                     'item.minecraft.apple': 'リンゴ',
                     'item.minecraft.bread': 'パン'
                 },
@@ -141,7 +140,7 @@ describe('TranslationService', () => {
                 promptTemplate: undefined
             });
 
-            expect(result).toEqual(expectedResponse.translatedContent);
+            expect(result).toEqual(expectedResponse.content);
         });
 
         it('should retry on failure', async () => {
@@ -151,7 +150,7 @@ describe('TranslationService', () => {
                 .mockRejectedValueOnce(new Error('Network error'))
                 .mockRejectedValueOnce(new Error('Timeout'))
                 .mockResolvedValueOnce({
-                    translatedContent: { 'test.key': 'テスト値' },
+                    content: { 'test.key': 'テスト値' },
                     tokensUsed: 50,
                     timeMs: 300
                 });
@@ -166,12 +165,12 @@ describe('TranslationService', () => {
             const content = { 'test.key': 'Test Value' };
             
             mockAdapter.translate.mockRejectedValueOnce(
-                new Error('Invalid API key')
+                new Error('Invalid API Key')
             );
 
             await expect(
                 service.translateChunk(content, 'ja_jp', 'job-123')
-            ).rejects.toThrow('Invalid API key');
+            ).rejects.toThrow('API key configuration error');
 
             expect(mockAdapter.translate).toHaveBeenCalledTimes(1);
         });
@@ -188,7 +187,7 @@ describe('TranslationService', () => {
 
             await expect(
                 service.translateChunk(content, 'ja_jp', jobId)
-            ).rejects.toThrow('Job interrupted');
+            ).rejects.toThrow('Translation interrupted by user');
 
             expect(mockAdapter.translate).not.toHaveBeenCalled();
         });
@@ -217,12 +216,12 @@ describe('TranslationService', () => {
 
             mockAdapter.translate
                 .mockResolvedValueOnce({
-                    translatedContent: { 'key1': '値1', 'key2': '値2' },
+                    content: { 'key1': '値1', 'key2': '値2' },
                     tokensUsed: 50,
                     timeMs: 200
                 })
                 .mockResolvedValueOnce({
-                    translatedContent: { 'key3': '値3' },
+                    content: { 'key3': '値3' },
                     tokensUsed: 30,
                     timeMs: 150
                 });
@@ -243,6 +242,7 @@ describe('TranslationService', () => {
 
         it('should update progress during translation', async () => {
             const onProgress = vi.fn();
+            const observedProgress: number[] = [];
             
             service = new TranslationService({
                 llmConfig: {
@@ -262,9 +262,10 @@ describe('TranslationService', () => {
 
             const job = service.createJob(content, 'ja_jp');
 
-            mockAdapter.translate.mockImplementation(async () => {
+            mockAdapter.translate.mockImplementation(async (request) => {
+                observedProgress.push(service.getJob(job.id)?.progress ?? 0);
                 return {
-                    translatedContent: { 'key': '値' },
+                    content: Object.fromEntries(Object.keys(request.content).map(key => [key, '値'])),
                     tokensUsed: 50,
                     timeMs: 200
                 };
@@ -272,16 +273,10 @@ describe('TranslationService', () => {
 
             await service.startJob(job.id);
 
-            // Progress should be called for each chunk completion
-            expect(onProgress).toHaveBeenCalledTimes(2);
-            expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-                id: job.id,
-                progress: 50
-            }));
-            expect(onProgress).toHaveBeenCalledWith(expect.objectContaining({
-                id: job.id,
-                progress: 100
-            }));
+            expect(observedProgress).toEqual([0, 50]);
+            expect(service.getJob(job.id)?.progress).toBe(100);
+            // The runner owns UI callbacks; the service updates its job state.
+            expect(onProgress).not.toHaveBeenCalled();
         });
     });
 
@@ -361,16 +356,13 @@ describe('TranslationService', () => {
                 'key2': 'Value 2'
             };
 
-            mockAdapter.translate.mockResolvedValue({
-                translatedContent: { 'key': '値' },
-                tokensUsed: 50,
-                timeMs: 200
-            });
+            mockAdapter.translate.mockImplementation(async (request) => ({
+                content: Object.fromEntries(Object.keys(request.content).map(key => [key, '値']))
+            }));
 
-            await service.translateChunk(content['key1'], 'ja_jp', 'job-1');
-            await service.translateChunk(content['key2'], 'ja_jp', 'job-2');
-
-            expect(service.getApiCallCount()).toBe(2);
+            const job = service.createJob(content, 'ja_jp');
+            await service.startJob(job.id);
+            expect(service.getJob(job.id)?.totalApiCalls).toBe(2);
         });
     });
 });

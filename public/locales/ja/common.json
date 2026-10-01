@@ -71,6 +71,7 @@
     "notSet": "未設定",
     "select": "選択",
     "uiSettings": "UI設定",
+    "appLanguage": "アプリの表示言語",
     "theme": "テーマ",
     "selectTheme": "テーマを選択",
     "toggleTheme": "テーマ切り替え",
@@ -106,7 +107,10 @@
       "simpleBackupDescription": "バックアップは翻訳中に自動的に作成されます。翻訳前に元のファイルが保存され、完了後に結果が保存されます。",
       "translationHistory": "翻訳履歴",
       "noHistory": "翻訳履歴が見つかりません"
-    }
+    },
+    "providerConfiguration": "{{provider}}の設定",
+    "showApiKey": "APIキーを表示",
+    "hideApiKey": "APIキーを隠す"
   },
   "tabs": {
     "mods": "Mod",
@@ -158,7 +162,11 @@
     "scanningForMods": "スキャン中...",
     "scanningForQuests": "スキャン中...",
     "scanningForGuidebooks": "スキャン中...",
-    "scanningForFiles": "スキャン中..."
+    "scanningForFiles": "スキャン中...",
+    "format": "形式",
+    "translation": "翻訳",
+    "existing": "翻訳あり",
+    "new": "未翻訳"
   },
   "progress": {
     "translatingMods": "Modを翻訳中...",
@@ -166,7 +174,9 @@
     "translatingGuidebooks": "ガイドブックを翻訳中...",
     "translatingFiles": "ファイルを翻訳中...",
     "jobProgress": "現在のファイルの進捗",
-    "wholeProgress": "全体の進捗"
+    "wholeProgress": "全体の進捗",
+    "initializingScan": "スキャンを準備中...",
+    "analyzingFiles": "ファイルを解析中..."
   },
   "errors": {
     "noModsSelected": "翻訳するModが選択されていません",
@@ -187,10 +197,16 @@
     "customFilesDirectoryNotFound": "カスタムファイルディレクトリが見つかりません: {{path}}。JSONまたはSNBTファイルを含む有効なディレクトリを選択してください。",
     "profileDirectoryNotFound": "プロファイルディレクトリが見つかりません: {{path}}。有効なMinecraftプロファイルディレクトリを選択してください。",
     "failedToLoadLogs": "セッションログの読み込みに失敗しました",
-    "noMinecraftDir": "Minecraftディレクトリが設定されていません。設定で設定してください。"
+    "noMinecraftDir": "Minecraftディレクトリが設定されていません。設定で設定してください。",
+    "invalidDirectory": "選択したディレクトリが無効です",
+    "directorySelectionFailed": "ディレクトリを選択できませんでした",
+    "scanFailed": "スキャンに失敗しました",
+    "translationFailed": "翻訳に失敗しました"
   },
   "info": {
-    "translationCancelled": "翻訳はユーザーによってキャンセルされました"
+    "translationCancelled": "翻訳はユーザーによってキャンセルされました",
+    "someModsAlreadyTranslated": "{{total}}件中{{existing}}件のModに翻訳が存在します",
+    "willSkipExisting": "これらはスキップされます。"
   },
   "misc": {
     "loading": "読み込み中...",
@@ -218,7 +234,9 @@
     "viewLogs": "ログを表示",
     "searchResults": "結果を検索...",
     "noResultsFound": "結果が見つかりません",
-    "noResults": "結果なし"
+    "noResults": "結果なし",
+    "successful": "成功",
+    "total": "合計"
   },
   "history": {
     "title": "翻訳履歴",
@@ -258,7 +276,9 @@
     "sessionDetails": "セッション詳細",
     "viewLogs": "ログを見る",
     "sessionLogs": "セッションログ",
-    "noLogsFound": "このセッションのログが見つかりません"
+    "noLogsFound": "このセッションのログが見つかりません",
+    "collapseSession": "セッション{{session}}を折りたたむ",
+    "expandSession": "セッション{{session}}を展開"
   },
   "update": {
     "title": "アップデートが利用可能",
@@ -299,5 +319,15 @@
   "header": {
     "downloadReleases": "リリースをダウンロード",
     "debugLogs": "デバッグログ"
+  },
+  "warnings": {
+    "allModsAlreadyTranslated": "選択したすべてのModに翻訳が存在します",
+    "noNewTranslationsNeeded": "新しい翻訳は作成されません。"
+  },
+  "debug": {
+    "modPath": "Modのパス",
+    "requiredMod": "ModのパスとIDを両方入力してください",
+    "checkTranslation": "翻訳の有無を確認",
+    "selectMod": "ModのJARを選択"
   }
 }

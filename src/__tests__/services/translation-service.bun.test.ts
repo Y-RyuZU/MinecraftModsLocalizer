@@ -182,7 +182,7 @@ describe('TranslationService', () => {
             }
 
             expect(error).toBeDefined();
-            expect(error.message).toContain('API key is not configured or is invalid');
+            expect(error.message).toContain('API key configuration error');
             expect(mockTranslate).toHaveBeenCalledTimes(1);
         });
     });

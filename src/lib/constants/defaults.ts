@@ -8,8 +8,8 @@
 // ============================================
 export const DEFAULT_MODELS = {
   openai: "gpt-4o-mini",
-  anthropic: "claude-3-5-haiku-20241022",
-  google: "gemini-1.5-flash",
+  anthropic: "claude-haiku-4-5-20251001",
+  google: "gemini-3.5-flash-lite",
 } as const;
 
 export const DEFAULT_API_URLS = {

@@ -1,4 +1,4 @@
-import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS } from "../types/config";
+import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS, LLMProviderConfig } from "../types/config";
 import { SupportedLanguage } from "../types/llm";
 
 // Flag to indicate if we're in a server-side rendering environment
@@ -36,8 +36,8 @@ const isTauri = !isSSR && isTauriEnvironment();
  * Mock invoke function for development
  * Only used when Tauri is not available
  */
-const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  console.log(`[MOCK] Invoking command: ${command}`, args);
+const mockInvoke = async <T>(command: string): Promise<T> => {
+  console.log(`[MOCK] Invoking command: ${command}`);
   
   if (command === "load_config") {
     return JSON.stringify(DEFAULT_CONFIG) as unknown as T;
@@ -93,7 +93,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   // In SSR, always use mock
   if (isSSR) {
     console.log(`[SSR] Using mock for command: ${command}`);
-    return mockInvoke<T>(command, args);
+    return mockInvoke<T>(command);
   }
   
   const tauriAvailable = isTauri && tauriInvokeFunction;
@@ -108,7 +108,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
       throw error;
     }
   } else {
-    return mockInvoke<T>(command, args);
+    return mockInvoke<T>(command);
   }
 };
 
@@ -152,6 +152,7 @@ export class ConfigService {
       
       // Migrate legacy apiKey to provider-specific keys
       this.config = ConfigService.migrateApiKeys(this.config);
+      this.config.llm = migrateRetiredDefaultModel(this.config.llm);
       
       this.loaded = true;
     } catch (error) {
@@ -313,12 +314,22 @@ export class ConfigService {
 
 }
 
+/** Only replace the retired defaults shipped by MML; preserve custom endpoints/models. */
+export function migrateRetiredDefaultModel(llm: LLMProviderConfig): LLMProviderConfig {
+  if (llm.baseUrl) return llm;
+  if ((llm.provider === 'anthropic' && llm.model === 'claude-3-5-haiku-20241022') ||
+      (llm.provider === 'google' && llm.model === 'gemini-1.5-flash')) {
+    return { ...llm, model: DEFAULT_MODELS[llm.provider] };
+  }
+  return llm;
+}
+
 /**
  * Convert camelCase config to snake_case for Tauri backend
  * @param config Frontend config in camelCase
  * @returns Backend config in snake_case
  */
-function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
+export function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
   return {
     llm: {
       provider: config.llm.provider,
@@ -344,10 +355,16 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       resource_pack_name: config.translation.resourcePackName,
       use_token_based_chunking: config.translation.useTokenBasedChunking,
       max_tokens_per_chunk: config.translation.maxTokensPerChunk,
-      fallback_to_entry_based: config.translation.fallbackToEntryBased
+      fallback_to_entry_based: config.translation.fallbackToEntryBased,
+      skip_existing_translations: config.translation.skipExistingTranslations
     },
     ui: {
       theme: config.ui.theme
+    },
+    update: {
+      check_on_startup: config.update?.checkOnStartup,
+      last_dismissed_version: config.update?.lastDismissedVersion,
+      last_check_time: config.update?.lastCheckTime
     }
   };
 }
@@ -357,10 +374,11 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
  * @param backendConfig Backend config in snake_case
  * @returns Frontend config in camelCase
  */
-function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig {
+export function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig {
   const llm = backendConfig.llm as Record<string, unknown> | undefined;
   const translation = backendConfig.translation as Record<string, unknown> | undefined;
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
+  const update = backendConfig.update as Record<string, unknown> | undefined;
 
   // Parse api_keys if it exists
   const apiKeys = llm?.api_keys as Record<string, string> | undefined;
@@ -376,11 +394,11 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       },
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
-      maxRetries: (llm?.max_retries as number) || DEFAULT_CONFIG.llm.maxRetries,
+      maxRetries: (llm?.max_retries as number) ?? DEFAULT_CONFIG.llm.maxRetries,
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
       userPrompt: llm?.user_prompt as string | undefined,
-      temperature: (llm?.temperature as number) || DEFAULT_CONFIG.llm.temperature
+      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature
     },
     translation: {
       modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,
@@ -390,13 +408,16 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName,
       useTokenBasedChunking: (translation?.use_token_based_chunking as boolean) ?? DEFAULT_CONFIG.translation.useTokenBasedChunking,
       maxTokensPerChunk: (translation?.max_tokens_per_chunk as number) || DEFAULT_CONFIG.translation.maxTokensPerChunk,
-      fallbackToEntryBased: (translation?.fallback_to_entry_based as boolean) ?? DEFAULT_CONFIG.translation.fallbackToEntryBased
+      fallbackToEntryBased: (translation?.fallback_to_entry_based as boolean) ?? DEFAULT_CONFIG.translation.fallbackToEntryBased,
+      skipExistingTranslations: (translation?.skip_existing_translations as boolean) ?? DEFAULT_CONFIG.translation.skipExistingTranslations
     },
     ui: {
       theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme
     },
     update: {
-      checkOnStartup: DEFAULT_CONFIG.update?.checkOnStartup || false
+      checkOnStartup: (update?.check_on_startup as boolean) ?? DEFAULT_CONFIG.update?.checkOnStartup ?? false,
+      lastDismissedVersion: update?.last_dismissed_version as string | undefined,
+      lastCheckTime: update?.last_check_time as number | undefined
     }
   };
 }

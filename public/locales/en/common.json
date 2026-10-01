@@ -71,6 +71,7 @@
     "notSet": "Not set",
     "select": "Select",
     "uiSettings": "UI Settings",
+    "appLanguage": "App language",
     "theme": "Theme",
     "selectTheme": "Select theme",
     "toggleTheme": "Toggle theme",
@@ -106,7 +107,10 @@
       "simpleBackupDescription": "Backups are created automatically during translation. Original files are preserved before translation, and results are saved after completion.",
       "translationHistory": "Translation History",
       "noHistory": "No translation history found"
-    }
+    },
+    "providerConfiguration": "{{provider}} Configuration",
+    "showApiKey": "Show API key",
+    "hideApiKey": "Hide API key"
   },
   "tabs": {
     "mods": "Mods",
@@ -158,7 +162,11 @@
     "scanningForMods": "Scanning...",
     "scanningForQuests": "Scanning...",
     "scanningForGuidebooks": "Scanning...",
-    "scanningForFiles": "Scanning..."
+    "scanningForFiles": "Scanning...",
+    "format": "Format",
+    "translation": "Translation",
+    "existing": "Exists",
+    "new": "New"
   },
   "progress": {
     "translatingMods": "Translating mods...",
@@ -166,7 +174,9 @@
     "translatingGuidebooks": "Translating guidebooks...",
     "translatingFiles": "Translating files...",
     "jobProgress": "Current File Progress",
-    "wholeProgress": "Overall Progress"
+    "wholeProgress": "Overall Progress",
+    "initializingScan": "Initializing scan...",
+    "analyzingFiles": "Analyzing files..."
   },
   "errors": {
     "noModsSelected": "No mods selected for translation",
@@ -187,10 +197,16 @@
     "customFilesDirectoryNotFound": "Custom files directory not found: {{path}}. Please select a valid directory containing JSON or SNBT files.",
     "profileDirectoryNotFound": "Profile directory not found: {{path}}. Please select a valid Minecraft profile directory.",
     "failedToLoadLogs": "Failed to load session logs",
-    "noMinecraftDir": "Minecraft directory is not set. Please configure it in settings."
+    "noMinecraftDir": "Minecraft directory is not set. Please configure it in settings.",
+    "invalidDirectory": "Invalid directory selected",
+    "directorySelectionFailed": "Failed to select directory",
+    "scanFailed": "Scan failed",
+    "translationFailed": "Translation failed"
   },
   "info": {
-    "translationCancelled": "Translation cancelled by user"
+    "translationCancelled": "Translation cancelled by user",
+    "someModsAlreadyTranslated": "{{existing}} of {{total}} mods already have translations",
+    "willSkipExisting": "These will be skipped."
   },
   "misc": {
     "loading": "Loading...",
@@ -218,7 +234,9 @@
     "viewLogs": "View Logs",
     "searchResults": "Search results...",
     "noResultsFound": "No results found",
-    "noResults": "No results"
+    "noResults": "No results",
+    "successful": "Successful",
+    "total": "Total"
   },
   "history": {
     "title": "Translation History",
@@ -258,7 +276,9 @@
     "sessionDetails": "Session Details",
     "viewLogs": "View Logs",
     "sessionLogs": "Session Logs",
-    "noLogsFound": "No logs found for this session"
+    "noLogsFound": "No logs found for this session",
+    "collapseSession": "Collapse session {{session}}",
+    "expandSession": "Expand session {{session}}"
   },
   "update": {
     "title": "Update Available",
@@ -299,5 +319,15 @@
   "header": {
     "downloadReleases": "Download releases",
     "debugLogs": "Debug Logs"
+  },
+  "warnings": {
+    "allModsAlreadyTranslated": "All selected mods already have translations",
+    "noNewTranslationsNeeded": "No new translations will be created."
+  },
+  "debug": {
+    "modPath": "Mod path",
+    "requiredMod": "Please provide both mod path and mod ID",
+    "checkTranslation": "Check translation",
+    "selectMod": "Select Mod JAR"
   }
 }

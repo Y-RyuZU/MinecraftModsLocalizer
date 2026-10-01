@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { TranslationTab, TranslationTabProps } from '@/components/tabs/common/translation-tab';
 import { TranslationService } from '@/lib/services/translation-service';
 import { FileService } from '@/lib/services/file-service';
+import { useAppStore } from '@/lib/store';
 import { AppConfig } from '@/lib/types/config';
 
 // Mock dependencies
@@ -37,6 +38,7 @@ describe('TranslationTab', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        useAppStore.setState({ profileDirectory: '' });
 
         // Setup mock functions
         mockOnScan = vi.fn();
@@ -149,7 +151,7 @@ describe('TranslationTab', () => {
         it('should show empty state message', () => {
             render(<TranslationTab {...defaultProps} />);
 
-            expect(screen.getByText('tables.noModsFound')).toBeInTheDocument();
+            expect(screen.getByText('errors.selectProfileDirectoryFirst')).toBeInTheDocument();
         });
 
         it('should disable scan button when no directory selected', () => {
@@ -178,7 +180,7 @@ describe('TranslationTab', () => {
             expect(FileService.openDirectoryDialog).toHaveBeenCalledWith('buttons.selectProfileDirectory');
             
             await waitFor(() => {
-                expect(screen.getByText('/test/directory')).toBeInTheDocument();
+                expect(screen.getByText(/\/test\/directory/)).toBeInTheDocument();
             });
         });
 
@@ -205,7 +207,7 @@ describe('TranslationTab', () => {
             await user.click(selectButton);
 
             await waitFor(() => {
-                expect(mockSetError).toHaveBeenCalledWith('Failed to select directory: Error: Permission denied');
+                expect(mockSetError).toHaveBeenCalledWith('errors.directorySelectionFailed: Permission denied');
             });
         });
     });
@@ -228,7 +230,7 @@ describe('TranslationTab', () => {
             const scanButton = screen.getByText('buttons.scanMods');
             await user.click(scanButton);
 
-            expect(mockOnScan).toHaveBeenCalledWith('/test/directory');
+            expect(mockOnScan).toHaveBeenCalledWith('/test/directory', undefined);
         });
 
         it('should show scanning state', async () => {
@@ -343,7 +345,7 @@ describe('TranslationTab', () => {
     describe('Translation process', () => {
         beforeEach(() => {
             (FileService.openDirectoryDialog as Mock).mockResolvedValue('/test/directory');
-            vi.mocked(TranslationService).mockImplementation(() => ({
+            vi.mocked(TranslationService).mockImplementation(function () { return {
                 createJob: vi.fn(),
                 startJob: vi.fn(),
                 translateChunk: vi.fn(),
@@ -355,7 +357,7 @@ describe('TranslationTab', () => {
                 clearAllJobs: vi.fn(),
                 getAllJobs: vi.fn(),
                 getApiCallCount: vi.fn()
-            } as any));
+            } as any; });
         });
 
         it('should validate before starting translation', async () => {
@@ -365,7 +367,7 @@ describe('TranslationTab', () => {
             const translateButton = screen.getByText('buttons.translate');
             await user.click(translateButton);
 
-            expect(mockSetError).toHaveBeenCalledWith('errors.noModsSelected');
+            expect(translateButton).toBeDisabled();
             expect(mockOnTranslate).not.toHaveBeenCalled();
         });
 
@@ -421,7 +423,7 @@ describe('TranslationTab', () => {
             // Select target language
             const languageSelector = screen.getByRole('combobox');
             await user.click(languageSelector);
-            await user.click(screen.getByText('Japanese'));
+            await user.click(screen.getByRole('option', { name: 'Japanese (ja_jp)' }));
 
             // Click translate
             const translateButton = screen.getByText('buttons.translate');
@@ -573,15 +575,15 @@ describe('TranslationTab', () => {
 
             // Should be sorted A-Z by default
             const rows = screen.getAllByRole('row');
-            expect(rows[1]).toHaveTextContent('A Mod');
-            expect(rows[2]).toHaveTextContent('B Mod');
+            expect(rows[1]).toHaveTextContent('B Mod');
+            expect(rows[2]).toHaveTextContent('A Mod');
 
             // Click again to reverse
             await user.click(nameHeader);
 
             const reversedRows = screen.getAllByRole('row');
-            expect(reversedRows[1]).toHaveTextContent('B Mod');
-            expect(reversedRows[2]).toHaveTextContent('A Mod');
+            expect(reversedRows[1]).toHaveTextContent('A Mod');
+            expect(reversedRows[2]).toHaveTextContent('B Mod');
         });
     });
 

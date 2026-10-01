@@ -33,7 +33,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "languages": ["English", "Japanese", "SimpChinese", "Korean", "German", "French", "Spanish", "Italian", "PortugueseBR", "Russian"],
+        "displayLanguageSelector": false
+      }
+    }
   },
   "plugins": {
     "shell": {

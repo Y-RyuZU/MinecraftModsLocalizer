@@ -124,7 +124,7 @@ describe('Realistic Minecraft Directory Integration Tests', () => {
           const path = require('path');
           
           // Check if translation exists based on the quest path
-          if (args.questPath.includes('kubejs/assets/kubejs/lang/en_us.json')) {
+          if (args.questPath.replaceAll('\\', '/').includes('kubejs/assets/kubejs/lang/en_us.json')) {
             const translatedPath = args.questPath.replace('en_us.json', `${args.targetLanguage}.json`);
             return Promise.resolve(fs.existsSync(translatedPath));
           }
@@ -160,7 +160,7 @@ describe('Realistic Minecraft Directory Integration Tests', () => {
           const fs = require('fs');
           const path = require('path');
           
-          if (args.questPath.includes('kubejs/assets/kubejs/lang/en_us.json')) {
+          if (args.questPath.replaceAll('\\', '/').includes('kubejs/assets/kubejs/lang/en_us.json')) {
             const translatedPath = args.questPath.replace('en_us.json', `${args.targetLanguage}.json`);
             return Promise.resolve(fs.existsSync(translatedPath));
           }

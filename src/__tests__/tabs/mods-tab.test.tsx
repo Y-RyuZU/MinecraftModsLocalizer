@@ -1,375 +1,86 @@
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { ModsTab } from '@/components/tabs/mods-tab';
+import { TranslationTab, type TranslationTabProps } from '@/components/tabs/common/translation-tab';
 import { FileService } from '@/lib/services/file-service';
-import * as translationRunner from '@/lib/services/translation-runner';
+import { runTranslationJobs } from '@/lib/services/translation-runner';
 import { useAppStore } from '@/lib/store';
+import { DEFAULT_CONFIG } from '@/lib/types/config';
+import { invoke } from '@tauri-apps/api/core';
 
-// Mock dependencies
+vi.mock('@/components/tabs/common/translation-tab', () => ({ TranslationTab: vi.fn(() => null) }));
 vi.mock('@/lib/services/file-service');
 vi.mock('@/lib/services/translation-runner');
 vi.mock('@/lib/store');
-vi.mock('@tauri-apps/api/core', () => ({
-    invoke: vi.fn()
-}));
+vi.mock('@/lib/i18n', () => ({ useAppTranslation: () => ({ t: (key: string) => key }) }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn().mockResolvedValue(() => {}) }));
+let store: any;
+let service: any;
+const target = (id = 'testmod', name = 'Test Mod') => ({ type: 'mod' as const, id, name, path: `/minecraft/mods/${id}.jar`, selected: true });
+function handlers() {
+  render(<ModsTab />);
+  return vi.mocked(TranslationTab).mock.calls.at(-1)![0] as TranslationTabProps;
+}
+async function translate(targets = [target()]) {
+  await handlers().onTranslate(targets, 'ja_jp', service, vi.fn(), vi.fn(), '/minecraft', 'test-session');
+}
+beforeEach(() => {
+  vi.clearAllMocks();
+  store = { config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), modTranslationTargets: [], isTranslating: false, progress: 0, wholeProgress: 0 };
+  for (const name of ['setModTranslationTargets','updateModTranslationTarget','setTranslating','setProgress','setWholeProgress','setTotalChunks','setCompletedChunks','setTotalMods','setCompletedMods','incrementCompletedMods','incrementCompletedChunks','addTranslationResult','setError','setCurrentJobId','setCompletionDialogOpen','setLogDialogOpen','resetTranslationState','setScanning','setScanProgress','resetScanProgress']) store[name] = vi.fn();
+  vi.mocked(useAppStore).mockReturnValue(store);
+  vi.mocked(useAppStore.getState).mockReturnValue(store);
+  vi.mocked(FileService.createResourcePack).mockResolvedValue('/minecraft/resourcepacks/test-pack');
+  vi.mocked(FileService.getModFiles).mockResolvedValue(['/minecraft/mods/testmod.jar']);
+  vi.mocked(FileService.invoke).mockImplementation(async command => {
+    if (command === 'analyze_mod_jar') return { id: 'testmod', name: 'Test Mod', langFiles: ['en_us'] } as any;
+    if (command === 'extract_lang_files') return [{ language: 'en_us', content: { 'item.test': 'Test Item' } }] as any;
+    return false as any;
+  });
+  service = { createJob: vi.fn((content, language, name) => ({ id: name, chunks: [{ content }], targetLanguage: language })), getCombinedTranslatedContent: vi.fn() };
+});
 
-describe('ModsTab', () => {
-    let mockStore: any;
-    let mockInvoke: Mock;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-
-        // Setup mock store
-        mockStore = {
-            config: {
-                llm: {
-                    provider: 'openai',
-                    apiKey: 'test-key',
-                    model: 'gpt-4',
-                    baseUrl: 'https://api.openai.com',
-                    promptTemplate: 'default',
-                    maxRetries: 3
-                },
-                translation: {
-                    targetLanguage: 'ja_jp',
-                    additionalLanguages: [
-                        { id: 'ja_jp', name: 'Japanese' }
-                    ],
-                    modChunkSize: 50,
-                    useTokenBasedChunking: false,
-                    maxTokensPerChunk: 1000,
-                    fallbackToEntryBased: true
-                },
-                paths: {
-                    minecraftDir: '/minecraft'
-                }
-            },
-            modTranslationTargets: [],
-            setModTranslationTargets: vi.fn(),
-            updateModTranslationTarget: vi.fn(),
-            isTranslating: false,
-            progress: 0,
-            wholeProgress: 0,
-            setTranslating: vi.fn(),
-            setProgress: vi.fn(),
-            setWholeProgress: vi.fn(),
-            setTotalChunks: vi.fn(),
-            setCompletedChunks: vi.fn(),
-            setTotalMods: vi.fn(),
-            setCompletedMods: vi.fn(),
-            incrementCompletedMods: vi.fn(),
-            addTranslationResult: vi.fn(),
-            error: null,
-            setError: vi.fn(),
-            currentJobId: null,
-            setCurrentJobId: vi.fn(),
-            isCompletionDialogOpen: false,
-            setCompletionDialogOpen: vi.fn(),
-            setLogDialogOpen: vi.fn(),
-            resetTranslationState: vi.fn()
-        };
-
-        (useAppStore as unknown as Mock).mockReturnValue(mockStore);
-
-        // Setup invoke mock
-        mockInvoke = vi.mocked(import('@tauri-apps/api/core').then(m => m.invoke));
-    });
-
-    describe('handleScan', () => {
-        it('should scan mods directory and create translation targets', async () => {
-            const mockModFiles = [
-                '/minecraft/mods/jei.jar',
-                '/minecraft/mods/create.jar'
-            ];
-
-            const mockModInfos = [
-                {
-                    id: 'jei',
-                    name: 'Just Enough Items',
-                    version: '11.6.0',
-                    langFiles: ['en_us']
-                },
-                {
-                    id: 'create',
-                    name: 'Create',
-                    version: '0.5.1',
-                    langFiles: ['en_us', 'ja_jp']
-                }
-            ];
-
-            (FileService.getModFiles as Mock).mockResolvedValue(mockModFiles);
-            (FileService.invoke as Mock)
-                .mockResolvedValueOnce(mockModInfos[0])
-                .mockResolvedValueOnce(mockModInfos[1]);
-
-            const { container } = render(<ModsTab />);
-            
-            // Find and click select directory button
-            const selectButton = container.querySelector('button');
-            expect(selectButton).toBeTruthy();
-            
-            // Mock directory selection
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
-            selectButton?.click();
-
-            // Wait for directory selection
-            await vi.waitFor(() => {
-                expect(FileService.openDirectoryDialog).toHaveBeenCalled();
-            });
-
-            // Find and click scan button
-            const buttons = container.querySelectorAll('button');
-            const scanButton = Array.from(buttons).find(btn => 
-                btn.textContent?.includes('scan') || btn.textContent?.includes('Scan')
-            );
-            expect(scanButton).toBeTruthy();
-            scanButton?.click();
-
-            // Wait for scan to complete
-            await vi.waitFor(() => {
-                expect(FileService.getModFiles).toHaveBeenCalledWith('/minecraft');
-            });
-
-            await vi.waitFor(() => {
-                expect(mockStore.setModTranslationTargets).toHaveBeenCalledWith([
-                    {
-                        type: 'mod',
-                        id: 'jei',
-                        name: 'Just Enough Items',
-                        version: '11.6.0',
-                        path: '/minecraft/mods/jei.jar',
-                        relativePath: 'mods/jei.jar',
-                        selected: true
-                    },
-                    {
-                        type: 'mod',
-                        id: 'create',
-                        name: 'Create',
-                        version: '0.5.1',
-                        path: '/minecraft/mods/create.jar',
-                        relativePath: 'mods/create.jar',
-                        selected: true
-                    }
-                ]);
-            });
-        });
-
-        it('should handle scan errors gracefully', async () => {
-            (FileService.getModFiles as Mock).mockResolvedValue(['/minecraft/mods/broken.jar']);
-            (FileService.invoke as Mock).mockRejectedValue(new Error('Invalid JAR file'));
-
-            const { container } = render(<ModsTab />);
-            
-            // Select directory
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
-            const selectButton = container.querySelector('button');
-            selectButton?.click();
-
-            await vi.waitFor(() => {
-                expect(FileService.openDirectoryDialog).toHaveBeenCalled();
-            });
-
-            // Click scan
-            const buttons = container.querySelectorAll('button');
-            const scanButton = Array.from(buttons).find(btn => 
-                btn.textContent?.includes('scan') || btn.textContent?.includes('Scan')
-            );
-            scanButton?.click();
-
-            await vi.waitFor(() => {
-                expect(FileService.getModFiles).toHaveBeenCalled();
-            });
-
-            // Should set empty targets on error
-            await vi.waitFor(() => {
-                expect(mockStore.setModTranslationTargets).toHaveBeenCalledWith([]);
-            });
-        });
-    });
-
-    describe('handleTranslate', () => {
-        beforeEach(() => {
-            // Mock successful resource pack creation
-            (FileService.createResourcePack as Mock).mockResolvedValue('/minecraft/resourcepacks/test-pack');
-            
-            // Mock successful language file extraction
-            (FileService.invoke as Mock).mockImplementation((command: string, args: any) => {
-                if (command === 'extract_lang_files') {
-                    return Promise.resolve([{
-                        modId: 'testmod',
-                        language: 'en_us',
-                        content: {
-                            'item.testmod.test': 'Test Item',
-                            'block.testmod.test': 'Test Block'
-                        }
-                    }]);
-                }
-                return Promise.resolve();
-            });
-
-            // Mock translation runner
-            vi.spyOn(translationRunner, 'runTranslationJobs').mockResolvedValue();
-        });
-
-        it('should process mod translation successfully', async () => {
-            const mockTargets = [
-                {
-                    type: 'mod' as const,
-                    id: 'testmod',
-                    name: 'Test Mod',
-                    version: '1.0.0',
-                    path: '/minecraft/mods/testmod.jar',
-                    relativePath: 'mods/testmod.jar',
-                    selected: true
-                }
-            ];
-
-            mockStore.modTranslationTargets = mockTargets;
-
-            const { container } = render(<ModsTab />);
-
-            // The component should pass the handleTranslate function to TranslationTab
-            // We need to verify that the translation process works correctly
-            
-            // Since we're testing the business logic, we'll simulate what TranslationTab does
-            const translationTab = container.querySelector('[data-testid="translation-tab"]');
-            expect(translationTab).toBeTruthy();
-
-            // Verify that runTranslationJobs would be called with correct parameters
-            // This would happen when TranslationTab calls onTranslate
-            
-            // The actual translation would be triggered by TranslationTab
-            // Here we're verifying the ModsTab specific logic is correct
-        });
-
-        it('should create resource pack before translation', async () => {
-            const mockTargets = [
-                {
-                    type: 'mod' as const,
-                    id: 'testmod',
-                    name: 'Test Mod',
-                    version: '1.0.0',
-                    path: '/minecraft/mods/testmod.jar',
-                    relativePath: 'mods/testmod.jar',
-                    selected: true
-                }
-            ];
-
-            mockStore.modTranslationTargets = mockTargets;
-
-            render(<ModsTab />);
-
-            // When translation starts, it should create resource pack first
-            // This is handled in the handleTranslate function passed to TranslationTab
-            
-            // The resource pack creation happens before any translation jobs
-            // We verify this by checking the mock wasn't called yet
-            expect(FileService.createResourcePack).not.toHaveBeenCalled();
-        });
-
-        it('should handle missing language files', async () => {
-            (FileService.invoke as Mock).mockImplementation((command: string) => {
-                if (command === 'extract_lang_files') {
-                    return Promise.resolve([]); // No language files
-                }
-                return Promise.resolve();
-            });
-
-            const mockTargets = [
-                {
-                    type: 'mod' as const,
-                    id: 'testmod',
-                    name: 'Test Mod',
-                    version: '1.0.0',
-                    path: '/minecraft/mods/testmod.jar',
-                    relativePath: 'mods/testmod.jar',
-                    selected: true
-                }
-            ];
-
-            mockStore.modTranslationTargets = mockTargets;
-
-            render(<ModsTab />);
-
-            // When no language files are found, the job creation should be skipped
-            // This is handled in the handleTranslate function
-        });
-
-        it('should sort targets alphabetically before processing', async () => {
-            const mockTargets = [
-                {
-                    type: 'mod' as const,
-                    id: 'zmod',
-                    name: 'Z Mod',
-                    version: '1.0.0',
-                    path: '/minecraft/mods/zmod.jar',
-                    relativePath: 'mods/zmod.jar',
-                    selected: true
-                },
-                {
-                    type: 'mod' as const,
-                    id: 'amod',
-                    name: 'A Mod',
-                    version: '1.0.0',
-                    path: '/minecraft/mods/amod.jar',
-                    relativePath: 'mods/amod.jar',
-                    selected: true
-                }
-            ];
-
-            mockStore.modTranslationTargets = mockTargets;
-
-            render(<ModsTab />);
-
-            // The handleTranslate function sorts targets alphabetically
-            // This ensures consistent processing order
-        });
-    });
-
-    describe('Progress tracking', () => {
-        it('should use mod-level progress tracking', () => {
-            render(<ModsTab />);
-
-            // ModsTab uses setTotalMods and incrementCompletedMods
-            // instead of chunk-level tracking for the overall progress
-            
-            // This is verified by the props passed to TranslationTab
-            // The incrementWholeProgress prop should be incrementCompletedMods
-        });
-    });
-
-    describe('Error handling', () => {
-        it('should log errors with MOD_SCAN process type', async () => {
-            const mockError = new Error('Failed to parse JSON');
-            (FileService.getModFiles as Mock).mockResolvedValue(['/minecraft/mods/broken.jar']);
-            (FileService.invoke as Mock).mockRejectedValue(mockError);
-
-            const { container } = render(<ModsTab />);
-            
-            // Select directory and scan
-            (FileService.openDirectoryDialog as Mock).mockResolvedValue('/minecraft');
-            const selectButton = container.querySelector('button');
-            selectButton?.click();
-
-            await vi.waitFor(() => {
-                expect(FileService.openDirectoryDialog).toHaveBeenCalled();
-            });
-
-            const buttons = container.querySelectorAll('button');
-            const scanButton = Array.from(buttons).find(btn => 
-                btn.textContent?.includes('scan') || btn.textContent?.includes('Scan')
-            );
-            scanButton?.click();
-
-            await vi.waitFor(() => {
-                expect(mockInvoke).toHaveBeenCalledWith(
-                    'log_warning',
-                    expect.objectContaining({
-                        processType: 'MOD_SCAN'
-                    })
-                );
-            });
-        });
-    });
+describe('ModsTab handlers', () => {
+  it('scans the mods subdirectory and exposes language format and translation status', async () => {
+    await handlers().onScan('/minecraft', 'ja_jp');
+    expect(FileService.getModFiles).toHaveBeenCalledWith('/minecraft/mods');
+    expect(store.setModTranslationTargets).toHaveBeenCalledWith([expect.objectContaining({ id: 'testmod', relativePath: 'testmod.jar', langFormat: 'json', hasExistingTranslation: false })]);
+    expect(store.setScanning).toHaveBeenLastCalledWith(false);
+  });
+  it('handles a bad JAR without losing the scan cleanup', async () => {
+    vi.mocked(FileService.invoke).mockRejectedValue(new Error('Invalid JAR'));
+    await handlers().onScan('/minecraft');
+    expect(store.setModTranslationTargets).toHaveBeenCalledWith([]);
+    expect(store.resetScanProgress).toHaveBeenCalled();
+  });
+  it('passes real jobs to the shared translation runner', async () => {
+    await translate();
+    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ jobs: [expect.objectContaining({ modId: 'testmod' })], targetLanguage: 'ja_jp', sessionId: 'test-session' }));
+  });
+  it('creates the resource pack before running translation', async () => {
+    await translate();
+    expect(FileService.createResourcePack).toHaveBeenCalled();
+    expect(vi.mocked(FileService.createResourcePack).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(runTranslationJobs).mock.invocationCallOrder[0]);
+  });
+  it('does not create a pack or run jobs without English source files', async () => {
+    vi.mocked(FileService.invoke).mockImplementation(async command => (command === 'extract_lang_files' ? [] : false) as any);
+    await translate();
+    expect(runTranslationJobs).not.toHaveBeenCalled();
+    expect(FileService.createResourcePack).not.toHaveBeenCalled();
+  });
+  it('creates jobs in alphabetical name order', async () => {
+    await translate([target('b', 'B Mod'), target('a', 'A Mod')]);
+    expect(service.createJob.mock.calls.map((call: any[]) => call[2])).toEqual(['A Mod', 'B Mod']);
+  });
+  it('tracks completed files and chunks separately', async () => {
+    await translate();
+    expect(store.setTotalMods).toHaveBeenCalledWith(1);
+    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ incrementWholeProgress: store.incrementCompletedMods, incrementCompletedChunks: store.incrementCompletedChunks }));
+  });
+  it('logs scan failures with their path', async () => {
+    vi.mocked(FileService.invoke).mockRejectedValue(new Error('Invalid JAR'));
+    await handlers().onScan('/minecraft');
+    expect(invoke).toHaveBeenCalledWith('log_error', expect.objectContaining({ processType: 'SCAN', message: expect.stringContaining('/minecraft/mods/testmod.jar') }));
+  });
 });

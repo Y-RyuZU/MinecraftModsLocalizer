@@ -34,6 +34,11 @@ use minecraft::{
 #[cfg(debug_assertions)]
 use minecraft::debug_translation_check::debug_mod_translation_check;
 
+#[tauri::command]
+fn get_system_languages() -> Vec<String> {
+    sys_locale::get_locales().collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize the logger
@@ -80,6 +85,7 @@ pub fn run() {
 
     builder
         .invoke_handler(tauri::generate_handler![
+            get_system_languages,
             // Minecraft mod operations
             analyze_mod_jar,
             extract_lang_files,

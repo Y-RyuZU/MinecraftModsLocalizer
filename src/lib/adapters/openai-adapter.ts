@@ -160,7 +160,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
         }
         
         // Parse the translation text into key-value pairs
-        const translatedContent = this.parseResponse(translationText, request.content);
+        const translatedContent = this.parseResponse(translationText);
         
         // Calculate time taken
         const timeTaken = Date.now() - startTime;

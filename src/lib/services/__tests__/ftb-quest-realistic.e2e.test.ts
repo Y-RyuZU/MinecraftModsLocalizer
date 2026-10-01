@@ -15,6 +15,7 @@ const mockInvoke = invoke as any;
 describe('FTB Quest Translation - Realistic E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    FileService.setTestInvokeOverride(mockInvoke);
   });
 
   describe('SNBT Content Type Detection', () => {
@@ -251,6 +252,12 @@ describe('FTB Quest Translation - Realistic E2E', () => {
       for (const [english, japanese] of Object.entries(expectedTranslations.ja_jp.directText)) {
         translatedContent = translatedContent.replace(new RegExp(english.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), japanese);
       }
+
+      // Simulate the caller's backup before overwriting, as the tab does.
+      await FileService.invoke('backup_snbt_files', {
+        files: ['/test/modpack/config/ftbquests/quests/chapters/starter_quest.snbt'],
+        sessionPath: '/test/session'
+      });
 
       // Write back to same file (in-place)
       await FileService.invoke<boolean>('write_text_file', {

@@ -25,13 +25,33 @@ jobs:
           bun-version: latest
       
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
       
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate release versions and tooling
+        env:
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+        run: |
+          python scripts/prepare-release.py --check-version ${RELEASE_TAG:+--tag "$RELEASE_TAG"}
+          python -m unittest discover -s scripts -p "test_*.py"
+
+      - name: Run Bun tests
+        run: bun run test
+
       - name: Run linting
         run: bun run lint
       
       - name: Run type checking
         run: bun run typecheck
+
+      - name: Check UI translations
+        run: bun run test:i18n
+
+      - name: Run Vitest suites
+        run: bun run test:vitest
       
       - name: Run tests
         run: bun run test:jest
@@ -59,10 +79,10 @@ jobs:
             bundles: appimage,deb
           - os: macos-latest
             target: x86_64-apple-darwin
-            bundles: dmg
+            bundles: app,dmg
           - os: macos-latest
             target: aarch64-apple-darwin
-            bundles: dmg
+            bundles: app,dmg
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bundles: nsis,msi
@@ -109,12 +129,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/bun.lockb') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: Install frontend dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -123,23 +143,21 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          target: ${{ matrix.platform.target }}
-          args: --bundles ${{ matrix.platform.bundles }}
+          args: --target ${{ matrix.platform.target }} --bundles ${{ matrix.platform.bundles }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: minecraft-mods-localizer-${{ matrix.platform.target }}
-          path: src-tauri/target/release/bundle/**/*
+          path: src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*
+          if-no-files-found: error
           retention-days: 7
 
-  release:
-    name: Create Release
+  prepare-release:
+    name: Validate Release Assets
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -148,74 +166,41 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate signed updater manifest
-        shell: bash
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare signed updater manifest and checksums
         env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: |
-          python3 - <<'PY'
-          import json
-          import os
-          from shutil import copy2
-          from datetime import datetime, timezone
-          from pathlib import Path
-          from urllib.parse import quote
+          if [ -z "$RELEASE_TAG" ]; then
+            RELEASE_TAG="v$(python scripts/prepare-release.py --check-version)"
+          fi
+          python scripts/prepare-release.py --tag "$RELEASE_TAG" --repository "$RELEASE_REPOSITORY"
 
-          root = Path("artifacts")
-          repo = os.environ["GITHUB_REPOSITORY"]
-          tag = os.environ["GITHUB_REF_NAME"]
-          version = tag[1:] if tag.startswith("v") else tag
-          targets = {
-              "windows-x86_64": ("x86_64-pc-windows-msvc", ".msi"),
-              "darwin-x86_64": ("x86_64-apple-darwin", ".app.tar.gz"),
-              "darwin-aarch64": ("aarch64-apple-darwin", ".app.tar.gz"),
-              "linux-x86_64": ("x86_64-unknown-linux-gnu", ".AppImage"),
-          }
-          platforms = {}
+      - name: Upload validated release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
 
-          for platform, (target, suffix) in targets.items():
-              artifact_dir = root / f"minecraft-mods-localizer-{target}"
-              if not artifact_dir.is_dir():
-                  raise SystemExit(f"Missing build artifact directory: {artifact_dir}")
-
-              bundles = sorted(
-                  path for path in artifact_dir.rglob("*")
-                  if path.is_file() and path.name.endswith(suffix)
-                  and not path.name.endswith(".sig")
-              )
-              if len(bundles) != 1:
-                  raise SystemExit(f"Expected one {suffix} updater bundle for {target}, found: {bundles}")
-
-              bundle = bundles[0]
-              signature_file = Path(f"{bundle}.sig")
-              if not signature_file.is_file():
-                  raise SystemExit(f"Missing updater signature: {signature_file}")
-
-              release_name = bundle.name.removesuffix(suffix) + f"-{target}" + suffix
-              updater_dir = root / "updater-bundles"
-              updater_dir.mkdir(exist_ok=True)
-              release_bundle = updater_dir / release_name
-              copy2(bundle, release_bundle)
-              copy2(signature_file, Path(f"{release_bundle}.sig"))
-
-              release_base = f"https://github.com/{repo}/releases/download/{quote(tag, safe='')}/"
-              platforms[platform] = {
-                  "url": release_base + quote(release_name, safe=""),
-                  "signature": signature_file.read_text(encoding="utf-8").strip(),
-              }
-
-          manifest = {
-              "version": version,
-              "notes": f"Minecraft Mods Localizer {version}",
-              "pub_date": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-              "platforms": platforms,
-          }
-          Path("latest.json").write_text(
-              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
+  release:
+    name: Create Release
+    needs: prepare-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -223,30 +208,6 @@ jobs:
           draft: true
           prerelease: false
           generate_release_notes: true
-          files: |
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
-            artifacts/**/*.dmg
-            artifacts/**/*.exe
-            artifacts/**/*.msi
-            artifacts/updater-bundles/*
-            latest.json
-          body: |
-            ## What's Changed
-            
-            <!-- Add your release notes here -->
-            
-            ## Installation
-            
-            ### Windows
-            - Download the `.exe` or `.msi` installer for your system
-            
-            ### macOS
-            - Download the `.dmg` file for your architecture (Intel or Apple Silicon)
-            
-            ### Linux
-            - Download the `.AppImage` (universal) or `.deb` (Debian/Ubuntu) package
-            
-            ## Checksums
-            
-            <!-- Checksums will be automatically generated -->
+          fail_on_unmatched_files: true
+          files: release-assets/*
+          body_path: docs/releases/${{ github.ref_name }}.md

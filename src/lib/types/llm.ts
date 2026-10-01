@@ -140,12 +140,10 @@ export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator speciali
  * Default user prompt template for translation
  * Contains the specific task with variables
  */
-export const DEFAULT_USER_PROMPT = `Please translate the following English text into {language}.
+export const DEFAULT_USER_PROMPT = `Translate the JSON object below into {language}.
+Translate values only; preserve every key and the object structure exactly.
+Return only a valid JSON object whose values are all strings. Do not add markdown or explanations.
 
-## Input Text Information
-- Number of lines: {line_count}
-
-# Content to Translate
 {content}`;
 
 /**

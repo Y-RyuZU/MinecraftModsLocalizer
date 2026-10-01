@@ -119,7 +119,9 @@ describe('runTranslationJobs', () => {
                 targetLanguage: 'ja_jp',
                 content: { 'key': 'translated value' },
                 outputPath: '/output/path',
-                success: true
+                success: true,
+                enableBackup: true,
+                sessionId: undefined
             });
 
             // Verify cleanup

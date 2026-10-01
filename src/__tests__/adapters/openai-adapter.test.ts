@@ -1,496 +1,81 @@
-import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { OpenAIAdapter } from '@/lib/adapters/openai-adapter';
-import { TranslationRequest } from '@/lib/types/translation';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import OpenAI from 'openai';
+import { invoke } from '@tauri-apps/api/core';
+import { OpenAIAdapter } from '@/lib/adapters/openai-adapter';
+import { DEFAULT_MODELS } from '@/lib/constants/defaults';
 
-// Mock OpenAI
-vi.mock('openai', () => {
-    const mockCreate = vi.fn();
-    const MockOpenAI = vi.fn().mockImplementation(() => ({
-        chat: {
-            completions: {
-                create: mockCreate
-            }
-        }
-    }));
-    return { default: MockOpenAI };
+const sdk = vi.hoisted(() => ({ create: vi.fn() }));
+vi.mock('openai', async importOriginal => {
+  const actual = await importOriginal<typeof import('openai')>();
+  const Client = vi.fn(function () { return { chat: { completions: { create: sdk.create } } }; });
+  return { ...actual, default: Object.assign(Client, { APIError: actual.default.APIError }) };
 });
-
-// Mock Tauri
-vi.mock('@tauri-apps/api/core', () => ({
-    invoke: vi.fn()
-}));
-
-describe('OpenAIAdapter', () => {
-    let adapter: OpenAIAdapter;
-    let mockCreate: Mock;
-    let mockInvoke: Mock;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        
-        // Get mock functions
-        const MockOpenAI = OpenAI as unknown as Mock;
-        const mockInstance = new MockOpenAI();
-        mockCreate = mockInstance.chat.completions.create;
-        
-        // Get invoke mock
-        mockInvoke = vi.mocked(import('@tauri-apps/api/core').then(m => m.invoke));
-    });
-
-    describe('constructor', () => {
-        it('should initialize with default config', () => {
-            adapter = new OpenAIAdapter({
-                apiKey: 'test-key'
-            });
-
-            expect(OpenAI).toHaveBeenCalledWith({
-                apiKey: 'test-key',
-                baseURL: undefined,
-                dangerouslyAllowBrowser: true
-            });
-        });
-
-        it('should use custom base URL', () => {
-            adapter = new OpenAIAdapter({
-                apiKey: 'test-key',
-                baseUrl: 'https://custom.api.com'
-            });
-
-            expect(OpenAI).toHaveBeenCalledWith({
-                apiKey: 'test-key',
-                baseURL: 'https://custom.api.com',
-                dangerouslyAllowBrowser: true
-            });
-        });
-    });
-
-    describe('translate', () => {
-        beforeEach(() => {
-            adapter = new OpenAIAdapter({
-                apiKey: 'test-key',
-                model: 'gpt-4'
-            });
-        });
-
-        it('should successfully translate content', async () => {
-            const request: TranslationRequest = {
-                content: {
-                    'item.minecraft.apple': 'Apple',
-                    'item.minecraft.bread': 'Bread'
-                },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'item.minecraft.apple: リンゴ\nitem.minecraft.bread: パン'
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: {
-                    prompt_tokens: 50,
-                    completion_tokens: 30,
-                    total_tokens: 80
-                }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(mockCreate).toHaveBeenCalledWith({
-                model: 'gpt-4',
-                messages: [
-                    {
-                        role: 'system',
-                        content: expect.stringContaining('Minecraft game translator')
-                    },
-                    {
-                        role: 'user',
-                        content: expect.stringContaining('item.minecraft.apple: Apple')
-                    }
-                ],
-                temperature: 0.3,
-                user: 'minecraft-mod-localizer'
-            });
-
-            expect(result).toEqual({
-                translatedContent: {
-                    'item.minecraft.apple': 'リンゴ',
-                    'item.minecraft.bread': 'パン'
-                },
-                tokensUsed: 80,
-                timeMs: expect.any(Number)
-            });
-        });
-
-        it('should use custom prompt template', async () => {
-            const request: TranslationRequest = {
-                content: {
-                    'test.key': 'Test Value'
-                },
-                targetLanguage: 'ja_jp',
-                promptTemplate: 'customPrompt'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'test.key: テスト値'
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: {
-                    prompt_tokens: 20,
-                    completion_tokens: 10,
-                    total_tokens: 30
-                }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(mockCreate).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    messages: expect.arrayContaining([
-                        expect.objectContaining({
-                            role: 'user',
-                            content: expect.stringContaining('customPrompt')
-                        })
-                    ])
-                })
-            );
-        });
-
-        it('should handle rate limit errors with retry', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const rateLimitError = new Error('Rate limit exceeded') as any;
-            rateLimitError.status = 429;
-            rateLimitError.headers = {
-                get: (key: string) => key === 'retry-after' ? '2' : null
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'test.key: テスト'
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 20 }
-            };
-
-            mockCreate
-                .mockRejectedValueOnce(rateLimitError)
-                .mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(mockCreate).toHaveBeenCalledTimes(2);
-            expect(result.translatedContent).toEqual({ 'test.key': 'テスト' });
-        });
-
-        it('should retry on temporary errors', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'test.key: テスト'
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 20 }
-            };
-
-            mockCreate
-                .mockRejectedValueOnce(new Error('Network error'))
-                .mockRejectedValueOnce(new Error('Timeout'))
-                .mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(mockCreate).toHaveBeenCalledTimes(3);
-            expect(result.translatedContent).toEqual({ 'test.key': 'テスト' });
-        });
-
-        it('should throw after max retries', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            mockCreate.mockRejectedValue(new Error('Persistent error'));
-
-            await expect(adapter.translate(request)).rejects.toThrow('Persistent error');
-            expect(mockCreate).toHaveBeenCalledTimes(3); // Default max retries
-        });
-
-        it('should handle missing content in response', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: null
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 20 }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            await expect(adapter.translate(request)).rejects.toThrow('No content in response');
-        });
-
-        it('should parse response with various formats', async () => {
-            const request: TranslationRequest = {
-                content: {
-                    'key1': 'Value 1',
-                    'key2': 'Value 2',
-                    'key3': 'Value 3'
-                },
-                targetLanguage: 'ja_jp'
-            };
-
-            // Test response with markdown formatting
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: `Here are the translations:
-
-\`\`\`
-key1: 値1
-key2: 値2
-\`\`\`
-
-And here's another one:
-key3: 値3
-
-That's all!`
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 50 }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(result.translatedContent).toEqual({
-                'key1': '値1',
-                'key2': '値2',
-                'key3': '値3'
-            });
-        });
-
-        it('should handle response with extra whitespace', async () => {
-            const request: TranslationRequest = {
-                content: {
-                    'test.key': 'Test'
-                },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: '  test.key  :  テスト  '
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 20 }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            const result = await adapter.translate(request);
-
-            expect(result.translatedContent).toEqual({
-                'test.key': 'テスト'
-            });
-        });
-
-        it('should validate all keys are translated', async () => {
-            const request: TranslationRequest = {
-                content: {
-                    'key1': 'Value 1',
-                    'key2': 'Value 2'
-                },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'key1: 値1' // Missing key2
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: { total_tokens: 20 }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            await expect(adapter.translate(request)).rejects.toThrow('Missing translations for keys: key2');
-        });
-    });
-
-    describe('cache behavior', () => {
-        beforeEach(() => {
-            adapter = new OpenAIAdapter({
-                apiKey: 'test-key',
-                model: 'gpt-4'
-            });
-        });
-
-        it('should log cache information', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const mockResponse = {
-                id: 'chatcmpl-123',
-                object: 'chat.completion',
-                created: 1234567890,
-                model: 'gpt-4',
-                system_fingerprint: 'fp_123abc',
-                choices: [{
-                    index: 0,
-                    message: {
-                        role: 'assistant',
-                        content: 'test.key: テスト'
-                    },
-                    finish_reason: 'stop'
-                }],
-                usage: {
-                    prompt_tokens: 20,
-                    completion_tokens: 10,
-                    total_tokens: 30,
-                    prompt_tokens_details: {
-                        cached_tokens: 15
-                    }
-                }
-            };
-
-            mockCreate.mockResolvedValueOnce(mockResponse);
-
-            await adapter.translate(request);
-
-            // Should log cache hit ratio
-            expect(mockInvoke).toHaveBeenCalledWith(
-                'log_api_cache_info',
-                expect.objectContaining({
-                    provider: 'OpenAI',
-                    systemFingerprint: 'fp_123abc',
-                    cachedTokens: 15,
-                    totalPromptTokens: 20,
-                    cacheHitRatio: 0.75
-                })
-            );
-        });
-    });
-
-    describe('error handling edge cases', () => {
-        beforeEach(() => {
-            adapter = new OpenAIAdapter({
-                apiKey: 'test-key',
-                model: 'gpt-4'
-            });
-        });
-
-        it('should handle invalid API key format', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const error = new Error('Invalid API key') as any;
-            error.status = 401;
-
-            mockCreate.mockRejectedValueOnce(error);
-
-            await expect(adapter.translate(request)).rejects.toThrow('Invalid API key');
-            expect(mockCreate).toHaveBeenCalledTimes(1); // No retry on auth errors
-        });
-
-        it('should handle model not found', async () => {
-            const request: TranslationRequest = {
-                content: { 'test.key': 'Test' },
-                targetLanguage: 'ja_jp'
-            };
-
-            const error = new Error('Model not found') as any;
-            error.status = 404;
-            error.code = 'model_not_found';
-
-            mockCreate.mockRejectedValueOnce(error);
-
-            await expect(adapter.translate(request)).rejects.toThrow('Model not found');
-        });
-    });
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn().mockResolvedValue(undefined) }));
+const request = { content: { 'test.key': 'Test Value' }, targetLanguage: 'ja_jp' };
+const response = (text = '{"test.key":"テスト値"}') => ({
+  model: 'test-model', choices: [{ message: { content: text } }],
+  usage: { total_tokens: 80, prompt_tokens: 50, prompt_tokens_details: { cached_tokens: 20 } }
+});
+const adapter = (overrides = {}) => new OpenAIAdapter({ provider: 'openai', apiKey: 'synthetic-key', maxRetries: 0, ...overrides });
+beforeEach(() => { vi.clearAllMocks(); sdk.create.mockReset(); });
+afterEach(() => vi.useRealTimers());
+
+describe('OpenAIAdapter current JSON contract', () => {
+  it('uses the default model and returns content with usage metadata', async () => {
+    sdk.create.mockResolvedValue(response());
+    const result = await adapter().translate(request);
+    expect(OpenAI).toHaveBeenCalledWith({ apiKey: 'synthetic-key', baseURL: undefined, dangerouslyAllowBrowser: true });
+    expect(sdk.create).toHaveBeenCalledWith(expect.objectContaining({
+      model: DEFAULT_MODELS.openai,
+      messages: [expect.objectContaining({ role: 'system' }), expect.objectContaining({ role: 'user', content: expect.stringContaining(JSON.stringify(request.content)) })]
+    }));
+    expect(result).toEqual({ content: { 'test.key': 'テスト値' }, metadata: { model: 'test-model', tokensUsed: 80, timeTaken: expect.any(Number) } });
+  });
+  it('uses the configured endpoint, model, temperature and prompt', async () => {
+    sdk.create.mockResolvedValue(response());
+    await adapter({ baseUrl: 'https://example.invalid', model: 'custom-model', temperature: 0, userPrompt: 'Translate {{content}} to {{targetLanguage}}' }).translate(request);
+    expect(OpenAI).toHaveBeenCalledWith(expect.objectContaining({ baseURL: 'https://example.invalid' }));
+    expect(sdk.create).toHaveBeenCalledWith(expect.objectContaining({ model: 'custom-model', temperature: 0,
+      messages: expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining('Translate {"test.key":"Test Value"} to ja_jp') })]) }));
+  });
+  it('accepts JSON surrounded by whitespace', async () => {
+    sdk.create.mockResolvedValue(response(' \n {"test.key":"テスト値"}\n '));
+    expect((await adapter().translate(request)).content).toEqual({ 'test.key': 'テスト値' });
+  });
+  it.each(['not JSON', 'test.key: テスト値', '```json\n{"test.key":"値"}\n```', '["値"]', '{"test.key":42}'])('rejects malformed or non-contract output: %s', async text => {
+    sdk.create.mockResolvedValue(response(text));
+    await expect(adapter().translate(request)).rejects.toThrow();
+    expect(sdk.create).toHaveBeenCalledTimes(1);
+  });
+  it('rejects an empty response', async () => {
+    sdk.create.mockResolvedValue(response(''));
+    await expect(adapter().translate(request)).rejects.toThrow('Empty response');
+  });
+  it('retries transient failures up to the configured limit', async () => {
+    vi.useFakeTimers();
+    sdk.create.mockRejectedValueOnce(new Error('Network error')).mockResolvedValue(response());
+    const pending = adapter({ maxRetries: 1 }).translate(request);
+    await vi.runAllTimersAsync();
+    expect((await pending).content).toEqual({ 'test.key': 'テスト値' });
+    expect(sdk.create).toHaveBeenCalledTimes(2);
+  });
+  it('honors rate limiting and recovers', async () => {
+    vi.useFakeTimers();
+    const error = new OpenAI.APIError(429, {}, 'Rate limit', new Headers());
+    Object.assign(error, { headers: { 'retry-after': '0' } });
+    sdk.create.mockRejectedValueOnce(error).mockResolvedValue(response());
+    const pending = adapter({ maxRetries: 1 }).translate(request);
+    await vi.runAllTimersAsync();
+    expect((await pending).content).toEqual({ 'test.key': 'テスト値' });
+    expect(sdk.create).toHaveBeenCalledTimes(2);
+  });
+  it.each(['Invalid API key', 'Model not found', 'Persistent error'])('surfaces API errors without losing their cause: %s', async message => {
+    sdk.create.mockRejectedValue(new Error(message));
+    await expect(adapter().translate(request)).rejects.toThrow(message);
+  });
+  it('logs cache usage', async () => {
+    sdk.create.mockResolvedValue(response());
+    await adapter().translate(request);
+    expect(invoke).toHaveBeenCalledWith('log_api_request', { message: expect.stringContaining('cached: 20/50') });
+  });
 });

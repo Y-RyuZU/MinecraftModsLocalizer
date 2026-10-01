@@ -142,7 +142,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
         }
         
         // Parse the translation text into key-value pairs
-        const translatedContent = this.parseResponse(translationText, request.content);
+        const translatedContent = this.parseResponse(translationText);
         
         // Calculate time taken
         const timeTaken = Date.now() - startTime;
@@ -211,7 +211,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
       await this.logApiRequest("Validating Gemini API key");
       
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: this.config.model || DEFAULT_MODELS.google });
       
       // Try to generate a simple response as a validation check
       await model.generateContent("Hi");

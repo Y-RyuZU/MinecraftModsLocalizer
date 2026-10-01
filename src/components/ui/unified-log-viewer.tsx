@@ -325,7 +325,7 @@ export function UnifiedLogViewer({
           }
         } catch (error) {
           console.error('Failed to load initial logs:', error);
-          setError('Failed to load logs');
+          setError(t('errors.failedToLoadLogs'));
         }
       };
       
@@ -356,7 +356,7 @@ export function UnifiedLogViewer({
       
       loadHistoricalLogs();
     }
-  }, [open, mode, sessionId, minecraftDir, parseRawLogContent]);
+  }, [open, mode, sessionId, minecraftDir, parseRawLogContent, t]);
   
   // Refresh logs when translation starts (for realtime mode)
   useEffect(() => {

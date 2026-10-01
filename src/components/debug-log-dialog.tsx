@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { LogViewer } from '@/components/log-viewer';
 import { FileService } from '@/lib/services/file-service';
+import { useAppTranslation } from '@/lib/i18n';
 import { Trash2 } from 'lucide-react';
 
 interface DebugLogDialogProps {
@@ -11,6 +12,7 @@ interface DebugLogDialogProps {
 }
 
 export function DebugLogDialog({ open, onOpenChange, filter }: DebugLogDialogProps) {
+  const { t } = useAppTranslation();
   const handleClearLogs = async () => {
     try {
       await FileService.invoke('clear_logs', {});
@@ -24,12 +26,12 @@ export function DebugLogDialog({ open, onOpenChange, filter }: DebugLogDialogPro
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>Debug Logs {filter && `(${filter})`}</span>
+            <span>{t('header.debugLogs')} {filter && `(${filter})`}</span>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleClearLogs}
-              title="Clear logs"
+              title={t('logs.clearLogs')} aria-label={t('logs.clearLogs')}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

@@ -8,42 +8,15 @@ import { GeminiAdapter } from "./gemini-adapter";
  * Creates and manages LLM adapters
  */
 export class LLMAdapterFactory {
-  /** Map of adapter IDs to adapter instances */
-  private static adapters: Map<string, LLMAdapter> = new Map();
-
-  /**
-   * Get an adapter instance
-   * @param config LLM configuration
-   * @returns LLM adapter instance
-   */
+  /** Create an adapter for the current settings; never reuse credentials from an earlier job. */
   public static getAdapter(config: LLMConfig): LLMAdapter {
-    // Check if we already have an instance for this provider
-    if (this.adapters.has(config.provider)) {
-      return this.adapters.get(config.provider)!;
-    }
-
-    // Create a new adapter instance
-    let adapter: LLMAdapter;
-
     switch (config.provider) {
-      case "openai":
-        adapter = new OpenAIAdapter(config);
-        break;
-      case "anthropic":
-        adapter = new AnthropicAdapter(config);
-        break;
-      case "gemini":
-        adapter = new GeminiAdapter(config);
-        break;
-      // Add more adapter implementations here
-      default:
-        throw new Error(`Unsupported LLM provider: ${config.provider}`);
+      case "openai": return new OpenAIAdapter(config);
+      case "anthropic": return new AnthropicAdapter(config);
+      case "google":
+      case "gemini": return new GeminiAdapter(config);
+      default: throw new Error(`Unsupported LLM provider: ${config.provider}`);
     }
-
-    // Store the instance
-    this.adapters.set(config.provider, adapter);
-
-    return adapter;
   }
 
   /**
@@ -54,15 +27,9 @@ export class LLMAdapterFactory {
     return [
       { id: "openai", name: "OpenAI", requiresApiKey: true },
       { id: "anthropic", name: "Anthropic", requiresApiKey: true },
-      { id: "gemini", name: "Google Gemini", requiresApiKey: true },
+      { id: "google", name: "Google Gemini", requiresApiKey: true },
       // Add more adapter types here
     ];
   }
 
-  /**
-   * Clear all adapter instances
-   */
-  public static clearAdapters(): void {
-    this.adapters.clear();
-  }
 }

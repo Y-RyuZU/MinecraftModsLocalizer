@@ -1,13 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { useAppTranslation } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 
+const UI_LANGUAGES = [
+  ["en", "English"],
+  ["ja", "日本語"],
+  ["zh-CN", "简体中文"],
+  ["ko", "한국어"],
+  ["de", "Deutsch"],
+  ["fr", "Français"],
+  ["es", "Español"],
+  ["it", "Italiano"],
+  ["pt-BR", "Português (Brasil)"],
+  ["ru", "Русский"],
+] as const;
+
 export function LanguageSwitcher() {
   const router = useRouter();
-  const { i18n } = useAppTranslation();
+  const { i18n, t } = useAppTranslation();
   const [mounted, setMounted] = useState(false);
   
   // Set mounted to true on client-side
@@ -16,44 +28,24 @@ export function LanguageSwitcher() {
   }, []);
   
   const changeLanguage = (locale: string) => {
-    // In App Router, we need to handle locale changes differently
-    // We'll use the i18n.changeLanguage method from i18next
-    i18n.changeLanguage(locale);
-    
-    // Refresh the page to apply the language change
+    void i18n.changeLanguage(locale);
     router.refresh();
   };
   
-  // Only render the buttons with conditional classes after client-side hydration
-  if (!mounted) {
-    return (
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm">EN</Button>
-        <span className="text-muted-foreground">|</span>
-        <Button variant="ghost" size="sm">JP</Button>
-      </div>
-    );
-  }
-  
+  const selectedLanguage = UI_LANGUAGES.some(([code]) => code === i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : "en";
+
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => changeLanguage("en")}
-        className={i18n.language === "en" ? "font-bold" : ""}
-      >
-        EN
-      </Button>
-      <span className="text-muted-foreground">|</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => changeLanguage("ja")}
-        className={i18n.language === "ja" ? "font-bold" : ""}
-      >
-        JP
-      </Button>
-    </div>
+    <select
+      aria-label={mounted ? t("settings.appLanguage") : "App language"}
+      value={mounted ? selectedLanguage : "en"}
+      onChange={(event) => changeLanguage(event.target.value)}
+      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+    >
+      {UI_LANGUAGES.map(([code, name]) => (
+        <option key={code} value={code}>{name}</option>
+      ))}
+    </select>
   );
 }

@@ -191,7 +191,7 @@ export function TranslationTab({
         } catch (error) {
             console.error("Failed to select directory:", error);
             const errorMessage = error instanceof Error ? error.message : String(error);
-            setError(t('errors.directorySelectionFailed', `Failed to select directory: ${errorMessage}`));
+            setError(`${t('errors.directorySelectionFailed')}: ${errorMessage}`);
             toast.error(t('errors.directorySelectionFailed', 'Failed to select directory'), {
                 description: errorMessage
             });
@@ -232,7 +232,7 @@ export function TranslationTab({
             } else if (errorMessage.startsWith('errors.')) {
                 setError(t(errorMessage));
             } else {
-                setError(`Failed to scan ${tabType}: ${errorMessage}`);
+                setError(`${t('errors.scanFailed')}: ${errorMessage}`);
                 toast.error(t('errors.scanFailed', 'Scan failed'), {
                     description: errorMessage
                 });
@@ -328,7 +328,7 @@ export function TranslationTab({
                     setTranslating(false);
                     return;
                 } else if (existingCount > 0) {
-                    toast.info(t('info.someModsAlreadyTranslated', `${existingCount} of ${selectedTargets.length} mods already have translations`), {
+                    toast.info(t('info.someModsAlreadyTranslated', { existing: existingCount, total: selectedTargets.length }), {
                         description: t('info.willSkipExisting', 'These will be skipped.'),
                         duration: 3000
                     });
@@ -429,7 +429,7 @@ export function TranslationTab({
             // Progress will be updated by the translation process itself
         } catch (error) {
             console.error(`Failed to translate ${tabType}:`, error);
-            setError(`Failed to translate ${tabType}: ${error}`);
+            setError(`${t('errors.translationFailed')}: ${error}`);
         }
     };
 
@@ -640,7 +640,7 @@ export function TranslationTab({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className="text-muted-foreground">{t(noItemsFoundLabel)}</p>
+                                            <p className="text-muted-foreground">{t(profileDirectory ? noItemsFoundLabel : 'errors.selectProfileDirectoryFirst')}</p>
                                         )}
                                     </TableCell>
                                 </TableRow>

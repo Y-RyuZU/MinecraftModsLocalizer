@@ -1,5 +1,7 @@
 "use client";
 
+import { useAppTranslation } from "@/lib/i18n";
+
 import { useAppStore } from "@/lib/store";
 import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
@@ -12,6 +14,7 @@ import { useEffect } from "react";
 import { getFileName, getRelativePath, getDirectoryPath, joinPath } from "@/lib/utils/path-utils";
 
 export function CustomFilesTab() {
+  const { t } = useAppTranslation();
   const { 
     config, 
     customFilesTranslationTargets, 
@@ -98,7 +101,7 @@ export function CustomFilesTab() {
       
       // Set initial scan progress immediately
       setScanProgress({
-        currentFile: 'Initializing scan...',
+        currentFile: t('progress.initializingScan'),
         processedCount: 0,
         totalCount: undefined,
         scanType: 'custom-files',
@@ -113,7 +116,7 @@ export function CustomFilesTab() {
       
       // Update progress immediately after file discovery
       setScanProgress({
-        currentFile: 'Analyzing custom files...',
+        currentFile: t('progress.analyzingFiles'),
         processedCount: 0,
         totalCount: allFiles.length,
         scanType: 'custom-files',

@@ -128,7 +128,7 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
         {/* Provider Configuration Group */}
         <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {getProviderDisplayName(config.llm.provider)} Configuration
+            {t('settings.providerConfiguration', { provider: getProviderDisplayName(config.llm.provider) })}
           </h3>
           
           <div className="grid grid-cols-1 gap-4">
@@ -167,6 +167,7 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
                   type="button"
                   className="absolute right-2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowApiKey(!showApiKey)}
+                  aria-label={t(showApiKey ? 'settings.hideApiKey' : 'settings.showApiKey')}
                 >
                   {showApiKey ? (
                     <EyeOff className="h-4 w-4" />
