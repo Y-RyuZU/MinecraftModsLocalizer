@@ -37,7 +37,7 @@ Set up your API and game folder using the [quick start](getting-started.md). In 
 | Quota, billing, or 429 error | Check provider usage/billing and rate limits; wait before trying a small selection again. |
 | Context or output length error | Reduce the chunk size in Settings or enable token-based chunking. |
 | JSON/translation response error | Keep the default JSON-oriented prompts, reduce the selection/chunk size, and inspect the error log. Do not treat partial output as complete. |
-| Everything is skipped | Check **Skip when translations exist** and whether the selected target language is already present. |
+| Everything is skipped | Existing translations are normally preserved. To retranslate a Mod or quest, check **Translate anyway** in its row. |
 | Export succeeded but game text is English | Check the output path, active instance, game language, and resource-pack priority. Quest/custom files may require their expected filename and location. |
 | Interrupted translation | Inspect completed output and logs before retrying. Do not assume all modes resume from the interruption point. Restore the instance backup if needed. |
 | Update check cannot find a manifest | Check your internet connection. If the problem persists, install manually from the v3 release page. Upgrading from v2 also requires manual installation. |
