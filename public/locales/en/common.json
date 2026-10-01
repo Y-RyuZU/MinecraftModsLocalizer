@@ -31,6 +31,11 @@
     "baseUrl": "Base URL (Optional)",
     "baseUrlPlaceholder": "Enter base URL",
     "model": "Model",
+    "openaiBatchApi": "Use OpenAI Batch API (lower token rates on supported models)",
+    "openaiBatchApiHint": "Only jobs with 2+ chunks use Batch. It may take up to 24 hours, so keep the app open until results are saved. Text is uploaded to OpenAI; the app deletes batch files after retrieval (otherwise they may remain for up to 30 days).",
+    "providerBatchApi": "Use this provider's Batch API",
+    "providerBatchApiHint": "Off by default. When enabled, jobs with one or more chunks use the Batch API. Processing is asynchronous and may take up to 24 hours; keep the app open until results are saved. Provider pricing, model support, and retention rules apply.",
+    "providerBatchUnavailable": "Batch API is unavailable for this provider; synchronous requests will be used.",
     "modelPlaceholder": "Enter model name",
     "maxRetries": "Max Retries",
     "maxRetriesPlaceholder": "Enter max retries",
@@ -103,6 +108,10 @@
     "fileName": "File Name",
     "type": "Type",
     "path": "Path",
+    "existingTranslation": "Existing target language",
+    "existingTranslationSkipped": "{{language}} exists; skipped",
+    "translateAnyway": "Translate anyway",
+    "forceTranslationHint": "Regenerates this mod's translation from English and replaces its output in this resource pack. The previous file is backed up once as .mml-original.bak; the original mod JAR is unchanged.",
     "noModsFound": "No mods found. Click 'Scan Mods' to scan for mods.",
     "noQuestsFound": "No quests found. Click 'Scan Quests' to scan for quests.",
     "noGuidebooksFound": "No guidebooks found. Click 'Scan Guidebooks' to scan for guidebooks.",
@@ -121,6 +130,8 @@
     "wholeProgress": "Overall Progress"
   },
   "errors": {
+    "allTargetsAlreadyTranslated": "Every selected target already contains {{language}}. Existing quest translations are preserved; on Mods, use “Translate anyway” to replace an existing translation.",
+    "apiKeyNotConfigured": "No API key is configured or available from the application environment.",
     "noModsSelected": "No mods selected for translation",
     "noQuestsSelected": "No quests selected for translation",
     "noGuidebooksSelected": "No guidebooks selected for translation",
@@ -139,10 +150,11 @@
   "logs": {
     "title": "Logs",
     "translationLogs": "Translation Logs",
-    "viewLogs": "View Logs",
-    "openLogs": "Open Logs",
-    "noLogs": "No logs available",
-    "autoScroll": "Auto-scroll"
+      "viewLogs": "View Logs",
+      "openLogs": "Open Logs",
+      "noLogs": "No logs available",
+      "desktopOnly": "Translation logs are available in the desktop app only.",
+      "autoScroll": "Auto-scroll"
   },
   "completion": {
     "completed": "Translation Completed",

@@ -1,5 +1,7 @@
 # MinecraftModsLocalizer Development Plan
 
+> Historical task tracker; completed and open checkboxes may be stale. Use the current GitHub Issues and CI status for release work.
+
 ## Current Tasks
 
 - [✅] **TASK_008: Fix Progress Calculation and History Dialog UI Issues** - [Details](TASK_008_Fix_Progress_Calculation_And_History_Dialog_Issues.md) (Completed - 2025-06-18 01:33:18)

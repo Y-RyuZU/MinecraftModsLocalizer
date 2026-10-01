@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { BaseLLMAdapter } from "../base-llm-adapter";
 import type { LLMConfig, TranslationRequest, TranslationResponse } from "../../types/llm";
-import { DEFAULT_SYSTEM_PROMPT } from "../../types/llm";
+import { DEFAULT_SYSTEM_PROMPT, JAPANESE_LOCALIZATION_PROMPT } from "../../types/llm";
 
 class TestAdapter extends BaseLLMAdapter {
   id = "test";
@@ -23,6 +23,10 @@ class TestAdapter extends BaseLLMAdapter {
   formatUser(content: Record<string, string>, language: string) {
     return this.formatUserPrompt(content, language);
   }
+
+  system(language: string) {
+    return this.getSystemPrompt(language);
+  }
 }
 
 const adapter = new TestAdapter({
@@ -32,41 +36,55 @@ const adapter = new TestAdapter({
 } satisfies LLMConfig);
 
 describe("BaseLLMAdapter response parsing", () => {
-  test("formats batches as JSON and permits katakana for loanwords", () => {
+  test("formats batches as JSON and applies Japanese guidance only for Japanese", () => {
     const prompt = adapter.formatUser({ "item.example.name": "Copper Pickaxe" }, "ja_jp");
 
-    expect(prompt).toContain('"item.example.name": "Copper Pickaxe"');
-    expect(DEFAULT_SYSTEM_PROMPT).toContain("transliterate it into readable katakana");
-    expect(DEFAULT_SYSTEM_PROMPT).toContain("Japanese localization for Minecraft mods");
-    expect(DEFAULT_SYSTEM_PROMPT).toContain("instead of inventing or forcing an unnatural kanji compound");
+    expect(prompt).toContain('{"item.example.name":"Copper Pickaxe"}');
+    expect(prompt).toContain("into 日本語:");
+    expect(prompt).not.toContain('\n  "item.example.name"');
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("Minecraft mod localization");
+    expect(DEFAULT_SYSTEM_PROMPT).not.toContain("katakana");
+    expect(adapter.system("ja_jp")).toContain(JAPANESE_LOCALIZATION_PROMPT);
+    expect(adapter.system("Japanese")).toContain("readable katakana");
+    expect(adapter.system("zh_cn")).not.toContain(JAPANESE_LOCALIZATION_PROMPT);
+    expect(adapter.system("de_de")).not.toContain("katakana");
   });
 
-  test("parses fenced JSON responses", () => {
-    expect(adapter.parse("```json\n{\"item.example.name\": \"銅のつるはし\"}\n```", {
+  test("parses a valid JSON object", () => {
+    expect(adapter.parse("{\"item.example.name\": \"銅のつるはし\"}", {
       "item.example.name": "Copper Pickaxe"
     })).toEqual({ "item.example.name": "銅のつるはし" });
   });
 
-  test("escapes special characters in line-format keys", () => {
-    expect(adapter.parse("item.example.name: 銅のつるはし", {
+  test("rejects non-JSON and fenced output so the caller can retry", () => {
+    expect(() => adapter.parse("```json\n{\"item.example.name\": \"銅のつるはし\"}\n```", {
       "item.example.name": "Copper Pickaxe"
-    })).toEqual({ "item.example.name": "銅のつるはし" });
+    })).toThrow("Invalid JSON translation response");
+    expect(() => adapter.parse("item.example.name: 銅のつるはし", {
+      "item.example.name": "Copper Pickaxe"
+    })).toThrow("Invalid JSON translation response");
   });
 
-  test("rejects JSON responses with missing or extra keys", () => {
+  test("rejects missing and extra keys", () => {
     expect(() => adapter.parse(JSON.stringify({
       "item.example.name": "銅のつるはし",
       "item.example.extra": "余計な値"
     }), {
       "item.example.name": "Copper Pickaxe"
-    })).toThrow(/extra/);
+    })).toThrow("keys do not match input");
+
+    expect(() => adapter.parse(JSON.stringify({
+      "item.example.extra": "余計な値"
+    }), {
+      "item.example.name": "Copper Pickaxe"
+    })).toThrow("keys do not match input");
   });
 
-  test("rejects JSON responses with non-string values", () => {
+  test("rejects non-string JSON values so the caller can retry", () => {
     expect(() => adapter.parse(JSON.stringify({
       "item.example.name": { translated: "銅のつるはし" }
     }), {
       "item.example.name": "Copper Pickaxe"
-    })).toThrow(/non-string/);
+    })).toThrow("values must be strings");
   });
 });

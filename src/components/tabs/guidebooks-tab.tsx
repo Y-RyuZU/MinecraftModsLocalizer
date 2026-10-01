@@ -6,6 +6,7 @@ import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { invoke } from "@tauri-apps/api/core";
+import { shouldTranslateMod } from "@/lib/services/mod-language";
 
 export function GuidebooksTab() {
   const {
@@ -64,6 +65,7 @@ export function GuidebooksTab() {
               name: `${book.modId}: ${book.name}`,
               path: modFile,
               relativePath: relativePath,
+              availableLanguages: book.availableLanguages || [],
               selected: true
             });
           }
@@ -114,32 +116,36 @@ export function GuidebooksTab() {
           continue;
         }
 
-        // Find source language file (default to en_us)
-        const sourceFile = book.langFiles.find((file: LangFile) =>
-          file.language === "en_us"
-        );
+        // Namespace each JSON-pointer key by its stable file index. This lets
+        // one book use normal 50-entry batches without collisions between files.
+        const sourceFiles = book.langFiles
+          .filter((file: LangFile) => file.language === "en_us")
+          .sort((left: LangFile, right: LangFile) => left.path.localeCompare(right.path));
 
-        if (!sourceFile) {
+        if (sourceFiles.length === 0) {
           console.warn(`Source language file not found for book: ${target.name}`);
           continue;
         }
 
-        // Count the number of entries in the source file
-        const entriesCount = Object.keys(sourceFile.content).length;
+        const combinedContent: Record<string, string> = {};
+        sourceFiles.forEach((sourceFile, index) => {
+          for (const [pointer, text] of Object.entries(sourceFile.content)) {
+            combinedContent[`file_${index}::${pointer}`] = text;
+          }
+        });
+        const entriesCount = Object.keys(combinedContent).length;
+        if (entriesCount === 0) continue;
+        totalChunksCount += Math.ceil(entriesCount / config.translation.guidebookChunkSize);
 
-        // Calculate number of chunks based on chunk size
-        const chunksCount = Math.ceil(entriesCount / config.translation.guidebookChunkSize);
-        totalChunksCount += chunksCount;
-
-        // Create a translation job
         const job: import("@/lib/types/minecraft").PatchouliTranslationJob = {
           ...translationService.createJob(
-            sourceFile.content,
+            combinedContent,
             targetLanguage,
-            target.name
+            `${target.name} (${sourceFiles.length} files)`
           ),
           bookId: book.id,
           modId: book.modId,
+          sourcePaths: sourceFiles.map((file) => file.path),
           targetPath: target.path
         };
         jobs.push(job);
@@ -176,26 +182,24 @@ export function GuidebooksTab() {
             bookId: job.bookId,
             modId: job.modId,
             language: targetLanguage,
+            sourcePaths: job.sourcePaths,
             content: JSON.stringify(content)
           });
         },
         onResult: addTranslationResult,
-        onJobStart: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobStart: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Starting translation for guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Starting translation for guidebook: ${job.modId}:${job.bookId} (${job.sourcePaths.length} files)` });
           } catch {}
         },
-        onJobComplete: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobComplete: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Finished translation for guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Finished translation for guidebook: ${job.modId}:${job.bookId} (${job.sourcePaths.length} files)` });
           } catch {}
         },
-        onJobInterrupted: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobInterrupted: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Translation cancelled by user during guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Translation cancelled during guidebook: ${job.modId}:${job.bookId}` });
           } catch {}
         }
       });
@@ -226,6 +230,13 @@ export function GuidebooksTab() {
       ]}
       config={config}
       translationTargets={guidebookTranslationTargets}
+      prepareTranslationTargets={(targets, targetLanguage) => {
+        const filteredTargets = targets.filter((target) => shouldTranslateMod(target, targetLanguage));
+        if (filteredTargets.length !== targets.length) {
+          console.info(`Skipped ${targets.length - filteredTargets.length} guidebooks with existing ${targetLanguage} translations`);
+        }
+        return filteredTargets;
+      }}
       setTranslationTargets={setGuidebookTranslationTargets}
       updateTranslationTarget={updateGuidebookTranslationTarget}
       isTranslating={isTranslating}

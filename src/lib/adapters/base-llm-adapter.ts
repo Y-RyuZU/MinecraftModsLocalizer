@@ -1,4 +1,4 @@
-import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "../types/llm";
+import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse, DEFAULT_LANGUAGES, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, JAPANESE_LOCALIZATION_PROMPT } from "../types/llm";
 import { DEFAULT_API_CONFIG } from "../types/config";
 
 /**
@@ -58,31 +58,30 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
 
   /**
    * Get the system prompt
+   * @param targetLanguage Target language
    * @param customSystemPrompt Optional custom system prompt
    * @returns System prompt
    */
-  protected getSystemPrompt(customSystemPrompt?: string): string {
-    // Use custom system prompt if provided
-    if (customSystemPrompt) {
-      return customSystemPrompt;
-    }
-    
-    // Use config system prompt if available
+  protected getSystemPrompt(targetLanguage: string, systemPromptSupplement?: string): string {
+    let systemPrompt: string;
     if (this.config.systemPrompt) {
-      return this.config.systemPrompt;
-    }
-    
-    // If using legacy promptTemplate, extract system part (everything before user task)
-    if (this.config.promptTemplate) {
+      // Use config system prompt if available
+      systemPrompt = this.config.systemPrompt;
+    } else {
+      // If using legacy promptTemplate, extract system part (everything before user task)
       const userMarker = "Please translate the following";
-      const systemEndIdx = this.config.promptTemplate.indexOf(userMarker);
+      const systemEndIdx = this.config.promptTemplate?.indexOf(userMarker) ?? -1;
       if (systemEndIdx > 0) {
-        return this.config.promptTemplate.substring(0, systemEndIdx).trim();
+        systemPrompt = this.config.promptTemplate!.substring(0, systemEndIdx).trim();
+      } else {
+        systemPrompt = DEFAULT_SYSTEM_PROMPT;
       }
     }
-    
-    // Default system prompt
-    return DEFAULT_SYSTEM_PROMPT;
+
+    if (systemPromptSupplement) systemPrompt += `\n\n${systemPromptSupplement}`;
+    return isJapaneseLanguage(targetLanguage)
+      ? systemPrompt + "\n\n" + JAPANESE_LOCALIZATION_PROMPT
+      : systemPrompt;
   }
 
   /**
@@ -131,11 +130,11 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
 
     // Serialize the whole object so keys containing punctuation, newlines, or
     // quotes cannot be confused with the translated text.
-    const formattedContent = JSON.stringify(content, null, 2);
+    const formattedContent = JSON.stringify(content);
     
     // Replace variables
     return userPromptTemplate
-      .replace("{language}", targetLanguage)
+      .replace("{language}", DEFAULT_LANGUAGES.find(({ id }) => id.toLowerCase() === targetLanguage.trim().toLowerCase().replace(/-/g, "_"))?.name ?? targetLanguage)
       .replace("{line_count}", lineCount.toString())
       .replace("{content}", formattedContent);
   }
@@ -190,115 +189,16 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     response: string,
     originalContent: Record<string, string>
   ): Record<string, string> {
-    const originalKeys = Object.keys(originalContent);
-    const translatedContent: Record<string, string> = {};
-
-    // Prefer a JSON object. Once a JSON object is found and parses, validate it
-    // strictly instead of silently accepting missing or extra translations.
-    const fencedJson = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)?.[1];
-    const firstBrace = response.indexOf("{");
-    const lastBrace = response.lastIndexOf("}");
-    const jsonCandidate = fencedJson?.trim()
-      || (firstBrace >= 0 && lastBrace > firstBrace ? response.slice(firstBrace, lastBrace + 1).trim() : "");
-
-    if (jsonCandidate.startsWith("{") && jsonCandidate.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(jsonCandidate) as unknown;
-        return this.validateJsonTranslation(parsed, originalContent);
-      } catch (error) {
-        if (error instanceof SyntaxError) {
-          // Fall through to the line-based parser used by older prompts.
-        } else {
-          throw error;
-        }
-      }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(response);
+    } catch {
+      throw new Error("Invalid JSON translation response");
     }
-    
-    // Split the response into lines and filter out empty lines
-    const allLines = response.trim().split(/\r?\n/).filter(line => line.trim() !== "");
-    
-    // First approach: Try to extract all lines that match the exact key format
-    for (const key of originalKeys) {
-      for (const line of allLines) {
-        const keyValueMatch = line.match(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.*)$`));
-        if (keyValueMatch) {
-          translatedContent[key] = keyValueMatch[1].trim();
-          break; // Found this key, move to next
-        }
-      }
-    }
-    
-    // If we found all keys using exact matching, return
-    if (Object.keys(translatedContent).length === originalKeys.length) {
-      return translatedContent;
-    }
-    
-    // Second approach: Handle cases where response doesn't include keys
-    // Try to filter out markdown blocks, explanations, etc.
-    const filteredLines = allLines.filter(line => {
-      const trimmed = line.trim();
-      
-      // Skip markdown code blocks
-      if (trimmed.startsWith('```') || trimmed.endsWith('```')) {
-        return false;
-      }
-      
-      // Skip common explanatory patterns
-      if (trimmed.toLowerCase().includes('translation') || 
-          trimmed.toLowerCase().includes('here') ||
-          trimmed.toLowerCase().includes('translated') ||
-          trimmed.startsWith('#') ||
-          trimmed.startsWith('*') ||
-          trimmed.startsWith('-')) {
-        return false;
-      }
-      
-      return true;
-    });
-    
-    // Reset and try positional matching with filtered lines
-    for (const key of Object.keys(translatedContent)) {
-      delete translatedContent[key];
-    }
-    
-    // Use the first N filtered lines that could be translations
-    const candidateLines = filteredLines.slice(0, originalKeys.length);
-    
-    for (let i = 0; i < originalKeys.length && i < candidateLines.length; i++) {
-      const key = originalKeys[i];
-      const line = candidateLines[i];
-      
-      // Check if line includes the key
-      const keyValueMatch = line.match(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(.*)$`));
-      
-      if (keyValueMatch) {
-        translatedContent[key] = keyValueMatch[1].trim();
-      } else {
-        // Use the entire line as the translation
-        translatedContent[key] = line.trim();
-      }
-    }
-    
-    // Final validation
-    if (Object.keys(translatedContent).length !== originalKeys.length) {
-      // Log the response for debugging
-      console.warn('Failed to parse LLM response:', {
-        originalKeys,
-        allLinesCount: allLines.length,
-        filteredLinesCount: filteredLines.length,
-        parsedKeys: Object.keys(translatedContent),
-        response: response.substring(0, 500) + (response.length > 500 ? '...' : '')
-      });
-      
-      throw new Error(
-        `Could not parse all translations. Expected ${originalKeys.length} translations but only found ${Object.keys(translatedContent).length}. Response had ${allLines.length} lines (${filteredLines.length} after filtering).`
-      );
-    }
-
-    return translatedContent;
+    return this.validateJsonTranslation(parsed, originalContent);
   }
 
-  /** Validate a JSON translation against the exact source-object schema. */
+  /** Accept only the exact key:value JSON object requested from the model. */
   private validateJsonTranslation(
     parsed: unknown,
     originalContent: Record<string, string>
@@ -308,23 +208,19 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     }
 
     const translated = parsed as Record<string, unknown>;
-    const originalKeys = Object.keys(originalContent);
-    const translatedKeys = Object.keys(translated);
-    const missingKeys = originalKeys.filter((key) => !Object.prototype.hasOwnProperty.call(translated, key));
-    const extraKeys = translatedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(originalContent, key));
-    const nonStringKeys = originalKeys.filter((key) =>
-      Object.prototype.hasOwnProperty.call(translated, key) && typeof translated[key] !== "string"
-    );
-
-    if (missingKeys.length || extraKeys.length || nonStringKeys.length) {
-      const details = [
-        missingKeys.length ? `missing: ${missingKeys.join(", ")}` : "",
-        extraKeys.length ? `extra: ${extraKeys.join(", ")}` : "",
-        nonStringKeys.length ? `non-string values: ${nonStringKeys.join(", ")}` : ""
-      ].filter(Boolean).join("; ");
-      throw new Error(`Invalid JSON translation response (${details})`);
+    const expectedKeys = Object.keys(originalContent).sort();
+    const actualKeys = Object.keys(translated).sort();
+    if (expectedKeys.length !== actualKeys.length || expectedKeys.some((key, index) => key !== actualKeys[index])) {
+      throw new Error("Invalid translation response schema (keys do not match input)");
     }
-
-    return Object.fromEntries(originalKeys.map((key) => [key, translated[key] as string]));
+    if (actualKeys.some((key) => typeof translated[key] !== "string")) {
+      throw new Error("Invalid translation response schema (values must be strings)");
+    }
+    return translated as Record<string, string>;
   }
+}
+
+function isJapaneseLanguage(language: string): boolean {
+  const normalized = language.trim().toLowerCase().replace(/-/g, "_");
+  return normalized === "ja" || normalized.startsWith("ja_") || normalized === "japanese" || normalized === "日本語";
 }

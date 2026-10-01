@@ -18,7 +18,7 @@ interface LogEntry {
     Error: null;
   } | string;
   message: string;
-  process_type?: string;
+  processType?: string;
 }
 
 interface LogDialogProps {
@@ -90,8 +90,8 @@ export function LogDialogRefactored({ open, onOpenChange }: LogDialogProps) {
     message += `[${getLogLevelString(log.level)}] `;
     
     // Process type is optional
-    if (log.process_type) {
-      message += `[${log.process_type}] `;
+    if (log.processType) {
+      message += `[${log.processType}] `;
     }
     
     message += log.message;
@@ -111,7 +111,7 @@ export function LogDialogRefactored({ open, onOpenChange }: LogDialogProps) {
       }
       
       // 2. Translation process logs (progress, completion, etc.)
-      if (log.process_type === 'TRANSLATION') {
+      if (log.processType === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
         // Skip detailed chunk processing logs unless they're errors
@@ -122,12 +122,12 @@ export function LogDialogRefactored({ open, onOpenChange }: LogDialogProps) {
       }
       
       // 3. API request logs
-      if (log.process_type === 'API_REQUEST') {
+      if (log.processType === 'API_REQUEST') {
         return true;
       }
       
       // 4. File operation logs
-      if (log.process_type === 'FILE_OPERATION') {
+      if (log.processType === 'FILE_OPERATION') {
         return true;
       }
       

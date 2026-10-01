@@ -1,6 +1,8 @@
 import { LLMAdapterFactory } from "../adapters/llm-adapter-factory";
-import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse } from "../types/llm";
+import { LLMAdapter, LLMConfig, TranslationBatchProgress, TranslationRequest, TranslationResponse } from "../types/llm";
 import { invoke } from "@tauri-apps/api/core";
+
+const TRANSLATION_INSTRUCTION = "Minecraft mod localization: return one JSON object with the exact input keys and string values; translate only values. Preserve formatting codes and placeholders unchanged.";
 
 /**
  * Translation chunk
@@ -80,6 +82,11 @@ export class TranslationService {
   
   /** Maximum number of retries */
   private maxRetries: number;
+
+  private useBatchApi: boolean;
+
+  /** Stop issuing provider requests after an account-wide authentication or billing failure. */
+  private fatalApiError: Error | null = null;
   
   /** Active translation jobs */
   private activeJobs: Map<string, TranslationJob> = new Map();
@@ -110,6 +117,7 @@ export class TranslationService {
     this.chunkSize = options.chunkSize ?? this.adapter.getMaxChunkSize();
     this.promptTemplate = options.promptTemplate;
     this.maxRetries = options.maxRetries ?? 5;
+    this.useBatchApi = options.llmConfig.useBatchApi === true;
     this.onProgress = options.onProgress;
     this.onComplete = options.onComplete;
     this.onError = options.onError;
@@ -194,7 +202,7 @@ export class TranslationService {
    */
   private async logError(message: string, processType?: string): Promise<void> {
     try {
-      await invoke('log_error', { message, process_type: processType });
+      await invoke('log_error', { message, processType });
     } catch (error) {
       console.error('Failed to log error message:', error);
     }
@@ -331,6 +339,92 @@ export class TranslationService {
     this.interruptFlags.set(jobId, true);
   }
 
+  public get usesBatchApi(): boolean {
+    return this.useBatchApi && typeof this.adapter.translateBatch === "function";
+  }
+
+  /** Translate all selected file chunks in one provider-managed asynchronous job. */
+  public async translateChunksBatch(
+    chunks: Array<{ content: Record<string, string>; targetLanguage: string; jobId: string }>,
+    onProgress?: (progress: TranslationBatchProgress) => void
+  ): Promise<Array<{ translatedContent?: Record<string, string>; error?: string }>> {
+    const translateBatch = this.adapter.translateBatch?.bind(this.adapter);
+    if (!this.usesBatchApi || !translateBatch) throw new Error("Batch API is not enabled for this provider");
+    if (chunks.some(({ jobId }) => this.isJobInterrupted(jobId))) throw new Error("Translation interrupted by user");
+
+    const prepared = chunks.map(({ content, targetLanguage }) => ({
+      request: {
+        content,
+        targetLanguage,
+        promptTemplate: this.promptTemplate,
+        systemPromptSupplement: TRANSLATION_INSTRUCTION
+      } satisfies TranslationRequest
+    }));
+    const responses = await translateBatch(prepared.map(({ request }) => request), {
+      onProgress,
+      shouldCancel: () => chunks.some(({ jobId }) => this.isJobInterrupted(jobId))
+    });
+    if (responses.length !== chunks.length) {
+      throw new Error(`Batch API returned ${responses.length} results for ${chunks.length} translation chunks`);
+    }
+
+    const results: Array<{ translatedContent?: Record<string, string>; error?: string }> = [];
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      const response = responses[index];
+      try {
+        if (this.isJobInterrupted(chunk.jobId)) throw new Error("Translation interrupted by user");
+        if (this.fatalApiError) throw this.fatalApiError;
+        if (response.metadata?.error) {
+          if (response.metadata.errorRetryable === false) {
+            results.push({ error: response.metadata.error });
+            continue;
+          }
+          throw new Error(response.metadata.error);
+        }
+        this.validateTranslationResponse(chunk.content, response.content);
+        results.push({ translatedContent: response.content });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/Translation interrupted by user/.test(message)) throw error;
+        if (this.fatalApiError) {
+          results.push({ error: this.fatalApiError.message });
+          continue;
+        }
+        if (isBillingExhaustion(message)) {
+          this.fatalApiError = error instanceof Error ? error : new Error(message);
+          results.push({ error: message });
+          continue;
+        }
+        const responseStatus = getHttpStatusCode(error);
+        if (responseStatus === 401 || responseStatus === 402 || responseStatus === 403) {
+          this.fatalApiError = error instanceof Error ? error : new Error(message);
+          results.push({ error: message });
+          continue;
+        }
+        if (responseStatus !== undefined && responseStatus >= 400 && responseStatus < 500 && ![408, 409, 425, 429].includes(responseStatus)) {
+          results.push({ error: message });
+          continue;
+        }
+
+        await this.logTranslation(`Batch result ${index + 1}/${chunks.length} was invalid; retrying the original JSON chunk: ${message}`);
+        try {
+          results.push({
+            translatedContent: await this.translateChunk(
+              chunk.content,
+              chunk.targetLanguage,
+              chunk.jobId,
+              isMalformedTranslationResponse(message) ? validationRetryPrompt(message) : undefined
+            )
+          });
+        } catch (retryError) {
+          results.push({ error: retryError instanceof Error ? retryError.message : String(retryError) });
+        }
+      }
+    }
+    return results;
+  }
+
   /**
    * Check if a translation job has been interrupted
    * @param jobId Job ID
@@ -447,10 +541,15 @@ export class TranslationService {
   public async translateChunk(
     content: Record<string, string>,
     targetLanguage: string,
-    jobId: string
+    jobId: string,
+    systemPromptSupplement?: string
   ): Promise<Record<string, string>> {
+    if (this.fatalApiError) throw this.fatalApiError;
+
     let retries = 0;
     const keyCount = Object.keys(content).length;
+    const requestContent = content;
+    let retryPromptSupplement = systemPromptSupplement;
     
     while (retries <= this.maxRetries) {
       // Check if job should be interrupted
@@ -464,9 +563,13 @@ export class TranslationService {
         
         // Create translation request
         const request: TranslationRequest = {
-          content,
+          content: requestContent,
           targetLanguage: targetLanguage,
-          promptTemplate: this.promptTemplate
+          promptTemplate: this.promptTemplate,
+          systemPromptSupplement: [
+            TRANSLATION_INSTRUCTION,
+            retryPromptSupplement
+          ].filter(Boolean).join(" ")
         };
         
         // Check if the adapter is properly configured
@@ -479,15 +582,38 @@ export class TranslationService {
         
         // Translate using the adapter
         const response: TranslationResponse = await this.adapter.translate(request);
-        
-        // Validate response
-        this.validateTranslationResponse(content, response.content);
+        this.validateTranslationResponse(requestContent, response.content);
         
         // Log successful translation
         await this.logTranslation(`Successfully translated ${keyCount} keys to ${targetLanguage}`);
         
         return response.content;
       } catch (error) {
+        const providerError = error instanceof Error ? error : new Error(String(error));
+        const status = getHttpStatusCode(error);
+
+        if (isMalformedTranslationResponse(providerError.message)) {
+          if (retries >= this.maxRetries) throw providerError;
+          retries++;
+          retryPromptSupplement = [systemPromptSupplement, validationRetryPrompt(providerError.message)]
+            .filter(Boolean)
+            .join("\n\n");
+          await this.logTranslation(`Invalid JSON response; retrying the same ${keyCount}-key chunk (${retries}/${this.maxRetries})`);
+          continue;
+        }
+
+        if (isBillingExhaustion(providerError.message)) {
+          this.fatalApiError = providerError;
+          await this.logError(`Translation stopped without retry (billing/quota exhausted${status ? `, HTTP ${status}` : ""}): ${providerError.message}`, "API_REQUEST");
+          throw providerError;
+        }
+
+        if (status !== undefined && status >= 400 && status < 500 && ![408, 409, 425, 429].includes(status)) {
+          if ([401, 402, 403].includes(status)) this.fatalApiError = providerError;
+          await this.logError(`Translation stopped without retry (HTTP ${status}): ${providerError.message}`, "API_REQUEST");
+          throw providerError;
+        }
+
         retries++;
         
         // Check if the error is related to missing API key
@@ -548,6 +674,7 @@ export class TranslationService {
       ].filter(Boolean).join("; ");
       throw new Error(`Invalid translation response schema (${details})`);
     }
+
   }
 
   /**
@@ -568,4 +695,28 @@ export class TranslationService {
       this.onProgress(job);
     }
   }
+}
+
+function isMalformedTranslationResponse(message: string): boolean {
+  return /Invalid JSON translation response|Translation response must be a JSON object|Invalid translation response schema/i.test(message);
+}
+
+function validationRetryPrompt(reason: string): string {
+  return `The previous response was invalid (${reason}). Retry using the original JSON input. Return exactly one valid JSON object with the same keys and string values. Translate values only; preserve all Minecraft formatting codes and placeholders exactly as written and in the same order.`;
+}
+
+function getHttpStatusCode(error: unknown): number | undefined {
+  if (error && typeof error === "object") {
+    const candidate = error as { status?: unknown; statusCode?: unknown; response?: { status?: unknown } };
+    const status = candidate.status ?? candidate.statusCode ?? candidate.response?.status;
+    if (typeof status === "number") return status;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  const match = message.match(/(?:"code"\s*:\s*|\bHTTP(?:\s+status)?\s*:?\s*)(\d{3})/i);
+  return match ? Number(match[1]) : undefined;
+}
+
+function isBillingExhaustion(message: string): boolean {
+  return /insufficient[_ ]quota|exceeded your current quota|no credits|credit balance|prepayment|billing hard limit|billing limit/i.test(message);
 }

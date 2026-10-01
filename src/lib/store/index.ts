@@ -23,10 +23,10 @@ interface AppState {
   setGuidebookTranslationTargets: (targets: TranslationTarget[]) => void;
   setCustomFilesTranslationTargets: (targets: TranslationTarget[]) => void;
   
-  updateModTranslationTarget: (id: string, selected: boolean) => void;
-  updateQuestTranslationTarget: (id: string, selected: boolean) => void;
-  updateGuidebookTranslationTarget: (id: string, selected: boolean) => void;
-  updateCustomFilesTranslationTarget: (id: string, selected: boolean) => void;
+  updateModTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
+  updateQuestTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
+  updateGuidebookTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
+  updateCustomFilesTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
   
   // Translation progress
   isTranslating: boolean;
@@ -96,31 +96,31 @@ export const useAppStore = create<AppState>((set) => ({
   setGuidebookTranslationTargets: (targets) => set({ guidebookTranslationTargets: targets }),
   setCustomFilesTranslationTargets: (targets) => set({ customFilesTranslationTargets: targets }),
   
-  updateModTranslationTarget: (id, selected) => 
+  updateModTranslationTarget: (targetToUpdate, selected) =>
     set((state) => ({
-      modTranslationTargets: state.modTranslationTargets.map((target) => 
-        target.id === id ? { ...target, selected } : target
+      modTranslationTargets: state.modTranslationTargets.map((target) =>
+        target.id === targetToUpdate.id && target.path === targetToUpdate.path ? { ...target, selected } : target
       )
     })),
   
-  updateQuestTranslationTarget: (id, selected) => 
+  updateQuestTranslationTarget: (targetToUpdate, selected) =>
     set((state) => ({
-      questTranslationTargets: state.questTranslationTargets.map((target) => 
-        target.id === id ? { ...target, selected } : target
+      questTranslationTargets: state.questTranslationTargets.map((target) =>
+        target.id === targetToUpdate.id && target.path === targetToUpdate.path ? { ...target, selected } : target
       )
     })),
   
-  updateGuidebookTranslationTarget: (id, selected) => 
+  updateGuidebookTranslationTarget: (targetToUpdate, selected) =>
     set((state) => ({
-      guidebookTranslationTargets: state.guidebookTranslationTargets.map((target) => 
-        target.id === id ? { ...target, selected } : target
+      guidebookTranslationTargets: state.guidebookTranslationTargets.map((target) =>
+        target.id === targetToUpdate.id && target.path === targetToUpdate.path ? { ...target, selected } : target
       )
     })),
   
-  updateCustomFilesTranslationTarget: (id, selected) => 
+  updateCustomFilesTranslationTarget: (targetToUpdate, selected) =>
     set((state) => ({
-      customFilesTranslationTargets: state.customFilesTranslationTargets.map((target) => 
-        target.id === id ? { ...target, selected } : target
+      customFilesTranslationTargets: state.customFilesTranslationTargets.map((target) =>
+        target.id === targetToUpdate.id && target.path === targetToUpdate.path ? { ...target, selected } : target
       )
     })),
   

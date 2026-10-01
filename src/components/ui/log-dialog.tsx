@@ -18,7 +18,7 @@ interface LogEntry {
     Error: null;
   } | string;
   message: string;
-  process_type?: string;
+  processType?: string;
 }
 
 interface LogDialogProps {
@@ -88,8 +88,8 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
     message += `[${getLogLevelString(log.level)}] `;
     
     // Process type is optional
-    if (log.process_type) {
-      message += `[${log.process_type}] `;
+    if (log.processType) {
+      message += `[${log.processType}] `;
     }
     
     message += log.message;
@@ -109,7 +109,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
       }
       
       // 2. Translation process logs (progress, completion, etc.)
-      if (log.process_type === 'TRANSLATION') {
+      if (log.processType === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
         // Skip detailed chunk processing logs unless they're errors
@@ -120,12 +120,12 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
       }
       
       // 3. API request logs
-      if (log.process_type === 'API_REQUEST') {
+      if (log.processType === 'API_REQUEST') {
         return true;
       }
       
       // 4. File operation logs
-      if (log.process_type === 'FILE_OPERATION') {
+      if (log.processType === 'FILE_OPERATION') {
         return true;
       }
       
@@ -248,6 +248,9 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
   
   // Filter logs
   const filteredLogs = filterLogs(logs);
+  const logEmptyMessage = typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window)
+    ? t('logs.desktopOnly')
+    : t('logs.noLogs');
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -269,7 +272,7 @@ export function LogDialog({ open, onOpenChange }: LogDialogProps) {
             <div className="p-4 font-mono text-sm whitespace-pre-wrap">
               {filteredLogs.length === 0 ? (
                 <div className="text-gray-500 dark:text-gray-400">
-                  {t('logs.noLogs')}
+                  {logEmptyMessage}
                 </div>
               ) : (
                 filteredLogs.map((log, index) => (
@@ -400,8 +403,8 @@ export function LogViewer({
       message += `[${getLogLevelString(log.level)}] `;
     }
     
-    if (showSource && log.process_type) {
-      message += `[${log.process_type}] `;
+    if (showSource && log.processType) {
+      message += `[${log.processType}] `;
     }
     
     message += log.message;
@@ -431,7 +434,7 @@ export function LogViewer({
       }
       
       // 2. Translation process logs (progress, completion, etc.)
-      if (log.process_type === 'TRANSLATION') {
+      if (log.processType === 'TRANSLATION') {
         // Filter out verbose translation logs that aren't useful to users
         const message = log.message.toLowerCase();
         // Skip detailed chunk processing logs unless they're errors
@@ -442,12 +445,12 @@ export function LogViewer({
       }
       
       // 3. API request logs
-      if (log.process_type === 'API_REQUEST') {
+      if (log.processType === 'API_REQUEST') {
         return true;
       }
       
       // 4. File operation logs
-      if (log.process_type === 'FILE_OPERATION') {
+      if (log.processType === 'FILE_OPERATION') {
         return true;
       }
       
@@ -547,6 +550,9 @@ export function LogViewer({
   
   // Filter logs
   const filteredLogs = filterLogs(logs);
+  const logEmptyMessage = typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window)
+    ? t('logs.desktopOnly')
+    : t('logs.noLogs');
   
   return (
     <Card className="w-full">
@@ -564,7 +570,7 @@ export function LogViewer({
           <div className="p-4 font-mono text-sm whitespace-pre-wrap">
             {filteredLogs.length === 0 ? (
               <div className="text-gray-500 dark:text-gray-400">
-                {t('logs.noLogs')}
+                {logEmptyMessage}
               </div>
             ) : (
               filteredLogs.map((log, index) => (

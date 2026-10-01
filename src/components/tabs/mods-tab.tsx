@@ -6,8 +6,12 @@ import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { invoke } from "@tauri-apps/api/core";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useAppTranslation } from "@/lib/i18n";
+import { applyStructuredJsonTranslations, groupEnglishLangFilesByNamespace, hasNamespaceLanguage, hasResourcePackLanguage, indexResourcePackLanguageFiles, normalizeLanguageId, shouldTranslateMod } from "@/lib/services/mod-language";
 
 export function ModsTab() {
+  const { t } = useAppTranslation();
 
   const { 
     config, 
@@ -42,6 +46,29 @@ export function ModsTab() {
     // Get mods directory
     const modsDirectory = directory + "/mods";
 
+    const resourcePackName = config.translation.resourcePackName || "MinecraftModsLocalizer";
+    const resourcePackDirectory = `${directory.replace(/[/\\]+$/, "")}/resourcepacks/${resourcePackName}`;
+    const hasResourcePack = await FileService.invoke<boolean>("file_exists", {
+      path: `${resourcePackDirectory}/pack.mcmeta`,
+    });
+    const resourcePackFiles = hasResourcePack
+      ? (await Promise.all([
+          FileService.getFilesWithExtension(resourcePackDirectory, ".json"),
+          FileService.getFilesWithExtension(resourcePackDirectory, ".lang"),
+        ])).flat()
+      : [];
+    const resourcePackLanguages = indexResourcePackLanguageFiles(resourcePackFiles);
+    const existingOutputCount = Object.values(resourcePackLanguages)
+      .flatMap((formats) => Object.values(formats))
+      .reduce((count, locales) => count + (locales?.length ?? 0), 0);
+    if (existingOutputCount > 0) {
+      try {
+        await invoke("log_translation_process", {
+          message: `Found ${existingOutputCount} existing locale outputs in resource pack ${resourcePackName}; completed namespace/format outputs will be skipped unless explicitly selected for retranslation.`,
+        });
+      } catch {}
+    }
+
     // Get mod files
     const modFiles = await FileService.getModFiles(modsDirectory);
 
@@ -64,6 +91,10 @@ export function ModsTab() {
             name: modInfo.name,
             path: modFile, // Keep the full path for internal use
             relativePath: relativePath, // Add relative path for display
+            availableLanguages: modInfo.availableLanguages || [],
+            availableLanguagesByNamespace: modInfo.availableLanguagesByNamespace || {},
+            availableLanguagesByNamespaceAndFormat: modInfo.availableLanguagesByNamespaceAndFormat || {},
+            resourcePackLanguagesByNamespaceAndFormat: resourcePackLanguages,
             selected: true
           });
         }
@@ -77,7 +108,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with JSON parsing error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN"
             });
           } catch {
             // Ignore logging errors
@@ -87,7 +118,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Skipped mod with UTF-8 encoding error: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN"
             });
           } catch {
             // Ignore logging errors
@@ -97,7 +128,7 @@ export function ModsTab() {
           try {
             await invoke('log_error', { 
               message: `Failed to analyze mod: ${modFile} - ${errorMessage}`, 
-              process_type: "SCAN" 
+              processType: "SCAN"
             });
           } catch {
             // Ignore logging errors
@@ -139,7 +170,7 @@ export function ModsTab() {
 
     // Prepare jobs and count total chunks (using sorted targets)
     let totalChunksCount = 0;
-    const jobs = [];
+    const jobs: import("@/lib/types/minecraft").ModTranslationJob[] = [];
     for (const target of sortedTargets) {
       try {
         // Extract language files
@@ -148,46 +179,46 @@ export function ModsTab() {
           tempDir: ""
         });
 
-        // Find source language file (default to en_us)
-        const sourceFile = langFiles.find((file) =>
-          file.language === "en_us"
-        );
-
-        if (!sourceFile) {
+        const groups = groupEnglishLangFilesByNamespace(langFiles);
+        if (groups.length === 0) {
           console.warn(`Source language file not found for mod: ${target.name}`);
           try {
-            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, process_type: "TRANSLATION" });
+            await invoke('log_error', { message: `Source language file not found for mod: ${target.name} (${target.id})`, processType: "TRANSLATION" });
           } catch {
             // ignore logging errors
           }
           continue;
         }
 
-        // Count the number of entries in the source file
-        const entriesCount = Object.keys(sourceFile.content).length;
-
-        // Calculate number of chunks based on chunk size
-        const chunksCount = Math.ceil(entriesCount / config.translation.modChunkSize);
-        totalChunksCount += chunksCount;
-
-        // Create a translation job
-        const job: import("@/lib/types/minecraft").ModTranslationJob = {
-          ...translationService.createJob(
-            sourceFile.content,
-            targetLanguage,
-            target.name
-          ),
-          modId: target.id
-        };
-        jobs.push(job);
+        for (const group of groups) {
+          const forced = normalizeLanguageId(target.forceTranslationLanguage || "") === normalizeLanguageId(targetLanguage);
+          if (!forced && (
+            hasNamespaceLanguage(target, group.resourceNamespace, targetLanguage, group.fileExtension)
+            || hasResourcePackLanguage(target, group.resourceNamespace, targetLanguage, group.fileExtension)
+          )) continue;
+          const entriesCount = Object.keys(group.content).length;
+          if (entriesCount === 0) continue;
+          totalChunksCount += Math.ceil(entriesCount / config.translation.modChunkSize);
+          jobs.push({
+            ...translationService.createJob(
+              group.content,
+              targetLanguage,
+              `${target.name} (${group.resourceNamespace}.${group.fileExtension})`
+            ),
+            resourceNamespace: group.resourceNamespace,
+            modName: target.name,
+            fileExtension: group.fileExtension,
+            ...(group.structuredContent ? { structuredContent: group.structuredContent } : {})
+          });
+        }
       } catch (error) {
         console.error(`Failed to analyze mod for chunk counting: ${target.name}`, error);
       }
     }
 
     // Use mod-level progress tracking: denominator = total mods, numerator = completed mods
-    setTotalMods(sortedTargets.length);
-    console.log(`ModsTab: Set totalMods to ${sortedTargets.length} for mod-level progress tracking`);
+    setTotalMods(jobs.length);
+    console.log(`ModsTab: Set translation units to ${jobs.length} for progress tracking`);
     
     // Keep chunk tracking for internal processing (optional)
     const extraStepsPerJob = 2;
@@ -213,30 +244,35 @@ export function ModsTab() {
         getOutputPath: () => resourcePackDir,
         getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job, outputPath, content) => {
+          const outputContent = job.structuredContent
+            ? applyStructuredJsonTranslations(job.structuredContent, content)
+            : content;
           await FileService.writeLangFile(
-            job.modId,
+            job.resourceNamespace,
             targetLanguage,
-            content,
-            outputPath
+            outputContent,
+            outputPath,
+            job.fileExtension
           );
         },
         onResult: addTranslationResult,
-        onJobStart: async (job, i) => {
-          const target = sortedTargets[i];
+        onJobStart: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Starting translation for mod: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Starting translation for mod: ${job.modName} (${job.resourceNamespace}.${job.fileExtension})` });
           } catch {}
         },
-        onJobComplete: async (job, i) => {
-          const target = sortedTargets[i];
+        onJobComplete: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Finished translation for mod: ${target.name} (${target.id})` });
+            const failedChunks = job.chunks.filter((chunk) => chunk.status === "failed").length;
+            const result = job.status === "completed"
+              ? "Translation saved"
+              : `Output not written (${failedChunks} failed chunks)`;
+            await invoke('log_translation_process', { message: `${result} for mod: ${job.modName} (${job.resourceNamespace}.${job.fileExtension})` });
           } catch {}
         },
-        onJobInterrupted: async (job, i) => {
-          const target = sortedTargets[i];
+        onJobInterrupted: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Translation cancelled by user during mod: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Translation cancelled by user during mod: ${job.modName} (${job.resourceNamespace}.${job.fileExtension})` });
           } catch {}
         }
       });
@@ -263,10 +299,48 @@ export function ModsTab() {
           label: "tables.path", 
           className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
+        },
+        {
+          key: "forceTranslation",
+          label: "tables.existingTranslation",
+          className: "min-w-[260px]",
+          render: (target, { targetLanguage, updateTarget }) => {
+            const language = normalizeLanguageId(targetLanguage);
+            const alreadyTranslated = target.availableLanguagesByNamespace
+              ? Object.values(target.availableLanguagesByNamespace).some((languages) =>
+                  languages.some((available) => normalizeLanguageId(available) === language)
+                )
+              : target.availableLanguages?.some((available) => normalizeLanguageId(available) === language);
+            const outputAlreadyTranslated = Object.values(target.resourcePackLanguagesByNamespaceAndFormat || {})
+              .some((formats) => Object.values(formats).some((languages) =>
+                languages?.some((available) => normalizeLanguageId(available) === language)
+              ));
+            if (!language || (!alreadyTranslated && !outputAlreadyTranslated)) return null;
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {t("tables.existingTranslationSkipped", { language })}
+                </span>
+                <label className="flex items-center gap-1.5 whitespace-nowrap">
+                  <Checkbox
+                    checked={normalizeLanguageId(target.forceTranslationLanguage || "") === language}
+                    onCheckedChange={(checked) => updateTarget({ forceTranslationLanguage: checked ? language : undefined })}
+                    disabled={isTranslating}
+                  />
+                  <span className="text-xs" title={t("tables.forceTranslationHint")}>
+                    {t("tables.translateAnyway")}
+                  </span>
+                </label>
+              </div>
+            );
+          }
         }
       ]}
       config={config}
       translationTargets={modTranslationTargets}
+      prepareTranslationTargets={(targets, targetLanguage) => {
+        return targets.filter((target) => shouldTranslateMod(target, targetLanguage));
+      }}
       setTranslationTargets={setModTranslationTargets}
       updateTranslationTarget={updateModTranslationTarget}
       isTranslating={isTranslating}

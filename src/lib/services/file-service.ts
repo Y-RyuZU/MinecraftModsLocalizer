@@ -129,6 +129,9 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
       
     case "read_text_file":
       return `Mock content for ${args?.path}` as unknown as T;
+
+    case "file_exists":
+      return false as unknown as T;
       
     case "write_text_file":
       return true as unknown as T;
@@ -278,15 +281,17 @@ export class FileService {
   static async writeLangFile(
     modId: string,
     language: string,
-    content: Record<string, string>,
-    dir: string
+    content: Record<string, unknown>,
+    dir: string,
+    fileExtension: "json" | "lang" = "json"
   ): Promise<boolean> {
     try {
       return await tauriInvoke<boolean>("write_lang_file", { 
         modId, 
         language, 
         content: JSON.stringify(content), 
-        dir 
+        dir,
+        fileExtension
       });
     } catch (error) {
       console.error("Failed to write language file:", error);

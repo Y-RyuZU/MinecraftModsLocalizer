@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { LLMAdapterFactory } from "../llm-adapter-factory";
+import { DEFAULT_CONFIG } from "@/lib/types/config";
 
 describe("LLMAdapterFactory", () => {
   test("creates all supported providers with fresh configuration", () => {
@@ -44,5 +45,9 @@ describe("LLMAdapterFactory", () => {
     });
 
     expect(second).not.toBe(first);
+  });
+
+  test("keeps every provider Batch API opt-in disabled by default", () => {
+    expect(DEFAULT_CONFIG.llm.batchApiByProvider).toEqual({ openai: false, anthropic: false, gemini: false });
   });
 });

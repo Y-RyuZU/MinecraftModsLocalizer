@@ -5,8 +5,6 @@ on:
     branches: [ main ]
     tags:
       - 'v*'
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -18,6 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -34,7 +42,36 @@ jobs:
         run: bun run typecheck
       
       - name: Run tests
-        run: bun run test:jest
+        run: bun run test
+
+      - name: Check version consistency
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          package = json.loads(pathlib.Path("package.json").read_text())
+          tauri = json.loads(pathlib.Path("src-tauri/tauri.conf.json").read_text())
+          cargo = pathlib.Path("src-tauri/Cargo.toml").read_text()
+          match = re.search(r'^version\s*=\s*"([^"]+)"', cargo, re.MULTILINE)
+          versions = {package["version"], tauri["version"], match.group(1) if match else None}
+          if len(versions) != 1 or None in versions:
+              raise SystemExit(f"Version mismatch: package={package['version']}, tauri={tauri['version']}, cargo={match.group(1) if match else 'missing'}")
+          ref = os.environ.get("GITHUB_REF", "")
+          if ref.startswith("refs/tags/") and ref.removeprefix("refs/tags/") != f"v{tauri['version']}":
+              raise SystemExit(f"Tag {ref} does not match app version {tauri['version']}")
+          PY
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-features -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features
+
+      - name: Check Rust build
+        run: cargo check --manifest-path src-tauri/Cargo.toml --all-features
 
   build:
     name: Build - ${{ matrix.platform.target }}
@@ -67,7 +104,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -98,19 +135,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Cache Node modules
+      - name: Cache frontend dependencies
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-bun-
 
       - name: Install frontend dependencies
         run: bun install
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
@@ -118,6 +155,25 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --bundles ${{ matrix.platform.bundles }}
+
+      - name: Disambiguate macOS updater bundle names
+        if: startsWith(matrix.platform.target, 'x86_64-apple-') || startsWith(matrix.platform.target, 'aarch64-apple-')
+        env:
+          TARGET: ${{ matrix.platform.target }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          arch = os.environ["TARGET"].split("-", 1)[0]
+          folder = Path("src-tauri/target/release/bundle/macos")
+          for bundle in folder.glob("*.app.tar.gz"):
+              renamed = bundle.with_name(f"{bundle.name.removesuffix('.app.tar.gz')}_{arch}.app.tar.gz")
+              signature = Path(f"{bundle}.sig")
+              bundle.rename(renamed)
+              if signature.exists():
+                  signature.rename(Path(f"{renamed}.sig"))
+          PY
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -129,7 +185,11 @@ jobs:
             src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.tar.gz
+            src-tauri/target/release/bundle/**/*.zip
+            src-tauri/target/release/bundle/**/*.sig
           retention-days: 7
+          if-no-files-found: error
 
   release:
     name: Create Release
@@ -146,6 +206,29 @@ jobs:
         with:
           path: artifacts
 
+      - name: Generate SHA-256 checksums
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+
+          def hash_file(path):
+              digest = sha256()
+              with path.open("rb") as file:
+                  for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              return digest.hexdigest()
+
+          extensions = {".AppImage", ".deb", ".dmg", ".exe", ".msi", ".gz", ".zip"}
+          files = sorted(path for path in Path("artifacts").rglob("*") if path.is_file() and any(path.name.endswith(ext) for ext in extensions))
+          names = [path.name for path in files]
+          if not files or len(names) != len(set(names)):
+              raise SystemExit("No release bundles found or duplicate asset names prevent portable checksums")
+
+          lines = [f"{hash_file(path)}  {path.name}" for path in files]
+          Path("artifacts/SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="ascii")
+          PY
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -158,22 +241,7 @@ jobs:
             artifacts/**/*.dmg
             artifacts/**/*.exe
             artifacts/**/*.msi
-          body: |
-            ## What's Changed
-            
-            <!-- Add your release notes here -->
-            
-            ## Installation
-            
-            ### Windows
-            - Download the `.exe` or `.msi` installer for your system
-            
-            ### macOS
-            - Download the `.dmg` file for your architecture (Intel or Apple Silicon)
-            
-            ### Linux
-            - Download the `.AppImage` (universal) or `.deb` (Debian/Ubuntu) package
-            
-            ## Checksums
-            
-            <!-- Checksums will be automatically generated -->
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+            artifacts/**/*.sig
+            artifacts/SHA256SUMS

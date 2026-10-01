@@ -14,6 +14,7 @@ class MockTranslationService {
   private interrupted = new Set<string>();
   private shouldFail = false;
   private failureError: Error | null = null;
+  usesBatchApi = false;
 
   translateChunk = mock(async (content: Record<string, string>, targetLanguage: string) => {
     if (this.shouldFail && this.failureError) {
@@ -24,6 +25,16 @@ class MockTranslationService {
     await new Promise(resolve => setTimeout(resolve, 10));
     
     return createMockTranslationResults(content, targetLanguage);
+  });
+
+  translateChunksBatch = mock(async (
+    chunks: Array<{ content: Record<string, string>; targetLanguage: string; jobId: string }>,
+    onProgress?: (progress: { completed: number; total: number; status: string }) => void
+  ) => {
+    onProgress?.({ completed: chunks.length, total: chunks.length, status: "completed" });
+    return chunks.map(({ content, targetLanguage }) => ({
+      translatedContent: createMockTranslationResults(content, targetLanguage)
+    }));
   });
 
   isJobInterrupted = mock((jobId: string) => {
@@ -132,6 +143,70 @@ describe('Translation Runner', () => {
       // Verify translation and output
       expect(mockTranslationService.translateChunk).toHaveBeenCalledWith(content, 'ja_jp', job.id);
       expect(mockCallbacks.writeOutput).toHaveBeenCalledWith(job, '/test/output/path', content);
+    });
+
+    test('uses one provider batch for every chunk and still writes only complete files', async () => {
+      mockTranslationService.usesBatchApi = true;
+      const content = { first: "One", second: "Two" };
+      const job = createMockTranslationJob(content, "ja_jp", "batch-test.jar");
+      job.chunks = [
+        { id: "chunk_0", content: { first: "One" }, status: "pending" },
+        { id: "chunk_1", content: { second: "Two" }, status: "pending" }
+      ];
+      const options: RunTranslationJobsOptions = {
+        jobs: [job],
+        translationService: mockTranslationService as any,
+        incrementCompletedChunks: () => { progressTracker.completedChunks++; },
+        incrementCompletedMods: () => { progressTracker.completedMods++; },
+        getOutputPath: () => "/test/batch-output",
+        getResultContent: (value) => Object.assign({}, ...value.chunks.map((chunk) => chunk.translatedContent || {})),
+        writeOutput: mockCallbacks.writeOutput,
+        targetLanguage: "ja_jp",
+        type: "mod"
+      };
+
+      await runTranslationJobs(options);
+
+      expect(mockTranslationService.translateChunksBatch).toHaveBeenCalledTimes(1);
+      expect(mockTranslationService.translateChunk).not.toHaveBeenCalled();
+      expect(job.status).toBe("completed");
+      expect(job.chunks.every((chunk) => chunk.status === "completed")).toBe(true);
+      expect(progressTracker.completedChunks).toBe(2);
+      expect(mockCallbacks.writeOutput).toHaveBeenCalledWith(job, "/test/batch-output", {
+        first: "[ja_jp] One",
+        second: "[ja_jp] Two"
+      });
+    });
+
+    test('uses provider batch for a single chunk when batch is enabled', async () => {
+      mockTranslationService.usesBatchApi = true;
+      const content = { greeting: "Hello" };
+      const job = createMockTranslationJob(content, "ja_jp", "single-batch.jar");
+      job.chunks = [{ id: "chunk_0", content, status: "pending" }];
+      const options: RunTranslationJobsOptions = {
+        jobs: [job],
+        translationService: mockTranslationService as any,
+        incrementCompletedChunks: () => { progressTracker.completedChunks++; },
+        incrementCompletedMods: () => { progressTracker.completedMods++; },
+        getOutputPath: () => "/test/single-batch-output",
+        getResultContent: (value) => Object.assign({}, ...value.chunks.map((chunk) => chunk.translatedContent || {})),
+        writeOutput: mockCallbacks.writeOutput,
+        targetLanguage: "ja_jp",
+        type: "mod"
+      };
+
+      await runTranslationJobs(options);
+
+      expect(mockTranslationService.translateChunksBatch).toHaveBeenCalledTimes(1);
+      expect(mockTranslationService.translateChunksBatch).toHaveBeenCalledWith(
+        [{ content, targetLanguage: "ja_jp", jobId: job.id }],
+        expect.any(Function)
+      );
+      expect(mockTranslationService.translateChunk).not.toHaveBeenCalled();
+      expect(job.status).toBe("completed");
+      expect(mockCallbacks.writeOutput).toHaveBeenCalledWith(job, "/test/single-batch-output", {
+        greeting: "[ja_jp] Hello"
+      });
     });
 
     test('should process a job with multiple chunks', async () => {
@@ -248,6 +323,7 @@ describe('Translation Runner', () => {
       const options: RunTranslationJobsOptions = {
         jobs: [job],
         translationService: mockTranslationService as any,
+        onResult: mockCallbacks.onResult,
         incrementCompletedChunks: () => { progressTracker.completedChunks++; },
         getOutputPath: () => '/test/output/path',
         getResultContent: () => ({}),
@@ -262,9 +338,33 @@ describe('Translation Runner', () => {
       expect(job.status).toBe('failed');
       expect(job.chunks[0].status).toBe('failed');
       expect(job.chunks[0].error).toContain('Network request failed');
+      expect(mockCallbacks.writeOutput).not.toHaveBeenCalled();
+      expect(mockCallbacks.onResult).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
 
       // Progress should still be incremented
       expect(progressTracker.completedChunks).toBe(1);
+    });
+
+    test('does not write a translation result with missing keys', async () => {
+      const job = createMockTranslationJob(mockModData.simpleMod.content, 'ja_jp');
+      job.chunks = [{ id: 'chunk_0', content: job.chunks[0].content, status: 'pending' }];
+      const partial = Object.fromEntries(Object.entries(job.chunks[0].content).slice(0, 1));
+
+      await runTranslationJobs({
+        jobs: [job],
+        translationService: mockTranslationService as any,
+        getOutputPath: () => '/test/output/path',
+        getResultContent: () => partial,
+        writeOutput: mockCallbacks.writeOutput,
+        onResult: mockCallbacks.onResult,
+        targetLanguage: 'ja_jp',
+        type: 'mod'
+      });
+
+      expect(job.status).toBe('failed');
+      expect(job.error).toContain('missing');
+      expect(mockCallbacks.writeOutput).not.toHaveBeenCalled();
+      expect(mockCallbacks.onResult).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
     });
 
     test('should handle output writing failures', async () => {
@@ -293,9 +393,10 @@ describe('Translation Runner', () => {
 
       await runTranslationJobs(options);
 
-      // Translation should succeed but output writing should fail
+      // Output writing failure is a failed job, not a successful translation.
       expect(job.chunks[0].status).toBe('completed');
-      expect(job.status).toBe('completed');
+      expect(job.status).toBe('failed');
+      expect(job.error).toBe('Write failed');
       expect(writeOutputMock).toHaveBeenCalledTimes(1);
     });
   });

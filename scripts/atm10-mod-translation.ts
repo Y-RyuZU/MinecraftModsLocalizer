@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { TranslationService } from "../src/lib/services/translation-service";
-import { DEFAULT_CHUNK_SIZE } from "../src/lib/types/config";
+import { DEFAULT_CHUNK_SIZE, DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/lib/types/config";
 
 if (typeof window === "undefined") {
   (globalThis as unknown as { window: { __TAURI_INTERNALS__: { invoke: () => Promise<undefined> } } }).window = {
@@ -18,10 +18,18 @@ if (!sourcePath || !modId) {
 
 const outputRoot = process.env.MML_SAMPLE_OUTPUT || join(tmpdir(), `mml-mod-sample-${Date.now()}`);
 const targetLanguage = "ja_jp";
-const model = "gemini-3.8-flash";
-const apiKey = process.env.MML_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+const provider = normalizeProvider(process.env.MML_PROVIDER || "openai");
+const providerDefinition = PROVIDER_DEFINITIONS[provider];
+const environmentVariables = [
+  providerDefinition.environmentVariable,
+  providerDefinition.alternativeEnvironmentVariable
+].filter((name): name is string => Boolean(name));
+const model = process.env.MML_MODEL || DEFAULT_MODELS[provider];
+const apiKey = process.env.MML_API_KEY || environmentVariables
+  .map((name) => process.env[name])
+  .find((value) => Boolean(value));
 if (!apiKey) {
-  throw new Error("Missing Gemini API key.");
+  throw new Error(`Missing ${providerDefinition.environmentVariable}.`);
 }
 
 const source = JSON.parse(await readFile(sourcePath, "utf8")) as Record<string, string>;
@@ -31,7 +39,7 @@ if (Object.values(source).some((value) => typeof value !== "string")) {
 
 const service = new TranslationService({
   llmConfig: {
-    provider: "gemini",
+    provider,
     apiKey,
     model,
     maxRetries: 0,
@@ -65,7 +73,7 @@ await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, JSON.stringify(translated, null, 2) + "\n", "utf8");
 
 console.log(JSON.stringify({
-  provider: "gemini",
+  provider,
   model,
   modId,
   source: sourcePath,

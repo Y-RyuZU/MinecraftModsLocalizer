@@ -1,0 +1,6 @@
+{
+	id: "2771124207DF211A"
+	title: "&6Welcome to the Sky"
+	description: ["Gather some wood", "Then build a safe platform", "Keep \"quotes\" and : separators", "Use \n for a line break"]
+	quest: { id: "310969B8FE0A94DE", title: "Make andesite alloy", description: ["Use &l&62 andesite&r and iron nuggets"] }
+}

@@ -20,6 +20,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -31,7 +36,7 @@ jobs:
             ~/.cargo/git/db/
             src-tauri/target/
             node_modules
-          key: ${{ runner.os }}-pr-${{ hashFiles('**/Cargo.lock', '**/bun.lockb') }}
+          key: ${{ runner.os }}-pr-${{ hashFiles('**/Cargo.lock', '**/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-pr-
       
@@ -51,12 +56,14 @@ jobs:
         run: bun run typecheck
       
       - name: Run tests
-        run: bun test
+        run: bun run test
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --all-features
       
       - name: Build check
         run: |
-          cd src-tauri
-          cargo check --all-features
+          cargo check --manifest-path src-tauri/Cargo.toml --all-features
 
   security-scan:
     name: Security Scan

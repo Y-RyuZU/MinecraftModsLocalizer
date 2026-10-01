@@ -4,7 +4,7 @@ import { SupportedLanguage, DEFAULT_PROMPT_TEMPLATE, DEFAULT_SYSTEM_PROMPT, DEFA
  * Default model configurations for each provider
  */
 export const DEFAULT_MODELS = {
-  openai: "gpt-5-mini",
+  openai: "gpt-6-luna",
   anthropic: "claude-haiku-4-5-20251001",
   gemini: "gemini-3.8-flash",
   // Kept for config files created by older releases.
@@ -71,7 +71,7 @@ export const STORAGE_KEYS = {
 } as const;
 
 /** Default number of JSON entries sent in one translation request. */
-export const DEFAULT_CHUNK_SIZE = 50;
+export const DEFAULT_CHUNK_SIZE = 100;
 
 /**
  * Application configuration
@@ -113,6 +113,8 @@ export interface LLMProviderConfig {
   userPrompt?: string;
   /** Temperature setting for the LLM (0.0 to 2.0) */
   temperature?: number;
+  /** Per-provider asynchronous batch settings; omitted values are OFF. */
+  batchApiByProvider?: Partial<Record<ProviderId, boolean>>;
 }
 
 /**
@@ -194,7 +196,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     promptTemplate: DEFAULT_PROMPT_TEMPLATE,
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
     userPrompt: DEFAULT_USER_PROMPT,
-    temperature: 1.0
+    temperature: 1.0,
+    batchApiByProvider: { openai: false, anthropic: false, gemini: false }
   },
   translation: {
     modChunkSize: DEFAULT_CHUNK_SIZE,

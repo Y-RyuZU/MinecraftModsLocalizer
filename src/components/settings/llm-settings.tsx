@@ -167,6 +167,29 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             />
           </div>
 
+          <div className="col-span-2 flex items-start gap-2">
+            <input
+              id={`${provider}-batch-api`}
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-primary"
+              checked={config.llm.batchApiByProvider?.[provider] ?? false}
+              onChange={(event) => updateLLM({
+                batchApiByProvider: {
+                  ...config.llm.batchApiByProvider,
+                  [provider]: event.target.checked
+                }
+              })}
+            />
+            <div className="space-y-1">
+              <label htmlFor={`${provider}-batch-api`} className="text-sm font-medium">
+                {t("settings.providerBatchApi") || "Use provider Batch API"}
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.providerBatchApiHint") || "Off by default. Asynchronous bulk translation is used only when a job has multiple chunks; it may take up to 24 hours. Keep the app open until results are saved."}
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">{t("settings.maxRetries")}</label>
             <Input

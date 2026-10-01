@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build"
   },
   "app": {
     "windows": [
@@ -36,9 +36,6 @@
     "createUpdaterArtifacts": true
   },
   "plugins": {
-    "shell": {
-      "open": true
-    },
     "updater": {
       "endpoints": [
         "https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/latest/download/latest.json"

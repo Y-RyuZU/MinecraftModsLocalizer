@@ -13,6 +13,8 @@ export interface TranslationRequest {
   targetLanguage: string;
   /** Optional custom prompt to use for translation */
   promptTemplate?: string;
+  /** Extra system guidance for a retry after response validation fails. */
+  systemPromptSupplement?: string;
 }
 
 /**
@@ -29,7 +31,17 @@ export interface TranslationResponse {
     timeTaken?: number;
     /** Model used for translation */
     model?: string;
+    /** Per-request error returned by an asynchronous provider batch. */
+    error?: string;
+    /** Whether retrying this failed batch item synchronously is likely to help. */
+    errorRetryable?: boolean;
   };
+}
+
+export interface TranslationBatchProgress {
+  completed: number;
+  total: number;
+  status: string;
 }
 
 /**
@@ -57,6 +69,14 @@ export interface LLMAdapter {
   requiresApiKey: boolean;
   /** Translate content using the LLM service */
   translate(request: TranslationRequest): Promise<TranslationResponse>;
+  /** Submit independent translations in one provider-managed async job, when supported. */
+  translateBatch?(
+    requests: TranslationRequest[],
+    options?: {
+      onProgress?: (progress: TranslationBatchProgress) => void;
+      shouldCancel?: () => boolean;
+    }
+  ): Promise<TranslationResponse[]>;
   /** Validate API key */
   validateApiKey(apiKey: string): Promise<boolean>;
   /** Get the maximum chunk size recommended for this LLM */
@@ -85,6 +105,8 @@ export interface LLMConfig {
   userPrompt?: string;
   /** Temperature setting for the LLM (0.0 to 2.0) */
   temperature?: number;
+  /** Use the provider's asynchronous discounted batch API when available. */
+  useBatchApi?: boolean;
 }
 
 /**
@@ -128,37 +150,31 @@ export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator speciali
 
 ## Detailed Translation Instructions
 - Treat each JSON value as an independent translation unit
-- Use appropriate phonetic transcription for proper nouns when needed
-- This is Japanese localization for Minecraft mods, not generic word-for-word translation
-- When the target language is Japanese and a foreign word, technical term, proper noun, or mod-specific term has no established natural Japanese equivalent, transliterate it into readable katakana instead of inventing or forcing an unnatural kanji compound
-- Prefer terminology that Japanese Minecraft players would naturally recognize; do not turn mod names, brand names, acronyms, item names, or technical terms into arbitrary kanji just because kanji can be constructed
-- Keep an established official Japanese term when one exists, and keep the original spelling when that is the clearest form for a mod name or acronym
 - Preserve programming variables (e.g., %s, $1, \\") and special symbols as they are
 - Maintain backslashes (\\\\) as they may be used as escape characters
+- Preserve exact placeholders such as %s, %1$d, %%, $1, \${name}, and numeric tokens such as {0}; preserve markup tags such as <item>
+- Treat Minecraft formatting codes such as §a, &6, &l, and &r as literal control tokens: copy each exactly once without translating, omitting, duplicating, or changing it. Keep each code with the same formatted phrase; when target-language word order changes, move the code with that phrase.
+- Some mod guidebook markup wraps translatable words in braces (for example, {fish}); keep the braces but translate the words inside them. Do not confuse these with actual placeholders such as {0}.
+- If the entire value is a visible label wrapped in angle brackets (for example, <Off> or <None>), translate the label but retain the brackets.
 - Do not edit any characters that appear to be special symbols
 - For idiomatic expressions, prioritize conveying the meaning over literal translation
 - When appropriate, adapt cultural references to be more relevant to the target language audience
-- The text is about Minecraft mods. Keep this context in mind while translating`;
+- Use terminology and transliteration natural to the selected target language and its Minecraft community
+- Keep established localized terms when they exist, and preserve the original spelling of names or acronyms when that is clearest
+- This is Minecraft mod localization. Values may be item, block, GUI, tooltip, configuration, quest, or guidebook text; use that game context rather than translating as generic prose`;
+
+/** Added only for Japanese translations; do not apply these language-specific rules elsewhere. */
+export const JAPANESE_LOCALIZATION_PROMPT = `## Japanese Localization Guidance
+- Use natural Japanese terminology familiar to Minecraft players and mod communities
+- If an imported, technical, or mod-specific term has no established natural Japanese equivalent, use readable katakana rather than forcing an unnatural kanji compound
+- Do not arbitrarily convert mod names, acronyms, brands, or specialized terms into kanji
+- Keep established Japanese terms when available; preserve original spelling when it is clearer`;
 
 /**
  * Default user prompt template for translation
  * Contains the specific task with variables
  */
-export const DEFAULT_USER_PROMPT = `Please translate the following English text into {language}.
-
-## Input Text Information
-- Number of entries: {line_count}
-- This is Minecraft mod localization. The values may be item names, block names, GUI labels, tooltips, configuration text, quest text, or guidebook text shown to players.
-- The input below is a JSON object. Translate only its string values.
-- Return one JSON object with the exact same keys and one translated string value for each key.
-- Do not wrap the JSON in Markdown or add any commentary.
-
-## Japanese Localization Guidance
-- For Japanese, prioritize natural terminology used by Minecraft players and mod communities.
-- If an imported or technical term has no natural established Japanese equivalent, use readable katakana rather than forced kanji.
-- Do not arbitrarily kanjify mod names, acronyms, brand names, or specialized terms.
-
-# JSON Content to Translate
+export const DEFAULT_USER_PROMPT = `Translate the string values in this JSON object into {language}:
 {content}`;
 
 /**

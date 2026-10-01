@@ -1,0 +1,18 @@
+{
+  "text.owo.itemGroup.tab_template": [
+    { "index": 0 },
+    { "text": " > ", "color": "gray" },
+    { "index": 1, "color": "dark_gray" }
+  ],
+  "text.owo.itemGroup.select_hint": {
+    "text": "Shift-click to select multiple",
+    "color": "gray"
+  },
+  "text.owo.config.boolean_toggle.enabled": [
+    "",
+    { "text": "[", "color": "gray" },
+    { "text": "✔", "color": "#28FFBF" },
+    { "text": "]", "color": "gray" },
+    " Enabled"
+  ]
+}

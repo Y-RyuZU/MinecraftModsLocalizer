@@ -9,6 +9,7 @@ import { UpdateNotificationButton } from '@/components/ui/update-notification-bu
 import { UpdateDialog } from '@/components/ui/update-dialog';
 import { useAppTranslation } from '@/lib/i18n';
 import { UpdateService, UpdateCheckResult } from '@/lib/services/update-service';
+import { invoke } from '@tauri-apps/api/core';
 
 interface HeaderProps {
   onDebugLogClick: () => void;
@@ -24,11 +25,22 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
   
   // Set mounted to true on client-side to prevent hydration mismatches
   useEffect(() => {
-    setMounted(true);
-    // Check if running in Tauri debug mode
-    if (typeof window !== 'undefined' && window.__TAURI_DEBUG__) {
-      setIsDebugMode(true);
-    }
+    let active = true;
+    const initialize = async () => {
+      let debugBuild = process.env.NODE_ENV === 'development' ||
+        (typeof window !== 'undefined' && window.__TAURI_DEBUG__ === true);
+      try {
+        debugBuild ||= await invoke<boolean>('is_debug_build');
+      } catch {
+        // The command is unavailable in browser-only development mode.
+      }
+      if (active) {
+        setIsDebugMode(debugBuild);
+        setMounted(true);
+      }
+    };
+    void initialize();
+    return () => { active = false; };
   }, []);
   
   // Check for updates on mount
@@ -109,16 +121,14 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
             >
               <Download className="h-5 w-5" />
             </Button>
-            {isDebugMode && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDebugLogClick}
-                title={t('header.debugLogs', 'Debug Logs')}
-              >
-                <Bug className="h-5 w-5" />
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDebugLogClick}
+              title={t('header.debugLogs', 'Debug Logs')}
+            >
+              <Bug className="h-5 w-5" />
+            </Button>
             <HistoryButton onClick={onHistoryClick} />
             <LanguageSwitcher />
             <ThemeToggle />

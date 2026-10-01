@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AppConfig } from "@/lib/types/config";
+import { AppConfig, DEFAULT_CHUNK_SIZE } from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
 import { SupportedLanguage } from "@/lib/types/llm";
 import { TargetLanguageDialog } from "./target-language-dialog";
@@ -75,12 +75,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.modChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.modChunkSize || 50}
+                value={config.translation.modChunkSize || DEFAULT_CHUNK_SIZE}
                 onChange={(e) => {
                   config.translation.modChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="50"
+                placeholder={String(DEFAULT_CHUNK_SIZE)}
               />
             </div>
             
@@ -88,12 +88,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.questChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.questChunkSize || 50}
+                value={config.translation.questChunkSize || DEFAULT_CHUNK_SIZE}
                 onChange={(e) => {
                   config.translation.questChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="50"
+                placeholder={String(DEFAULT_CHUNK_SIZE)}
               />
             </div>
             
@@ -101,12 +101,12 @@ export function TranslationSettings({ config, setConfig }: TranslationSettingsPr
               <label className="text-sm font-medium">{t('settings.guidebookChunkSize')}</label>
               <Input 
                 type="number"
-                value={config.translation.guidebookChunkSize || 50}
+                value={config.translation.guidebookChunkSize || DEFAULT_CHUNK_SIZE}
                 onChange={(e) => {
                   config.translation.guidebookChunkSize = parseInt(e.target.value);
                   setConfig({ ...config });
                 }}
-                placeholder="50"
+                placeholder={String(DEFAULT_CHUNK_SIZE)}
               />
             </div>
           </div>

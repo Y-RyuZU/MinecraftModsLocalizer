@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 mock.module("@tauri-apps/api/core", () => ({ invoke: async () => undefined }));
 
 import { TranslationService } from "../translation-service";
+import { DEFAULT_CHUNK_SIZE } from "../../types/config";
 
 type RecordedRequest = {
   path: string;
@@ -11,6 +12,7 @@ type RecordedRequest = {
 
 const requests: RecordedRequest[] = [];
 let server: ReturnType<typeof Bun.serve>;
+let forcedStatus: number | undefined;
 
 function responseFor(body: Record<string, unknown>, path: string): string {
   let prompt = "";
@@ -43,6 +45,9 @@ beforeAll(() => {
       const body = await request.json() as Record<string, unknown>;
       const path = new URL(request.url).pathname;
       requests.push({ path, body });
+      if (forcedStatus) {
+        return Response.json({ error: { code: forcedStatus, message: "Prepayment credits are depleted" } }, { status: forcedStatus });
+      }
 
       if (path.includes("chat/completions")) {
         return Response.json({
@@ -136,6 +141,9 @@ describe("TranslationService HTTP flow", () => {
 
   test("sends a multi-entry batch in one request and preserves every key", async () => {
     requests.length = 0;
+    const source = Object.fromEntries(
+      Array.from({ length: 100 }, (_, index) => [`item.example.${index}`, `Copper Pickaxe ${index}`])
+    );
     const service = new TranslationService({
       llmConfig: {
         provider: "gemini",
@@ -144,20 +152,66 @@ describe("TranslationService HTTP flow", () => {
         model: "gemini-3.8-flash",
         maxRetries: 0
       },
-      chunkSize: 2
+      chunkSize: DEFAULT_CHUNK_SIZE
     });
-    const job = service.createJob({
-      "item.example.name": "Copper Pickaxe",
-      "item.example.tooltip": "This is a heavy tool."
-    }, "ja_jp");
+    const job = service.createJob(source, "ja_jp");
 
     const result = await service.startJob(job.id);
 
     expect(result.status).toBe("completed");
     expect(requests).toHaveLength(1);
-    expect(service.getCombinedTranslatedContent(job.id)).toEqual({
-      "item.example.name": "銅のつるはし",
-      "item.example.tooltip": "訳:This is a heavy tool."
-    });
+    expect(service.getCombinedTranslatedContent(job.id)).toEqual(
+      Object.fromEntries(Object.entries(source).map(([key, value]) => [key, `訳:${value}`]))
+    );
+  });
+
+  test.each([400, 402, 429])("stops after one billing error (HTTP %i) instead of retrying every batch", async (status) => {
+    requests.length = 0;
+    forcedStatus = status;
+    try {
+      const service = new TranslationService({
+        llmConfig: {
+          provider: "gemini",
+          apiKey: "gemini-test-key",
+          baseUrl: server.url.toString(),
+          model: "gemini-3.8-flash",
+          maxRetries: 3
+        },
+        chunkSize: 1,
+        maxRetries: 3
+      });
+      const job = service.createJob({ first: "One", second: "Two" }, "ja_jp");
+
+      const result = await service.startJob(job.id);
+
+      expect(result.status).toBe("failed");
+      expect(requests).toHaveLength(1);
+    } finally {
+      forcedStatus = undefined;
+    }
+  });
+
+  test.each([
+    ["openai", "openai-test-key", "gpt-6-luna"],
+    ["anthropic", "anthropic-test-key", "claude-haiku-4-5-20251001"],
+    ["gemini", "gemini-test-key", "gemini-3.8-flash"]
+  ] as const)("does not retry an exhausted-credit 429 for %s", async (provider, apiKey, model) => {
+    requests.length = 0;
+    forcedStatus = 429;
+    try {
+      const service = new TranslationService({
+        llmConfig: { provider, apiKey, baseUrl: server.url.toString(), model, maxRetries: 3 },
+        chunkSize: 1,
+        maxRetries: 3
+      });
+      const job = service.createJob({ first: "One", second: "Two" }, "ja_jp");
+
+      const result = await service.startJob(job.id);
+
+      expect(result.status).toBe("failed");
+      expect(requests).toHaveLength(1);
+    } finally {
+      forcedStatus = undefined;
+    }
   });
 });

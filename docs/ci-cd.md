@@ -1,191 +1,35 @@
-# CI/CD Documentation
-
-## Overview
-
-The MinecraftModsLocalizer project uses GitHub Actions for continuous integration and deployment. The pipeline automates testing, building, and releasing the application for multiple platforms.
+# CI and release process
 
 ## Workflows
 
-### 1. Build and Release Workflow
+- `.github/workflows/pr-validation.yml` runs on pull requests. It installs Bun and stable Rust, checks Rust formatting and Clippy, runs TypeScript lint/type checks and Bun tests, and checks the Tauri Rust build.
+- `.github/workflows/build.yml` runs on pushes to `main`, `v*` tags, and manual dispatch. Its test job verifies that `package.json`, `Cargo.toml`, and `tauri.conf.json` versions agree, then runs the full checks. Four build jobs produce Linux x86_64, macOS Intel, macOS Apple Silicon, and Windows x86_64 artifacts.
+- `.github/workflows/update-manifest.yml` runs after a release is published. It downloads the signed update bundles and creates the Tauri `latest.json` manifest with each bundle URL and the matching signature text.
 
-**File**: `.github/workflows/build.yml`
+## Required repository secrets
 
-**Triggers**:
-- Push to main branch
-- Version tags (v*)
-- Pull requests to main
-- Manual dispatch
+- `TAURI_PRIVATE_KEY`: private updater-signing key contents. Keep it in GitHub Actions secrets; never commit or expose it.
+- `TAURI_KEY_PASSWORD`: password for that key (an empty value is valid if the key has no password).
 
-**Jobs**:
+These sign Tauri updater artifacts. They are not Windows Authenticode or Apple Developer signing credentials. Without platform signing/notarization, Windows SmartScreen and macOS Gatekeeper may show warnings.
 
-#### Test Job
-- Runs on Ubuntu latest
-- Executes linting, type checking, and tests
-- Must pass before build jobs start
+## Release checklist
 
-#### Build Job
-- Matrix build for multiple platforms:
-  - Linux (x86_64) - AppImage, DEB
-  - macOS Intel (x86_64) - DMG
-  - macOS Apple Silicon (aarch64) - DMG  
-  - Windows (x86_64) - NSIS, MSI
-- Uses Tauri GitHub Action
-- Caches dependencies for faster builds
-- Uploads artifacts for 7 days
+1. Merge the intended release commit into the current `main`; do not release directly from an old or divergent feature branch.
+2. Set the same SemVer version in `package.json`, `src-tauri/Cargo.toml`, and `src-tauri/tauri.conf.json`. CI rejects mismatches and tags that do not equal `v<version>`.
+3. Run the checks from [TESTING.md](TESTING.md#offline-tests), review the changelog, and verify any open issue that the release claims to fix.
+4. Push the `v<version>` tag from the merged commit. GitHub Actions builds the installers and updater bundles, then creates a draft release with SHA-256 checksums.
+5. Inspect the draft assets and test at least one install per supported OS. Run `sha256sum -c SHA256SUMS` on macOS/Linux, or compare `Get-FileHash -Algorithm SHA256 <file>` on Windows with the matching line.
+6. Confirm `latest.json` contains a valid URL and non-empty signature for `windows-x86_64`, `darwin-x86_64`, `darwin-aarch64`, and `linux-x86_64`. Publish only after these checks pass.
+7. The publish event generates and uploads `latest.json`. Verify the uploaded manifest and updater download URLs after the workflow completes.
 
-#### Release Job
-- Only runs on version tags
-- Creates draft GitHub release
-- Attaches all build artifacts
-- Generates release notes
+The workflow uses the MSI as the Windows updater target, AppImage on Linux, and architecture-specific `.app.tar.gz` bundles on macOS. macOS updater archives are renamed per architecture so their signatures and release assets cannot collide. Installer formats such as `.dmg` and `.deb` are also attached but are not updater payloads.
 
-### 2. PR Validation Workflow
+## Local build
 
-**File**: `.github/workflows/pr-validation.yml`
-
-**Triggers**:
-- Pull request events (opened, synchronized, reopened)
-
-**Checks**:
-- Rust formatting (rustfmt)
-- Rust linting (clippy)
-- TypeScript linting (ESLint)
-- Type checking
-- Test suite execution
-- Security audit (cargo audit)
-- Build verification
-
-### 3. Update Manifest Workflow
-
-**File**: `.github/workflows/update-manifest.yml`
-
-**Triggers**:
-- Release published
-
-**Actions**:
-- Generates `latest.json` for Tauri updater
-- Extracts version and asset URLs
-- Uploads manifest to release
-
-## Configuration
-
-### Required Secrets
-
-Configure these in GitHub repository settings:
-
-1. **TAURI_PRIVATE_KEY** (optional)
-   - Private key for code signing
-   - Generated with: `tauri signer generate`
-
-2. **TAURI_KEY_PASSWORD** (optional)
-   - Password for the private key
-
-### Environment Variables
-
-- `RUST_BACKTRACE=1`: Enable Rust backtraces for debugging
-
-## Build Matrix
-
-| Platform | OS | Target | Bundles |
-|----------|----|---------|---------| 
-| Linux | ubuntu-22.04 | x86_64-unknown-linux-gnu | AppImage, DEB |
-| macOS Intel | macos-latest | x86_64-apple-darwin | DMG |
-| macOS ARM | macos-latest | aarch64-apple-darwin | DMG |
-| Windows | windows-latest | x86_64-pc-windows-msvc | NSIS, MSI |
-
-## Caching Strategy
-
-The pipeline caches:
-- Rust dependencies (cargo registry, build artifacts)
-- Node modules
-- Cache keys based on lock file hashes
-
-## Release Process
-
-### Automated Release
-
-1. **Version Update**
-   ```bash
-   # Update version in src-tauri/tauri.conf.json
-   # Update version in src-tauri/Cargo.toml
-   ```
-
-2. **Commit and Tag**
-   ```bash
-   git add .
-   git commit -m "chore: bump version to v3.0.1"
-   git tag v3.0.1
-   git push origin main --tags
-   ```
-
-3. **Automated Steps**
-   - CI builds for all platforms
-   - Creates draft release
-   - Uploads artifacts
-   - Generates update manifest
-
-4. **Manual Steps**
-   - Review draft release
-   - Update release notes
-   - Publish release
-
-### Manual Release
-
-For hotfixes or special releases:
-
-1. Go to Actions tab
-2. Select "Build and Release" workflow
-3. Click "Run workflow"
-4. Select branch and run
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Build Failures**
-   - Check system dependencies for Linux builds
-   - Ensure Rust/Node versions match requirements
-   - Review build logs for specific errors
-
-2. **Cache Issues**
-   - Caches expire after 7 days of inactivity
-   - Clear cache through GitHub UI if corrupted
-
-3. **Release Issues**
-   - Ensure tag follows v* pattern
-   - Check GitHub token permissions
-   - Verify all artifacts uploaded
-
-### Local Testing
-
-Test workflows locally with [act](https://github.com/nektos/act):
-
-```bash
-# Test PR validation
-act pull_request
-
-# Test build workflow
-act push --secret-file .env.secrets
+```powershell
+bun install
+bun x tauri build --debug --no-bundle --config '{"bundle":{"createUpdaterArtifacts":false}}'
 ```
 
-## Best Practices
-
-1. **Version Management**
-   - Use semantic versioning (MAJOR.MINOR.PATCH)
-   - Keep version consistent across all files
-   - Tag releases with v prefix
-
-2. **Commit Messages**
-   - Follow conventional commits
-   - Include scope for clarity
-   - Reference issues when applicable
-
-3. **Dependencies**
-   - Regular dependency updates
-   - Security audit before releases
-   - Test thoroughly after updates
-
-4. **Performance**
-   - Utilize caching effectively
-   - Run jobs in parallel when possible
-   - Minimize unnecessary builds
+Release updater builds require the private signing key. Never substitute a public key for `TAURI_PRIVATE_KEY`; the public key in `tauri.conf.json` is only for verifying downloaded updates.

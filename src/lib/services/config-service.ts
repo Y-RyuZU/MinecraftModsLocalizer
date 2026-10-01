@@ -305,7 +305,12 @@ function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       prompt_template: config.llm.promptTemplate,
       system_prompt: config.llm.systemPrompt,
       user_prompt: config.llm.userPrompt,
-      temperature: config.llm.temperature
+      temperature: config.llm.temperature,
+      batch_api_by_provider: {
+        openai: config.llm.batchApiByProvider?.openai ?? false,
+        anthropic: config.llm.batchApiByProvider?.anthropic ?? false,
+        gemini: config.llm.batchApiByProvider?.gemini ?? false
+      }
     },
     translation: {
       mod_chunk_size: config.translation.modChunkSize,
@@ -338,6 +343,7 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
   const paths = backendConfig.paths as Record<string, unknown> | undefined;
   const backendApiKeys = (llm?.api_keys || {}) as Record<string, unknown>;
+  const backendBatchSettings = (llm?.batch_api_by_provider || {}) as Record<string, unknown>;
   const apiKeys: ApiKeys = {
     openai: (backendApiKeys.openai as string) || "",
     anthropic: (backendApiKeys.anthropic as string) || "",
@@ -357,7 +363,12 @@ function convertFromSnakeCase(backendConfig: Record<string, unknown>): AppConfig
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
       userPrompt: llm?.user_prompt as string | undefined,
-      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature
+      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature,
+      batchApiByProvider: {
+        openai: backendBatchSettings.openai === true,
+        anthropic: backendBatchSettings.anthropic === true,
+        gemini: backendBatchSettings.gemini === true
+      }
     },
     translation: {
       modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,

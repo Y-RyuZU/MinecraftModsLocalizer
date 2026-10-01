@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, ReactNode } from "react";
+import { useEffect, useState, useRef, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,14 +55,20 @@ export interface TranslationTabProps {
     key: string;
     label: string;
     className?: string;
-    render?: (target: TranslationTarget) => ReactNode;
+    render?: (
+      target: TranslationTarget,
+      context: {
+        targetLanguage: string;
+        updateTarget: (updates: Partial<TranslationTarget>) => void;
+      }
+    ) => ReactNode;
   }[];
   
   // State and handlers
   config: AppConfig;
   translationTargets: TranslationTarget[];
   setTranslationTargets: (targets: TranslationTarget[]) => void;
-  updateTranslationTarget: (id: string, selected: boolean) => void;
+  updateTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
   isTranslating: boolean;
   progress: number;
   wholeProgress: number;
@@ -83,6 +89,11 @@ export interface TranslationTabProps {
   
   // Custom handlers
   onScan: (directory: string) => Promise<void>;
+  prepareTranslationTargets?: (
+    targets: TranslationTarget[],
+    targetLanguage: string
+  ) => TranslationTarget[] | Promise<TranslationTarget[]>;
+  confirmBeforeTranslate?: (targets: TranslationTarget[], targetLanguage: string) => boolean | Promise<boolean>;
   onTranslate: (
     selectedTargets: TranslationTarget[], 
     targetLanguage: string,
@@ -134,6 +145,8 @@ export function TranslationTab({
 
   // Custom handlers
   onScan,
+  prepareTranslationTargets,
+  confirmBeforeTranslate,
   onTranslate
 }: TranslationTabProps) {
   const [isScanning, setIsScanning] = useState(false);
@@ -145,6 +158,10 @@ export function TranslationTab({
   const [translationResults, setTranslationResults] = useState<TranslationResult[]>([]);
   const [totalTargets, setTotalTargets] = useState(0);
   const { t } = useAppTranslation();
+
+  useEffect(() => {
+    setSelectedDirectory(config.paths.minecraftDir || null);
+  }, [config.paths.minecraftDir]);
   
   // Reference to the translation service
   const translationServiceRef = useRef<TranslationService | null>(null);
@@ -265,9 +282,31 @@ export function TranslationTab({
         return;
       }
 
+      const targetsToTranslate = prepareTranslationTargets
+        ? await prepareTranslationTargets(selectedTargets, targetLanguage)
+        : selectedTargets;
+      if (targetsToTranslate.length === 0) {
+        setError(t("errors.allTargetsAlreadyTranslated", { language: targetLanguage }));
+        setTranslating(false);
+        return;
+      }
+
+      if (confirmBeforeTranslate && !(await confirmBeforeTranslate(targetsToTranslate, targetLanguage))) {
+        setTranslating(false);
+        return;
+      }
+
       // Create a translation service
       const provider = normalizeProvider(config.llm.provider);
-      const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey;
+      let apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey;
+      if (!apiKey.trim()) {
+        apiKey = await invoke<string | null>("get_api_key_from_environment", { provider }).catch(() => null) || "";
+      }
+      if (!apiKey.trim()) {
+        setError(t("errors.apiKeyNotConfigured"));
+        setTranslating(false);
+        return;
+      }
       const translationService = new TranslationService({
         llmConfig: {
           provider,
@@ -277,6 +316,7 @@ export function TranslationTab({
           systemPrompt: config.llm.systemPrompt,
           userPrompt: config.llm.userPrompt,
           temperature: config.llm.temperature,
+          useBatchApi: config.llm.batchApiByProvider?.[provider] ?? false,
         },
         chunkSize: getChunkSizeForTabType(config, tabType),
         promptTemplate: config.llm.promptTemplate,
@@ -330,7 +370,7 @@ export function TranslationTab({
 
       // Clear previous results and set total targets
       setTranslationResults([]);
-      setTotalTargets(selectedTargets.length);
+      setTotalTargets(targetsToTranslate.length);
 
       // Create a wrapper for addTranslationResult to collect results locally
       const collectResults = (result: TranslationResult) => {
@@ -340,7 +380,7 @@ export function TranslationTab({
 
       // Call the custom translate function (do not await, so UI can update and cancel is possible)
       void onTranslate(
-        selectedTargets,
+        targetsToTranslate,
         targetLanguage,
         translationService,
         setCurrentJobId,
@@ -359,6 +399,7 @@ export function TranslationTab({
     } catch (error) {
       console.error(`Failed to translate ${tabType}:`, error);
       setError(`Failed to translate ${tabType}: ${error}`);
+      setTranslating(false);
     }
   };
 
@@ -552,13 +593,22 @@ export function TranslationTab({
                         <TableCell>
                           <Checkbox 
                             checked={target.selected}
-                            onCheckedChange={(checked) => updateTranslationTarget(target.id, !!checked)}
+                            onCheckedChange={(checked) => updateTranslationTarget(target, !!checked)}
                             disabled={isScanning || isTranslating}
                           />
                         </TableCell>
                         {tableColumns.map((column) => (
                           <TableCell key={`${target.id}-${column.key}`} className={column.className}>
-                            {column.render ? column.render(target) : target[column.key as keyof TranslationTarget] as ReactNode}
+                            {column.render
+                              ? column.render(target, {
+                                  targetLanguage: tempTargetLanguage ?? "",
+                                  updateTarget: (updates) => setTranslationTargets(
+                                    translationTargets.map((item) =>
+                                      item.id === target.id ? { ...item, ...updates } : item
+                                    )
+                                  )
+                                })
+                              : target[column.key as keyof TranslationTarget] as ReactNode}
                           </TableCell>
                         ))}
                       </TableRow>

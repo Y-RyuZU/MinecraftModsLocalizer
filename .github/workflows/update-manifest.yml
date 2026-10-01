@@ -4,60 +4,79 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   update-manifest:
-    name: Generate latest.json
+    name: Generate signed latest.json
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Generate update manifest
-        run: |
-          # Extract version and download URLs from release
-          VERSION="${{ github.event.release.tag_name }}"
-          VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix
-          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          
-          # Find asset URLs
-          WINDOWS_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".msi")) | .browser_download_url' | head -1)
-          MACOS_INTEL_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | contains("x86_64-apple-darwin")) | .browser_download_url' | head -1)
-          MACOS_ARM_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | contains("aarch64-apple-darwin")) | .browser_download_url' | head -1)
-          LINUX_URL=$(echo '${{ toJson(github.event.release.assets) }}' | jq -r '.[] | select(.name | endswith(".AppImage")) | .browser_download_url' | head -1)
-          
-          # Validate that all URLs were found
-          if [ -z "$WINDOWS_URL" ] || [ -z "$MACOS_INTEL_URL" ] || [ -z "$MACOS_ARM_URL" ] || [ -z "$LINUX_URL" ]; then
-            echo "Error: Not all platform assets were found"
-            echo "Windows URL: $WINDOWS_URL"
-            echo "macOS Intel URL: $MACOS_INTEL_URL"
-            echo "macOS ARM URL: $MACOS_ARM_URL"
-            echo "Linux URL: $LINUX_URL"
-            exit 1
-          fi
-          
-          # Generate latest.json with proper JSON escaping
-          jq -n \
-            --arg version "$VERSION_NUMBER" \
-            --arg notes "${{ github.event.release.body }}" \
-            --arg pub_date "$RELEASE_DATE" \
-            --arg windows_url "$WINDOWS_URL" \
-            --arg macos_intel_url "$MACOS_INTEL_URL" \
-            --arg macos_arm_url "$MACOS_ARM_URL" \
-            --arg linux_url "$LINUX_URL" \
-            '{
-              version: $version,
-              notes: $notes,
-              pub_date: $pub_date,
-              platforms: {
-                "windows-x86_64": { url: $windows_url },
-                "darwin-x86_64": { url: $macos_intel_url },
-                "darwin-aarch64": { url: $macos_arm_url },
-                "linux-x86_64": { url: $linux_url }
-              }
-            }' > latest.json
-          
-          # Upload latest.json to release
-          gh release upload "${{ github.event.release.tag_name }}" latest.json --clobber
+      - name: Download updater signatures
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.sig' --dir updater-signatures
+
+      - name: Generate manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NOTES: ${{ github.event.release.body }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          release = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/tags/{tag}"],
+              text=True,
+          ))
+          assets = release["assets"]
+
+          def find_asset(suffix, arch=None):
+              matches = [
+                  asset for asset in assets
+                  if asset["name"].endswith(suffix) and (arch is None or f"_{arch}" in asset["name"])
+              ]
+              if len(matches) != 1:
+                  raise SystemExit(f"Expected one release asset ending in {suffix!r}, found {[a['name'] for a in matches]}")
+              return matches[0]
+
+          def platform(bundle_suffix, arch=None):
+              bundle = find_asset(bundle_suffix, arch)
+              signature_path = Path("updater-signatures") / f"{bundle['name']}.sig"
+              if not signature_path.is_file():
+                  raise SystemExit(f"Missing updater signature: {signature_path}")
+              signature = signature_path.read_text(encoding="utf-8").strip()
+              if not signature:
+                  raise SystemExit(f"Empty updater signature: {signature_path}")
+              url = bundle.get("browser_download_url", "")
+              if not url.startswith("https://"):
+                  raise SystemExit(f"Invalid updater bundle URL: {url!r}")
+              return {"url": url, "signature": signature}
+
+          published_at = release.get("published_at") or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+          manifest = {
+              "version": tag.removeprefix("v"),
+              "notes": os.environ.get("RELEASE_NOTES", ""),
+              "pub_date": published_at,
+              "platforms": {
+                  "windows-x86_64": platform(".msi"),
+                  "darwin-x86_64": platform(".app.tar.gz", "x86_64"),
+                  "darwin-aarch64": platform(".app.tar.gz", "aarch64"),
+                  "linux-x86_64": platform(".AppImage"),
+              },
+          }
+          Path("latest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload updater manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" latest.json --clobber --repo "$GITHUB_REPOSITORY"

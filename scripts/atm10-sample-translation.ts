@@ -5,11 +5,27 @@ import { TranslationService } from "../src/lib/services/translation-service";
 import { applyQuestTranslations, extractQuestText } from "../src/lib/services/quest-text";
 import { DEFAULT_CHUNK_SIZE, DEFAULT_MODELS, normalizeProvider, PROVIDER_DEFINITIONS } from "../src/lib/types/config";
 
-// The real app provides Tauri logging commands. The sample runner uses the
-// same service outside Tauri, so make those optional logs no-ops in Bun.
+const apiUsageLogs: string[] = [];
+const apiErrorLogs: string[] = [];
+const redactSecret = (message: string) => message
+  .replace(/\bsk-[A-Za-z0-9_-]+/g, "[REDACTED]")
+  .replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]");
+
+// The real app provides Tauri logging commands. Capture token-only diagnostics
+// from the same adapter when running this service outside Tauri.
 if (typeof window === "undefined") {
-  (globalThis as unknown as { window: { __TAURI_INTERNALS__: { invoke: () => Promise<undefined> } } }).window = {
-    __TAURI_INTERNALS__: { invoke: async () => undefined }
+  (globalThis as unknown as { window: { __TAURI_INTERNALS__: { invoke: (command: string, args?: { message?: string }) => Promise<undefined> } } }).window = {
+    __TAURI_INTERNALS__: {
+      invoke: async (command, args) => {
+        if (command === "log_api_request" && args?.message?.includes("(tokens: input=")) {
+          apiUsageLogs.push(args.message);
+        }
+        if (command === "log_error" && args?.message) {
+          apiErrorLogs.push(redactSecret(args.message));
+        }
+        return undefined;
+      }
+    }
   };
 }
 
@@ -18,7 +34,7 @@ if (!instanceRoot) {
   throw new Error("MML_ATM10_ROOT must point to the ATM10 SKY minecraft directory.");
 }
 
-const provider = normalizeProvider(process.env.MML_PROVIDER || "gemini");
+const provider = normalizeProvider(process.env.MML_PROVIDER || "openai");
 const providerDefinition = PROVIDER_DEFINITIONS[provider];
 const environmentVariables = [
   providerDefinition.environmentVariable,
@@ -55,7 +71,7 @@ async function translate(content: Record<string, string>, fileName: string): Pro
     const chunkErrors = completed.chunks
       .map((chunk) => chunk.error)
       .filter((error): error is string => Boolean(error));
-    throw new Error(`Translation failed for ${fileName}: ${chunkErrors.join(" | ") || completed.error || "unknown error"}`);
+    throw new Error(`Translation failed for ${fileName}: ${chunkErrors.join(" | ") || completed.error || "unknown error"}${apiErrorLogs.length ? `\n${apiErrorLogs.join("\n")}` : ""}`);
   }
   return service.getCombinedTranslatedContent(job.id);
 }
@@ -105,6 +121,7 @@ if (Object.keys(questRoundTrip.content).length !== Object.keys(questBundle.conte
 console.log(JSON.stringify({
   provider,
   model,
+  apiUsageLogs,
   outputRoot,
   mod: {
     source: modSourcePath,

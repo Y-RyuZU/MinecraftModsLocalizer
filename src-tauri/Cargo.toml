@@ -1,12 +1,16 @@
 [package]
 name = "app"
 version = "3.0.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "AI-powered desktop translator for Minecraft mods and quests"
+authors = ["Y-RyuZU"]
+license = "MIT"
+repository = "https://github.com/Y-RyuZU/MinecraftModsLocalizer"
 edition = "2021"
 rust-version = "1.77.2"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,7 +28,7 @@ log = "0.4"
 tauri = { version = "2.11.1", features = [] }
 tauri-plugin-log = "2.7.0"
 tauri-plugin-dialog = "2.7.0"
-tauri-plugin-shell = "2.2.1"
+tauri-plugin-opener = "2.5.5"
 tauri-plugin-updater = "2.9.0"
 zip = "0.6"
 walkdir = "2.3"
