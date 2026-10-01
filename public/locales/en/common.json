@@ -32,7 +32,7 @@
     "baseUrlPlaceholder": "Enter base URL",
     "model": "Model",
     "providerBatchApi": "Use this provider's Batch API",
-    "providerBatchApiHint": "Off by default. When enabled, jobs with one or more chunks use the Batch API. Processing is asynchronous and may take up to 24 hours; keep the app open until results are saved. Provider pricing, model support, and retention rules apply.",
+    "providerBatchApiHint": "Your choice is saved as the next default for this provider. Batch processing can take time. After restarting, resume result retrieval from this tab. Closing immediately after submission may leave the outcome unknown and require checking the provider dashboard.",
     "modelPlaceholder": "Enter model name",
     "maxRetries": "Max Retries",
     "maxRetriesPlaceholder": "Enter max retries",
@@ -117,7 +117,8 @@
     },
     "providerConfiguration": "{{provider}} Configuration",
     "showApiKey": "Show API key",
-    "hideApiKey": "Hide API key"
+    "hideApiKey": "Hide API key",
+    "advanced": "Advanced settings (usually unchanged)"
   },
   "tabs": {
     "mods": "Mods",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "Download releases",
-    "debugLogs": "Debug Logs"
+    "debugLogs": "Debug Logs",
+    "guide": "How to use"
   },
   "warnings": {
     "allModsAlreadyTranslated": "All selected mods already have translations",

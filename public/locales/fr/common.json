@@ -117,7 +117,8 @@
     "apiKeyLoaded": "Clé API chargée depuis l’environnement",
     "apiKeyNotFound": "Clé API introuvable",
     "providerBatchApi": "Utiliser l’API Batch de ce fournisseur",
-    "providerBatchApiHint": "Désactivé par défaut. Une fois activé, même un seul bloc utilise Batch. Le traitement peut prendre 24 heures. Gardez l’application ouverte jusqu’à l’enregistrement. Tarifs, modèles et conservation dépendent du fournisseur."
+    "providerBatchApiHint": "Votre choix devient la valeur par défaut pour ce fournisseur. Les lots prennent du temps. Reprenez ici après redémarrage. Fermer juste après l’envoi peut laisser un état inconnu à vérifier chez le fournisseur.",
+    "advanced": "Paramètres avancés (généralement inchangés)"
   },
   "tabs": {
     "mods": "Mods",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "Télécharger les versions",
-    "debugLogs": "Journaux de débogage"
+    "debugLogs": "Journaux de débogage",
+    "guide": "Guide d’utilisation"
   },
   "warnings": {
     "allModsAlreadyTranslated": "Tous les mods sélectionnés ont déjà des traductions",

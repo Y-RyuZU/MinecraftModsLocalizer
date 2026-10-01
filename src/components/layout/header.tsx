@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+import { toast } from 'sonner';
 import { Bug } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageSwitcher } from '@/components/theme/language-switcher';
@@ -16,7 +18,7 @@ interface HeaderProps {
 }
 
 export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
-  const { t } = useAppTranslation();
+  const { t, i18n } = useAppTranslation();
   const [isUpdateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -83,6 +85,13 @@ export function Header({ onDebugLogClick, onHistoryClick }: HeaderProps) {
             </h1>
           </div>
           <div className="flex items-center gap-4">
+            <Button variant="outline" onClick={async () => {
+              const url = `https://github.com/Y-RyuZU/MinecraftModsLocalizer/blob/main/docs/${i18n.language.startsWith('ja') ? 'ja/' : ''}getting-started.md`;
+              try {
+                if (isTauri()) await invoke('open_external_url', { url });
+                else window.open(url, '_blank', 'noopener,noreferrer');
+              } catch { toast.error(t('translationStart.openFailed')); }
+            }}>{t('header.guide')}</Button>
             <UpdateNotificationButton
               hasUpdate={updateInfo?.updateAvailable || false}
               onClick={handleUpdateClick}

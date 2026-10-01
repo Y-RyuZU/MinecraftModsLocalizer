@@ -190,6 +190,9 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
             </div>
           </div>
 
+          <details className="col-span-2">
+            <summary className="cursor-pointer text-sm font-medium">{t("settings.advanced")}</summary>
+            <div className="mt-4 grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">{t("settings.maxRetries")}</label>
             <Input
@@ -241,6 +244,8 @@ export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
               {t('settings.availableVariables', { language: '{language}', line_count: '{line_count}', content: '{content}' })}
             </p>
           </div>
+            </div>
+          </details>
         </div>
       </CardContent>
     </Card>

@@ -117,7 +117,8 @@
     "apiKeyLoaded": "Chiave API caricata dall’ambiente",
     "apiKeyNotFound": "Chiave API non trovata",
     "providerBatchApi": "Usa l’API Batch di questo provider",
-    "providerBatchApiHint": "Disattivata per impostazione predefinita. Se attiva, anche un solo blocco usa Batch. Può richiedere 24 ore. Lascia l’app aperta fino al salvataggio. Valgono tariffe, modelli e conservazione del provider."
+    "providerBatchApiHint": "La scelta viene salvata come impostazione predefinita per questo fornitore. I batch richiedono tempo. Riprendi qui dopo il riavvio. Chiudere subito dopo l’invio può lasciare un esito sconosciuto da verificare presso il fornitore.",
+    "advanced": "Impostazioni avanzate (di solito invariate)"
   },
   "tabs": {
     "mods": "Mod",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "Scarica le versioni",
-    "debugLogs": "Registri di debug"
+    "debugLogs": "Registri di debug",
+    "guide": "Guida all’uso"
   },
   "warnings": {
     "allModsAlreadyTranslated": "Tutte le mod selezionate hanno già traduzioni",

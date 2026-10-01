@@ -10,7 +10,7 @@ A cross-platform desktop app for AI-powered Minecraft mod and modpack localizati
 
 **Start here:** [Download](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases) · [First translation and troubleshooting](docs/getting-started.md) · [API key setup](docs/api-key-setup.md) · [日本語ガイド](docs/ja/getting-started.md)
 
-This README describes v3 in development. The latest public release remains v2.1.3 until v3.0.0 is published; its interface and download names differ.
+This README describes v3. Check the version on the download page. Use the v3 installer when upgrading from v2.
 
 ![v3 English interface preview](docs/assets/v3-mods-en.png)
 

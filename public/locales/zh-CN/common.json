@@ -117,7 +117,8 @@
     "apiKeyLoaded": "已从环境变量加载 API 密钥",
     "apiKeyNotFound": "未找到 API 密钥",
     "providerBatchApi": "使用此提供商的 Batch API",
-    "providerBatchApiHint": "默认关闭。启用后，即使只有一个分块也使用 Batch。处理可能需要最多 24 小时，请保持应用开启直到保存完成。价格、模型支持和保留规则由提供商决定。"
+    "providerBatchApiHint": "您的选择将保存为此提供商下次使用的默认方式。 批处理可能需要较长时间。重启后可从此标签页恢复。提交后立即关闭可能导致状态未知，需要到服务商处确认。",
+    "advanced": "高级设置（通常无需修改）"
   },
   "tabs": {
     "mods": "模组",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "下载版本",
-    "debugLogs": "调试日志"
+    "debugLogs": "调试日志",
+    "guide": "使用指南"
   },
   "warnings": {
     "allModsAlreadyTranslated": "所有选中的模组都已有翻译",

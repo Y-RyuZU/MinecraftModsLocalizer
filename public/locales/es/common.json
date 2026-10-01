@@ -117,7 +117,8 @@
     "apiKeyLoaded": "Clave API cargada desde el entorno",
     "apiKeyNotFound": "No se encontró la clave API",
     "providerBatchApi": "Usar la API Batch de este proveedor",
-    "providerBatchApiHint": "Desactivado por defecto. Al activarlo, incluso un bloque usa Batch. Puede tardar hasta 24 horas. Mantén la aplicación abierta hasta guardar. Se aplican las tarifas, los modelos y la conservación del proveedor."
+    "providerBatchApiHint": "Tu elección se guarda como valor predeterminado para este proveedor. Los lotes pueden tardar. Reanuda aquí después de reiniciar. Cerrar justo después del envío puede dejar un estado desconocido que debe comprobarse con el proveedor.",
+    "advanced": "Ajustes avanzados (normalmente sin cambios)"
   },
   "tabs": {
     "mods": "Modificaciones",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "Descargar versiones",
-    "debugLogs": "Registros de depuración"
+    "debugLogs": "Registros de depuración",
+    "guide": "Guía de uso"
   },
   "warnings": {
     "allModsAlreadyTranslated": "Todos los mods seleccionados ya tienen traducciones",

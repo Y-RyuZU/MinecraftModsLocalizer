@@ -117,7 +117,8 @@
     "apiKeyLoaded": "API-Schlüssel aus Umgebung geladen",
     "apiKeyNotFound": "API-Schlüssel nicht gefunden",
     "providerBatchApi": "Batch API dieses Anbieters verwenden",
-    "providerBatchApiHint": "Standardmäßig aus. Aktiviert werden auch einzelne Blöcke per Batch verarbeitet. Dies kann bis zu 24 Stunden dauern. App bis zum Speichern geöffnet lassen. Preise, Modellunterstützung und Aufbewahrung richten sich nach dem Anbieter."
+    "providerBatchApiHint": "Ihre Wahl wird für diesen Anbieter als nächster Standard gespeichert. Batches benötigen Zeit. Nach einem Neustart hier fortsetzen. Direkt nach dem Senden kann der Status unbekannt sein; dann beim Anbieter prüfen.",
+    "advanced": "Erweiterte Einstellungen (normalerweise unverändert)"
   },
   "tabs": {
     "mods": "Mods",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "Download-Versionen",
-    "debugLogs": "Debug-Protokolle"
+    "debugLogs": "Debug-Protokolle",
+    "guide": "Anleitung"
   },
   "warnings": {
     "allModsAlreadyTranslated": "Alle ausgewählten Mods haben bereits Übersetzungen",

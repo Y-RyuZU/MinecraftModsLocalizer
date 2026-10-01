@@ -2,11 +2,11 @@
 
 [English](getting-started.md) | [日本語](ja/getting-started.md) | [README](../README.md)
 
-This guide describes the v3 desktop interface. Start with one small mod and check the result in Minecraft before translating a whole pack. The browser preview cannot read your Minecraft files; use the installed desktop app.
+This guide describes the v3 desktop interface. Choose the content you want to read: [quests](#translate-a-packs-quests), [mod names](#prepare-a-small-first-run), or [guidebooks](#translate-a-guidebook). Try one target and check it in Minecraft before increasing the selection. The browser preview cannot read your Minecraft files; use the installed desktop app.
 
 ## Install the right download
 
-Open [GitHub Releases](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases) and check the version heading. Until v3.0.0 is published, the latest public release is v2.1.3 and its interface and download names differ from this guide.
+Open the [v3 download page](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/tag/v3.0.0) and expand Assets. Use the installed desktop app. The app header’s **How to use** button opens this guide.
 
 | System | v3 download |
 | --- | --- |
@@ -26,7 +26,7 @@ The Windows `.exe` installer automatically uses the OS language from the ten bun
 3. Open the gear button **Settings**, choose **LLM Settings**, then set the provider, API key, and model. Click **Save Settings**. Saving settings does not test the key or confirm billing access.
 4. In **Mods**, click **Select Profile**. Select the actual game folder containing `mods` and `config`. For Prism Launcher this is usually `instances/<instance>/minecraft`. Use the launcher's folder-opening option to locate it.
 5. Choose the translation language and click **Scan**. Select just one mod in the table, then click **Translate**. Header language changes the interface; the language beside **Translate** changes the game text.
-6. Wait for the progress/log dialog to finish. Confirm that it reports a completed translation, with no failed chunks. Keep the output path shown in the log.
+6. In the confirmation dialog, choose Standard API for a small first check, or Batch for a larger workload when you can wait. Click **Start translation** to submit requests. Batch may take up to 24 hours. Wait for the progress/log dialog to finish. Confirm that it reports a completed translation, with no failed chunks. Keep the output path shown in the log.
 7. Start Minecraft with that same instance. Open **Options → Resource Packs**, enable the generated pack under `resourcepacks`, and place it above packs that contain competing translations. Choose the matching game language.
 8. Find an item or block from the selected mod. Seeing its translated name in game is the first success checkpoint. Only then increase the selection.
 
@@ -37,6 +37,10 @@ Scan in **Quests**, select a target language and files, then click **Translate**
 If you close the app while Batch is waiting, reopen the same tab and choose **Resume Batch results**. MML restores the original selection and settings and retrieves the saved provider job. Keep the source files unchanged. Once saved, follow the completion screen's instructions and check the same quest in Minecraft.
 
 A connection loss immediately after submission can leave the submission outcome unknown. MML stops instead of automatically resubmitting; check the provider dashboard. Results may also expire at the provider. Standard API jobs cannot resume after restarting.
+
+## Translate a guidebook
+
+Complete the same API and game-folder setup as above. In **Guidebooks**, select the target language, scan, and choose a supported Patchouli book. Click **Translate**, choose the method, and start. Check the completion screen and output folder; the translation is added to the mod JAR with an original `.mml-original.bak` backup beside it. Updating the mod may remove it. Restart Minecraft in the target language, and open the same page. Check headings, text layout, and links as well as the translated body. Books using unsupported formats may not appear.
 
 ## Choose the right translation mode
 

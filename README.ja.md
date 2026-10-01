@@ -2,15 +2,15 @@
 
 [English](README.md) | [日本語](README.ja.md)
 
-AIを使ってMinecraftのModやModpackを翻訳する、Windows・macOS・Linux対応のデスクトップアプリです。Modの言語ファイル、FTB Quests、Patchouliのガイドブック、対応するJSON/SNBTファイルを日本語などの任意の言語へ翻訳します。Tauri、Rust、TypeScriptで開発しています。
+AIを使ってMinecraftのModやModpackを翻訳する、Windows・macOS・Linux対応のデスクトップアプリです。Modの言語ファイル、FTB Quests、Patchouliのガイドブック、対応するJSON/SNBTファイルを日本語などの任意の言語へ翻訳します。
 
 **はじめに：** [ダウンロード](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases) · [最初の翻訳とトラブル対処](docs/ja/getting-started.md) · [APIキー取得](docs/ja/api-key-setup.md) · [English guide](docs/getting-started.md)
 
-このREADMEは開発中のv3を説明しています。v3.0.0公開まではv2.1.3が公開最新版で、画面や配布ファイル名は異なります。
+このREADMEはv3の操作を説明しています。ダウンロード先でバージョンを確認してください。v2からはv3のインストーラーで導入します。
 
 ![v3の日本語画面プレビュー](docs/assets/v3-mods-ja.png)
 
-現行フロントエンドのプレビューです。デスクトップのファイル操作・実際の翻訳完了は別途検証します。[短いチュートリアル](docs/ja/getting-started.md#modを1つ翻訳する)。
+[クエスト・Mod・ガイドブックの使い方](docs/ja/getting-started.md)。
 
 ## 主な機能
 
@@ -34,7 +34,7 @@ AI翻訳を使うには、プロバイダーのAPIキーが必要です。**Sett
 - [Tauri Updaterとリリース署名の管理（日本語）](docs/ja/updater.md)
 - [Updater and release signing (English)](docs/updater.md)
 
-API利用料は各プロバイダーから請求され、ChatGPTのサブスクリプションとは別です。APIキーをアプリへ共通埋め込みすることはありません。現在のバージョンでは、設定に入力したキーはOSの資格情報ストアで暗号化されず、ローカルのアプリ設定`config.json`に保存されます。PCのユーザーアカウントを保護し、このファイルを共有・同期しないでください。
+API利用料は各プロバイダーから請求され、ChatGPTのサブスクリプションとは別です。APIキーをアプリへ共通埋め込みすることはありません。APIキーはOSの資格情報ストアに保存され、設定保存時に`config.json`から除かれます。設定ファイルは共有しないでください。
 
 ## かんたんな使い方
 
@@ -42,7 +42,7 @@ API利用料は各プロバイダーから請求され、ChatGPTのサブスク�
 
 1. 歯車の**Settings**を開き、**LLM Settings**でプロバイダーとモデルを選び、自分のAPIキーを入力して保存します。[APIキーの取得ガイド](docs/ja/api-key-setup.md)も参照してください。API利用料が発生するため、最初は少数の項目で試してください。
 2. **Mods / Quests / Guidebooks / Custom Files**から対象を選びます。**Select Profile Directory**では`mods`と`config`が入っているMinecraftのゲームディレクトリを指定します。Prism Launcherなら通常`instances/<インスタンス名>/minecraft`で、その一つ上のインスタンスフォルダではありません。
-3. 翻訳先の言語を選び、**Scan**で対象を読み込んで一覧を確認し、翻訳したい項目を選んで**Translate**を押します。進捗・ログ画面で処理状況とエラーを確認できます。
+3. 翻訳先の言語を選び、**Scan**で対象を読み込んで一覧を確認し、翻訳したい項目を選んで**Translate**を押します。確認画面でBatchまたは通常APIを選び、**翻訳を開始**を押します。進捗・ログ画面で処理状況とエラーを確認できます。
 4. Mod翻訳は選択したゲームディレクトリの`resourcepacks`にリソースパックとして作成されます。Minecraftの**Options → Resource Packs**で有効にしてください。クエストなどプロファイル内のファイルを書き換える前に、インスタンスをバックアップしてください。
 
 ## 開発

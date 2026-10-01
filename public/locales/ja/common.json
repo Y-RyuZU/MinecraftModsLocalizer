@@ -32,7 +32,7 @@
     "baseUrlPlaceholder": "ベースURLを入力",
     "model": "モデル",
     "providerBatchApi": "このプロバイダーのBatch APIを使う",
-    "providerBatchApiHint": "初期状態ではオフです。オンにすると1チャンク以上のジョブでBatch APIを使用します。非同期処理のため最大24時間かかる場合があります。結果保存までアプリを開いてください。料金、モデル対応、データ保持は各プロバイダーの規則に従います。",
+    "providerBatchApiHint": "選んだ方式をこのプロバイダーの次回の初期値として保存します。 Batchは完了まで時間がかかります。再起動後はこのタブから結果取得を再開できます。送信直後に終了すると送信結果が不明になり、プロバイダー側の確認が必要になる場合があります。",
     "modelPlaceholder": "モデル名を入力",
     "maxRetries": "最大リトライ数",
     "maxRetriesPlaceholder": "最大リトライ数を入力",
@@ -117,7 +117,8 @@
     },
     "providerConfiguration": "{{provider}}の設定",
     "showApiKey": "APIキーを表示",
-    "hideApiKey": "APIキーを隠す"
+    "hideApiKey": "APIキーを隠す",
+    "advanced": "詳細設定（通常は変更不要）"
   },
   "tabs": {
     "mods": "Mod",
@@ -333,7 +334,8 @@
   },
   "header": {
     "downloadReleases": "リリースをダウンロード",
-    "debugLogs": "デバッグログ"
+    "debugLogs": "デバッグログ",
+    "guide": "使い方"
   },
   "warnings": {
     "allModsAlreadyTranslated": "選択したすべてのModに翻訳が存在します",
