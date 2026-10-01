@@ -1,5 +1,20 @@
 # v3.0.0 リリース判定と作業順
 
+## v3.0.0 正式公開（2026年10月1日）
+
+[正式リリース](https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/tag/v3.0.0)を公開。対象は `10e8ab099eaf96a77f250b6fa84795910f9ff4a6`。Latestに設定済みで、draft / prerelease はともにfalse。
+
+- [CI 36855376992](https://github.com/Y-RyuZU/MinecraftModsLocalizer/actions/runs/36855376992)：テスト、Windows x64、Linux x64、Intel Mac、Apple Silicon Mac、成果物検査がすべて成功。
+- 16ファイルを公開。6つの更新用署名、trusted comment、改変時の署名拒否、4環境の更新manifest、全SHA256を検証。
+- 未ログインのHTTP取得で最新manifestとWindowsインストーラーを確認し、取得ファイルがCI成果物と一致することを確認。
+- 日英の使い方を更新。日本語はクエスト・Mod・ガイドブック別に、導入からゲーム内確認まで案内。アプリに「使い方」ボタンを追加。日本語ガイドへの遷移をブラウザで確認。
+- 設定のプロンプトなどを詳細設定へ折りたたみ、旧Batch説明と日本語READMEのAPIキー保存先の誤記を修正。
+- 今回の画面確認はブラウザプレビュー。公開インストーラーによる各OSの新規導入・自動更新・実Batch再起動、および初見ユーザーの操作テストまで完了したという意味ではない。過去のATM10 SKY実翻訳・ゲーム内表示確認は引き続き有効。
+- YouTubeへの連絡とSNS投稿は実施していない。
+
+以下は公開前の履歴。現在の公開状態はこの節を優先する。
+
+
 ## 現在の判定・過去説明の訂正（2026年10月1日）
 
 ### 実翻訳とissue

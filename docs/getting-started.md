@@ -68,7 +68,7 @@ Complete the same API and game-folder setup as above. In **Guidebooks**, select 
 | Everything is skipped | Check **Skip when translations exist** and whether the selected target language is already present. |
 | Export succeeded but game text is English | Check the output path, active instance, game language, and resource-pack priority. Quest/custom files may require their expected filename and location. |
 | Interrupted translation | Inspect completed output and logs before retrying. Do not assume all modes resume from the interruption point. Restore the instance backup if needed. |
-| Update check cannot find a manifest | v2.1.3 has no Tauri `latest.json`. Use the release page for installation until a signed v3 release is published. |
+| Update check cannot find a manifest | Check your internet connection. If the problem persists, install manually from the v3 release page. Upgrading from v2 also requires manual installation. |
 
 ## Ask for help
 
