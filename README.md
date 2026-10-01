@@ -14,7 +14,7 @@ This README describes v3. Check the version on the download page. Use the v3 ins
 
 ![v3 English interface preview](docs/assets/v3-mods-en.png)
 
-Current frontend preview; desktop file access and a completed translation are verified separately. [Short tutorial](docs/getting-started.md#prepare-a-small-first-run).
+Current frontend preview; desktop file access and a completed translation are verified separately. [Short tutorial](docs/getting-started.md).
 
 ## Features
 
