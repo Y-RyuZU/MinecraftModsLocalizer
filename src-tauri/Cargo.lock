@@ -103,7 +103,7 @@ checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
 name = "app"
-version = "3.0.2"
+version = "3.0.3"
 dependencies = [
  "chrono",
  "dirs 5.0.1",

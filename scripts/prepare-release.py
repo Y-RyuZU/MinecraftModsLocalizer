@@ -77,16 +77,23 @@ def prepare(artifacts, output, repository, tag):
             signature_file = Path(f"{bundle}.sig")
             if signature_file.is_file():
                 assets.append((signature_file, name + ".sig"))
-            if suffix == updater_suffix:
+            if suffix == updater_suffix or (platform == "windows-x86_64" and suffix == ".exe"):
                 signature = signature_file.read_text(encoding="utf-8").strip()
                 # Tauri signatures contain base64-encoded minisign text, never a URL.
                 decoded = base64.b64decode(signature, validate=True)
                 if not decoded.startswith(b"untrusted comment:"):
                     raise ValueError(f"Invalid Tauri signature format: {signature_file}")
-                platforms[platform] = {
+                entry = {
                     "url": f"https://github.com/{repository}/releases/download/{quote(tag, safe='')}/{quote(name, safe='')}",
                     "signature": signature,
                 }
+                if platform == "windows-x86_64":
+                    platforms[f"{platform}-{'nsis' if suffix == '.exe' else 'msi'}"] = entry
+                    # Unbundled/older clients use the installer offered by the guide.
+                    if suffix == ".exe":
+                        platforms[platform] = entry
+                else:
+                    platforms[platform] = entry
     names = [name for _, name in assets]
     if len(set(names)) != len(names):
         raise ValueError("Duplicate release asset names")

@@ -40,7 +40,7 @@ class ReleaseTests(unittest.TestCase):
                             archive.addfile(info, io.BytesIO(content))
                 else:
                     bundle.write_bytes(b"fixture")
-                if suffix == updater:
+                if suffix == updater or suffix == ".exe":
                     Path(f"{bundle}.sig").write_text(base64.b64encode(b"untrusted comment: test fixture\n").decode())
 
     def prepare(self):
@@ -49,7 +49,10 @@ class ReleaseTests(unittest.TestCase):
     def test_manifest_urls_and_checksums_cover_staged_assets(self):
         self.prepare()
         manifest = json.loads((self.output / "latest.json").read_text())
-        self.assertEqual(set(manifest["platforms"]), set(release.TARGETS))
+        self.assertEqual(set(manifest["platforms"]), set(release.TARGETS) | {"windows-x86_64-nsis", "windows-x86_64-msi"})
+        self.assertTrue(manifest["platforms"]["windows-x86_64-nsis"]["url"].endswith(".exe"))
+        self.assertTrue(manifest["platforms"]["windows-x86_64-msi"]["url"].endswith(".msi"))
+        self.assertEqual(manifest["platforms"]["windows-x86_64"], manifest["platforms"]["windows-x86_64-nsis"])
         for entry in manifest["platforms"].values():
             bundle = self.output / unquote(entry["url"].rsplit("/", 1)[1])
             self.assertTrue(bundle.is_file())

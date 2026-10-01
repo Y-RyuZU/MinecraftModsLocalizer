@@ -27,8 +27,10 @@ export function UpdateDialog({ open, onOpenChange, updateInfo }: UpdateDialogPro
         },
         t
       );
+      onOpenChange(false);
     } catch (error) {
       console.error("Failed to auto-update:", error);
+    } finally {
       setIsUpdating(false);
       setUpdateProgress(null);
     }
@@ -54,7 +56,7 @@ export function UpdateDialog({ open, onOpenChange, updateInfo }: UpdateDialogPro
   }
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={open => { if (!isUpdating) onOpenChange(open); }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center gap-3">
