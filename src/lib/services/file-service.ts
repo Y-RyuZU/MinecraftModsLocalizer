@@ -89,9 +89,8 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
   
   switch (command) {
     case "open_directory_dialog":
-      // Return a mock path with the NATIVE_DIALOG prefix to match what the Rust backend would return
       console.log("[MOCK] Simulating native dialog selection");
-      return `NATIVE_DIALOG:/mock/path` as unknown as T;
+      return `/mock/path` as unknown as T;
       
     case "get_mod_files":
       return [

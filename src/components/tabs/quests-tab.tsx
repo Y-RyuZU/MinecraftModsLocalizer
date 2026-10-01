@@ -3,7 +3,9 @@
 import { useAppTranslation } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
+import { getRelativePath } from "@/lib/utils/path-utils";
 import { FileService } from "@/lib/services/file-service";
+import { getQuestDisplayName } from "@/lib/services/quest-display";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import {
@@ -80,6 +82,12 @@ export function QuestsTab() {
     // Get Better Quests files
     const betterQuestFiles = await FileService.getBetterQuestFiles(directory);
 
+    const reads = new Map<string, Promise<string>>();
+    const read = (path: string) => {
+      if (!reads.has(path)) reads.set(path, FileService.readTextFile(path));
+      return reads.get(path)!;
+    };
+
     // Create translation targets
     const targets: TranslationTarget[] = [];
 
@@ -87,20 +95,16 @@ export function QuestsTab() {
     for (let i = 0; i < ftbQuestFiles.length; i++) {
       const questFile = ftbQuestFiles[i];
       try {
-        // In a real implementation, we would parse the quest file to get more information
-        // For now, we'll just use the file path
-        const fileName = questFile.split('/').pop() || "unknown";
+        const name = await getQuestDisplayName(questFile, read);
         const questNumber = i + 1;
 
         // Calculate relative path by removing the selected directory part
-        const relativePath = questFile.startsWith(directory)
-          ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
-          : questFile;
+        const relativePath = getRelativePath(questFile, directory);
 
         targets.push({
           type: "ftb",
           id: `ftb-quest-${questNumber}`,
-          name: `${/[\\/]config[\\/](?:ftbquests|ftb_quests)[\\/]quests[\\/]/i.test(questFile) ? "FTB Quest" : "Quest Language"} ${questNumber}: ${fileName}`,
+          name,
           path: questFile,
           relativePath: relativePath,
           selected: true
@@ -114,20 +118,16 @@ export function QuestsTab() {
     for (let i = 0; i < betterQuestFiles.length; i++) {
       const questFile = betterQuestFiles[i];
       try {
-        // In a real implementation, we would parse the quest file to get more information
-        // For now, we'll just use the file path
-        const fileName = questFile.split('/').pop() || "unknown";
+        const name = await getQuestDisplayName(questFile, read);
         const questNumber = i + 1;
 
         // Calculate relative path by removing the selected directory part
-        const relativePath = questFile.startsWith(directory)
-          ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
-          : questFile;
+        const relativePath = getRelativePath(questFile, directory);
 
         targets.push({
           type: "better",
           id: `better-quest-${questNumber}`,
-          name: `Better Quest ${questNumber}: ${fileName}`,
+          name,
           path: questFile,
           relativePath: relativePath,
           selected: true
