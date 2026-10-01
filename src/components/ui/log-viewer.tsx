@@ -11,7 +11,7 @@ interface LogEntry {
   level: string;
   message: string;
   source?: string;
-  process_type?: string;
+  processType?: string;
 }
 
 // Log viewer props
@@ -68,8 +68,8 @@ export function LogViewer({
       message += `[${log.level}] `;
     }
     
-    if (showSource && log.source) {
-      message += `[${log.source}] `;
+    if (showSource && (log.source || log.processType)) {
+      message += `[${log.source || log.processType}] `;
     }
     
     message += log.message;

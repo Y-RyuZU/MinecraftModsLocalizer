@@ -11,6 +11,7 @@ describe('Realistic Progress Tracking E2E', () => {
   beforeAll(() => {
     // Setup service with realistic configuration
     service = new TranslationService({
+      chunkSize: 50,
       llmConfig: {
         provider: 'openai',
         apiKey: 'test-key',
@@ -59,7 +60,7 @@ describe('Realistic Progress Tracking E2E', () => {
 
     // Create job
     const job = service.createJob(largeMod, 'ja_jp', 'RealMod.jar');
-    
+
     // Should create 10 chunks with default chunk size 50 (500 entries / 50 = 10)
     expect(job.chunks.length).toBe(10);
 
@@ -81,7 +82,7 @@ describe('Realistic Progress Tracking E2E', () => {
       // Simulate API call delay (100-300ms per chunk for testing)
       const delay = 100 + Math.random() * 200;
       await new Promise(resolve => setTimeout(resolve, delay));
-      
+
       // Return mock translated content
       const translated: Record<string, string> = {};
       for (const [key, value] of Object.entries(content)) {
@@ -165,7 +166,7 @@ describe('Realistic Progress Tracking E2E', () => {
     expect(progressUpdates[0]).toBe(5);   // 1/20 = 5%
     expect(progressUpdates[1]).toBe(10);  // 2/20 = 10%
     expect(progressUpdates[2]).toBe(15);  // 3/20 = 15%
-    
+
     // Verify we get all 20 updates
     expect(progressUpdates.length).toBe(20);
     expect(progressUpdates[19]).toBe(100);

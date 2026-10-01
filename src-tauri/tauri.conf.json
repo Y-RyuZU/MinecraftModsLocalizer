@@ -42,9 +42,6 @@
     }
   },
   "plugins": {
-    "shell": {
-      "open": true
-    },
     "updater": {
       "endpoints": [
         "https://github.com/Y-RyuZU/MinecraftModsLocalizer/releases/latest/download/latest.json"

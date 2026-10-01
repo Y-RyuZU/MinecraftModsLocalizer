@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
-import { AppConfig, DEFAULT_MODELS, DEFAULT_API_CONFIG } from "@/lib/types/config";
+import { Download, ExternalLink, Eye, EyeOff, KeyRound } from "lucide-react";
+import {
+  AppConfig,
+  DEFAULT_MODELS,
+  DEFAULT_API_CONFIG,
+  normalizeProvider,
+  PROVIDER_DEFINITIONS,
+  ProviderId
+} from "@/lib/types/config";
 import { useAppTranslation } from "@/lib/i18n";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "@/lib/types/llm";
 
@@ -15,276 +24,222 @@ interface LLMSettingsProps {
   setConfig: (config: AppConfig) => void;
 }
 
+const providerOptions: ProviderId[] = ["openai", "anthropic", "gemini"];
 
 export function LLMSettings({ config, setConfig }: LLMSettingsProps) {
-  const { t, ready } = useAppTranslation();
+  const { t } = useAppTranslation();
   const [showApiKey, setShowApiKey] = useState(false);
-  
-  // Initialize apiKeys if not present
-  useEffect(() => {
-    if (!config.llm.apiKeys) {
-      const newConfig = { ...config };
-      newConfig.llm = {
-        ...newConfig.llm,
-        apiKeys: {
-          openai: "",
-          anthropic: "",
-          google: ""
-        }
-      };
-      setConfig(newConfig);
-    }
-  }, [config, setConfig]);
-  
-  // Get current API key based on selected provider
-  const getCurrentApiKey = () => {
-    const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
-    // Use provider-specific key if available, fallback to legacy apiKey
-    return config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
-  };
-  
-  // Set API key for current provider
-  const setCurrentApiKey = (value: string) => {
-    const newConfig = { ...config };
-    const provider = newConfig.llm.provider as keyof typeof newConfig.llm.apiKeys;
-    
-    // Ensure apiKeys object exists
-    if (!newConfig.llm.apiKeys) {
-      newConfig.llm.apiKeys = {
-        openai: "",
-        anthropic: "",
-        google: ""
-      };
-    }
-    
-    // Set provider-specific key
-    newConfig.llm.apiKeys[provider] = value;
-    
-    // Also update legacy apiKey for backward compatibility
-    newConfig.llm.apiKey = value;
-    
-    setConfig(newConfig);
-  };
-  
-  // Set default model when provider changes
-  const handleProviderChange = (value: string) => {
-    const newConfig = { ...config };
-    newConfig.llm.provider = value;
-    
-    // Set default model for the selected provider
-    if (DEFAULT_MODELS[value as keyof typeof DEFAULT_MODELS]) {
-      newConfig.llm.model = DEFAULT_MODELS[value as keyof typeof DEFAULT_MODELS];
-    }
-    
-    // Always update the legacy apiKey to match the provider-specific key (even if empty)
-    const provider = value as keyof typeof newConfig.llm.apiKeys;
-    if (newConfig.llm.apiKeys) {
-      newConfig.llm.apiKey = newConfig.llm.apiKeys[provider] || "";
-    }
-    
-    setConfig(newConfig);
-    
-    // Reset the show/hide state when switching providers
-    setShowApiKey(false);
-  };
-  
-  // Set default model on initial load if not set
-  useEffect(() => {
-    if (!config.llm.model && config.llm.provider) {
-      const defaultModel = DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS];
-      if (defaultModel) {
-        const newConfig = { ...config };
-        newConfig.llm.model = defaultModel;
-        setConfig(newConfig);
+  const [apiKeyMessage, setApiKeyMessage] = useState<string | null>(null);
+  const provider = normalizeProvider(config.llm.provider);
+  const providerDefinition = PROVIDER_DEFINITIONS[provider];
+  const providerApiKey = config.llm.apiKeys?.[provider] || (config.llm.provider === provider ? config.llm.apiKey : "");
+  const defaultModel = DEFAULT_MODELS[provider];
+
+  const updateLLM = (patch: Partial<AppConfig["llm"]>) => {
+    setConfig({
+      ...config,
+      llm: {
+        ...config.llm,
+        ...patch
       }
+    });
+  };
+
+  const handleProviderChange = (value: string) => {
+    const nextProvider = normalizeProvider(value);
+    const nextApiKey = config.llm.apiKeys?.[nextProvider] || "";
+    updateLLM({
+      provider: nextProvider,
+      apiKey: nextApiKey,
+      model: DEFAULT_MODELS[nextProvider]
+    });
+    setApiKeyMessage(null);
+  };
+
+  useEffect(() => {
+    if (!config.llm.model) {
+      updateLLM({ model: defaultModel });
     }
-  }, [config, setConfig]);
-  
-  // Don't render until translations are loaded
-  if (!ready) {
-    return <div className="animate-pulse h-96 bg-muted rounded-lg" />;
-  }
-  
-  // Get provider display name
-  const getProviderDisplayName = (provider: string) => {
-    switch (provider) {
-      case "openai":
-        return t('settings.providers.openai');
-      case "anthropic":
-        return t('settings.providers.anthropic');
-      case "google":
-        return t('settings.providers.google');
-      default:
-        return provider;
+    // The default is only filled when a config has no model yet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.llm.model, defaultModel]);
+
+  const handleOpenProviderConsole = async () => {
+    try {
+      await invoke("open_external_url", { url: providerDefinition.apiKeyUrl });
+    } catch {
+      window.open(providerDefinition.apiKeyUrl, "_blank", "noopener,noreferrer");
     }
   };
-  
+
+  const handleLoadEnvironmentKey = async () => {
+    try {
+      const key = await invoke<string | null>("get_api_key_from_environment", { provider });
+      if (!key) {
+        setApiKeyMessage(`${providerDefinition.environmentVariable}: ${t("settings.apiKeyNotFound") || "not found"}`);
+        return;
+      }
+
+      updateLLM({
+        apiKey: key,
+        apiKeys: { ...config.llm.apiKeys, [provider]: key }
+      });
+      setApiKeyMessage(t("settings.apiKeyLoaded") || "API key loaded from environment");
+    } catch (error) {
+      console.error("Failed to load API key from environment:", error);
+      setApiKeyMessage(t("settings.apiKeyNotFound") || "Could not load API key from environment");
+    }
+  };
+
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>{t('settings.llmSettings')}</CardTitle>
+        <CardTitle>{t("settings.llmSettings")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Provider Configuration Group */}
-        <div className="border rounded-lg p-4 space-y-4 bg-muted/50">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {t('settings.providerConfiguration', { provider: getProviderDisplayName(config.llm.provider) })}
-          </h3>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {/* Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.provider')}</label>
-              <Select 
-                value={config.llm.provider}
-                onValueChange={handleProviderChange}
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings.provider")}</label>
+            <Select value={provider} onValueChange={handleProviderChange}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("settings.selectProvider")} />
+              </SelectTrigger>
+              <SelectContent>
+                {providerOptions.map((id) => (
+                  <SelectItem key={id} value={id}>
+                    {PROVIDER_DEFINITIONS[id].name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings.apiKey")}</label>
+            <div className="relative flex items-center">
+              <Input
+                type={showApiKey ? "text" : "password"}
+                value={providerApiKey}
+                onChange={(event) => {
+                  const key = event.target.value;
+                  updateLLM({
+                    apiKey: key,
+                    apiKeys: { ...config.llm.apiKeys, [provider]: key }
+                  });
+                  setApiKeyMessage(null);
+                }}
+                placeholder={t("settings.apiKeyPlaceholder")}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={t(showApiKey ? 'settings.hideApiKey' : 'settings.showApiKey')}
+                className="absolute right-2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowApiKey(!showApiKey)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('settings.selectProvider')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="openai">{t('settings.providers.openai')}</SelectItem>
-                  <SelectItem value="anthropic">{t('settings.providers.anthropic')}</SelectItem>
-                  <SelectItem value="google">{t('settings.providers.google')}</SelectItem>
-                </SelectContent>
-              </Select>
+                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
-            
-            {/* API Key for current provider */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                {t('settings.apiKey')} - {getProviderDisplayName(config.llm.provider)}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={handleOpenProviderConsole}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                {t("settings.getApiKey") || "Get API key"}
+                <ExternalLink className="ml-2 h-3 w-3" />
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={handleLoadEnvironmentKey}>
+                <Download className="mr-2 h-4 w-4" />
+                {t("settings.loadApiKeyFromEnvironment") || "Load from environment"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("settings.environmentVariable") || "Environment variable"}: {providerDefinition.environmentVariable}
+              {providerDefinition.alternativeEnvironmentVariable && ` (${providerDefinition.alternativeEnvironmentVariable})`}
+            </p>
+            {apiKeyMessage && <p className="text-xs text-muted-foreground">{apiKeyMessage}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings.model")}</label>
+            <Input
+              value={config.llm.model || defaultModel}
+              onChange={(event) => updateLLM({ model: event.target.value })}
+              placeholder={defaultModel || t("settings.modelPlaceholder")}
+            />
+          </div>
+
+          <div className="col-span-2 flex items-start gap-2">
+            <input
+              id={`${provider}-batch-api`}
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-primary"
+              checked={config.llm.batchApiByProvider?.[provider] ?? false}
+              onChange={(event) => updateLLM({
+                batchApiByProvider: {
+                  ...config.llm.batchApiByProvider,
+                  [provider]: event.target.checked
+                }
+              })}
+            />
+            <div className="space-y-1">
+              <label htmlFor={`${provider}-batch-api`} className="text-sm font-medium">
+                {t("settings.providerBatchApi") || "Use provider Batch API"}
               </label>
-              <div className="relative flex items-center">
-                <Input 
-                  type={showApiKey ? "text" : "password"}
-                  value={getCurrentApiKey()}
-                  onChange={(e) => setCurrentApiKey(e.target.value)}
-                  placeholder={t('settings.apiKeyPlaceholder')}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  aria-label={t(showApiKey ? 'settings.hideApiKey' : 'settings.showApiKey')}
-                >
-                  {showApiKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
               <p className="text-xs text-muted-foreground">
-                {t('settings.apiKeyProviderHint', { provider: getProviderDisplayName(config.llm.provider) })}
-              </p>
-            </div>
-            
-            {/* Model for current provider */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.model')}</label>
-              <Input 
-                value={config.llm.model || DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS] || ""}
-                onChange={(e) => {
-                  const newConfig = { ...config };
-                  newConfig.llm.model = e.target.value;
-                  setConfig(newConfig);
-                }}
-                placeholder={DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS] || t('settings.modelPlaceholder')}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('settings.modelProviderHint', { 
-                  provider: getProviderDisplayName(config.llm.provider),
-                  defaultModel: DEFAULT_MODELS[config.llm.provider as keyof typeof DEFAULT_MODELS] 
-                })}
+                {t("settings.providerBatchApiHint") || "Off by default. Asynchronous bulk translation is used only when a job has multiple chunks; it may take up to 24 hours. Keep the app open until results are saved."}
               </p>
             </div>
           </div>
-        </div>
-        
-        {/* Advanced Settings */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {t('settings.advancedSettings')}
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.maxRetries')}</label>
-              <Input 
-                type="number"
-                value={config.llm.maxRetries ?? DEFAULT_API_CONFIG.maxRetries}
-                onChange={(e) => {
-                  const newConfig = { ...config };
-                  newConfig.llm.maxRetries = parseInt(e.target.value);
-                  setConfig(newConfig);
-                }}
-                placeholder={DEFAULT_API_CONFIG.maxRetries.toString()}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.temperature')}</label>
-              <Input 
-                type="number"
-                value={config.llm.temperature ?? DEFAULT_API_CONFIG.temperature}
-                onChange={(e) => {
-                  const newConfig = { ...config };
-                  newConfig.llm.temperature = parseFloat(e.target.value);
-                  setConfig(newConfig);
-                }}
-                placeholder={DEFAULT_API_CONFIG.temperature.toString()}
-                min="0"
-                max="2"
-                step="0.1"
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('settings.temperatureHint')}
-              </p>
-            </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings.maxRetries")}</label>
+            <Input
+              type="number"
+              value={config.llm.maxRetries ?? DEFAULT_API_CONFIG.maxRetries}
+              onChange={(event) => updateLLM({ maxRetries: Number.parseInt(event.target.value, 10) || 0 })}
+              placeholder={DEFAULT_API_CONFIG.maxRetries.toString()}
+              min="0"
+            />
           </div>
-        </div>
-        
-        {/* Prompts */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            {t('settings.prompts')}
-          </h3>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.systemPrompt')}</label>
-              <Textarea 
-                value={config.llm.systemPrompt || DEFAULT_SYSTEM_PROMPT}
-                onChange={(e) => {
-                  const newConfig = { ...config };
-                  newConfig.llm.systemPrompt = e.target.value;
-                  setConfig(newConfig);
-                }}
-                placeholder={t('settings.systemPromptPlaceholder')}
-                rows={6}
-                className="resize-vertical"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('settings.userPrompt')}</label>
-              <Textarea 
-                value={config.llm.userPrompt || DEFAULT_USER_PROMPT}
-                onChange={(e) => {
-                  const newConfig = { ...config };
-                  newConfig.llm.userPrompt = e.target.value;
-                  setConfig(newConfig);
-                }}
-                placeholder={t('settings.userPromptPlaceholder')}
-                rows={4}
-                className="resize-vertical"
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('settings.availableVariables')}
-              </p>
-            </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("settings.temperature") || "Temperature"}</label>
+            <Input
+              type="number"
+              value={config.llm.temperature ?? DEFAULT_API_CONFIG.temperature}
+              onChange={(event) => updateLLM({ temperature: Number.parseFloat(event.target.value) || 0 })}
+              placeholder={DEFAULT_API_CONFIG.temperature.toString()}
+              min="0"
+              max="2"
+              step="0.1"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.temperatureHint") || "Controls randomness (0.0-2.0)."}
+            </p>
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">{t("settings.systemPrompt") || "System Prompt"}</label>
+            <Textarea
+              value={config.llm.systemPrompt || DEFAULT_SYSTEM_PROMPT}
+              onChange={(event) => updateLLM({ systemPrompt: event.target.value })}
+              placeholder={t("settings.systemPromptPlaceholder") || "Enter system prompt..."}
+              rows={6}
+              className="resize-vertical"
+            />
+          </div>
+
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">{t("settings.userPrompt") || "User Prompt Template"}</label>
+            <Textarea
+              value={config.llm.userPrompt || DEFAULT_USER_PROMPT}
+              onChange={(event) => updateLLM({ userPrompt: event.target.value })}
+              placeholder={t("settings.userPromptPlaceholder") || "Enter user prompt template..."}
+              rows={4}
+              className="resize-vertical"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('settings.availableVariables', { language: '{language}', line_count: '{line_count}', content: '{content}' })}
+            </p>
           </div>
         </div>
       </CardContent>

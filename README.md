@@ -30,7 +30,7 @@ Current frontend preview; desktop file access and a completed translation are ve
 - **Provider Choice**: Connect your own OpenAI, Anthropic, or Google Gemini API key
 - **Signed Updates**: Tauri's updater verifies signed update artifacts before installation
 - **Progress Tracking**: Real-time progress display with interrupt capability
-- **Batch Processing**: Efficiently processes large mod packs with chunking
+- **Batch API**: Optional asynchronous translation through OpenAI, Anthropic, or Gemini; configure it separately for each provider
 
 The app interface can be selected in English, Japanese, Simplified Chinese, Korean, German, French, Spanish, Italian, Brazilian Portuguese, or Russian. Additional UI translations are machine-generated and may contain awkward wording; corrections are welcome. Translation output is separate and supports built-in and custom Minecraft languages.
 
@@ -44,7 +44,7 @@ Download the latest release for your platform from the [Releases](https://github
 
 To translate with an AI provider, create your own API key and enter it in **Settings → LLM Settings**. [OpenAI key setup](docs/api-key-setup.md) · [日本語ガイド](docs/ja/api-key-setup.md)
 
-API usage is billed by the provider and is separate from ChatGPT subscriptions. The key is never embedded in the app. In the current version, a key entered in Settings is saved in the local application `config.json` without OS-keychain encryption; protect your OS user account and do not share or sync that file. See the [API key security guide](docs/api-key-setup.md#where-the-key-is-stored).
+API usage is billed by the provider and is separate from ChatGPT subscriptions. The desktop app saves keys in the operating system credential store and removes them from `config.json` on save. See the [API key security guide](docs/api-key-setup.md#where-the-key-is-stored).
 
 The app checks for published releases and installs updates only after Tauri verifies their signatures. See [Updater and release maintenance](docs/updater.md) if you maintain this project.
 

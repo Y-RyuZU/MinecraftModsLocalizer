@@ -294,7 +294,7 @@ describe('Translation Runner', () => {
 
       // Translation should succeed but output writing should fail
       expect(job.chunks[0].status).toBe('completed');
-      expect(job.status).toBe('completed');
+      expect(job.status).toBe('failed');
       expect(writeOutputMock).toHaveBeenCalledTimes(1);
     });
   });

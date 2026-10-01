@@ -17,6 +17,7 @@ import {useAppTranslation} from "@/lib/i18n";
 import {TargetLanguageSelector} from "@/components/tabs/target-language-selector";
 import {TranslationService} from "@/lib/services/translation-service";
 import {invoke} from "@tauri-apps/api/core";
+import { normalizeProvider } from "@/lib/types/config";
 import type {AppConfig} from "@/lib/types/config";
 import {useAppStore} from "@/lib/store";
 import {toast} from "sonner";
@@ -56,14 +57,16 @@ export interface TranslationTabProps {
         key: string;
         label: string;
         className?: string;
-        render?: (target: TranslationTarget) => ReactNode;
+        render?: (target: TranslationTarget, context: { targetLanguage: string; updateTarget: (patch: Partial<TranslationTarget>) => void }) => ReactNode;
     }[];
 
     // State and handlers
     config: AppConfig;
+    prepareTranslationTargets?: (targets: TranslationTarget[], language: string) => TranslationTarget[] | Promise<TranslationTarget[]>;
+    confirmBeforeTranslate?: (targets: TranslationTarget[], language: string) => boolean | Promise<boolean>;
     translationTargets: TranslationTarget[];
     setTranslationTargets: (targets: TranslationTarget[]) => void;
-    updateTranslationTarget: (id: string, selected: boolean) => void;
+    updateTranslationTarget: (target: Pick<TranslationTarget, "id" | "path">, selected: boolean) => void;
     isTranslating: boolean;
     progress: number;
     wholeProgress: number;
@@ -121,6 +124,8 @@ export function TranslationTab({
 
                                    // State and handlers
                                    config,
+                                   prepareTranslationTargets,
+                                   confirmBeforeTranslate,
                                    translationTargets,
                                    setTranslationTargets,
                                    updateTranslationTarget,
@@ -301,48 +306,37 @@ export function TranslationTab({
                 return;
             }
             
-            // Pre-check for existing translations if skipExistingTranslations is enabled
-            if ((config.translation.skipExistingTranslations ?? true) && tabType === 'mods') {
-                let existingCount = 0;
-                for (const target of selectedTargets) {
-                    try {
-                        const exists = await FileService.invoke<boolean>("check_mod_translation_exists", {
-                            modPath: target.path,
-                            modId: target.id,
-                            targetLanguage: targetLanguage
-                        });
-                        if (exists) {
-                            existingCount++;
-                        }
-                    } catch (error) {
-                        console.error(`Failed to check existing translation for ${target.name}:`, error);
-                    }
-                }
-                
-                // Show warning if all selected mods already have translations
-                if (existingCount === selectedTargets.length) {
-                    toast.warning(t('warnings.allModsAlreadyTranslated', 'All selected mods already have translations'), {
-                        description: t('warnings.noNewTranslationsNeeded', 'No new translations will be created.'),
-                        duration: 5000
-                    });
-                    setTranslating(false);
-                    return;
-                } else if (existingCount > 0) {
-                    toast.info(t('info.someModsAlreadyTranslated', { existing: existingCount, total: selectedTargets.length }), {
-                        description: t('info.willSkipExisting', 'These will be skipped.'),
-                        duration: 3000
-                    });
-                }
+            const targetsToTranslate = prepareTranslationTargets
+                ? await prepareTranslationTargets(selectedTargets, targetLanguage)
+                : selectedTargets;
+            if (!targetsToTranslate.length) {
+                setError(t('errors.allTargetsAlreadyTranslated', { language: targetLanguage }));
+                setTranslating(false);
+                return;
+            }
+            if (confirmBeforeTranslate && !(await confirmBeforeTranslate(targetsToTranslate, targetLanguage))) {
+                setTranslating(false);
+                return;
             }
 
             // Get provider-specific API key
-            const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
-            const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+            const provider = normalizeProvider(config.llm.provider);
+            let apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+            if (!apiKey.trim()) apiKey = await invoke<string | null>('get_api_key_from_environment', { provider }).catch(() => null) || '';
+            if (!apiKey.trim()) {
+                setError(t('errors.apiKeyNotConfigured'));
+                setTranslating(false);
+                return;
+            }
             
             // Create a translation service
             const translationService = new TranslationService({
                 llmConfig: {
-                    provider: config.llm.provider,
+                    provider,
+                    useBatchApi: config.llm.batchApiByProvider?.[provider] ?? false,
+                    systemPrompt: config.llm.systemPrompt,
+                    userPrompt: config.llm.userPrompt,
+                    temperature: config.llm.temperature,
                     apiKey: apiKey,
                     baseUrl: config.llm.baseUrl,
                     model: config.llm.model,
@@ -400,24 +394,29 @@ export function TranslationTab({
 
             // Clear previous results and set total targets
             setTranslationResults([]);
-            setTotalTargets(selectedTargets.length);
+            setTotalTargets(targetsToTranslate.length);
 
             // Create a wrapper for addTranslationResult to collect results locally
             const collectResults = (result: TranslationResult) => {
                 setTranslationResults(prev => [...prev, result]);
-                addTranslationResult(result);
+                addTranslationResult({ ...result, sessionId });
             };
 
             // Call the custom translate function (do not await, so UI can update and cancel is possible)
             void onTranslate(
-                selectedTargets,
+                targetsToTranslate,
                 targetLanguage,
                 translationService,
                 setCurrentJobId,
                 collectResults,
                 actualPath,
                 sessionId
-            ).finally(() => {
+            ).catch((error: unknown) => {
+                wasCancelledRef.current = true;
+                setError(`${t('errors.translationFailed')}: ${error instanceof Error ? error.message : String(error)}`);
+                setTranslating(false);
+            }).finally(() => {
+                setTranslating(false);
                 // Show completion dialog only if translation was not cancelled
                 if (!wasCancelledRef.current) {
                     setTimeout(() => {
@@ -681,14 +680,14 @@ export function TranslationTab({
                                             <TableCell>
                                                 <Checkbox
                                                     checked={target.selected}
-                                                    onCheckedChange={(checked) => updateTranslationTarget(target.id, !!checked)}
+                                                    onCheckedChange={(checked) => updateTranslationTarget(target, !!checked)}
                                                     disabled={isScanning || isTranslating}
                                                 />
                                             </TableCell>
                                             {tableColumns.map((column) => (
                                                 <TableCell key={`${target.id}-${column.key}`}
                                                            className={column.className}>
-                                                    {column.render ? column.render(target) : target[column.key as keyof TranslationTarget] as ReactNode}
+                                                    {column.render ? column.render(target, { targetLanguage: tempTargetLanguage ?? '', updateTarget: patch => setTranslationTargets(translationTargets.map(item => item.id === target.id && item.path === target.path ? { ...item, ...patch } : item)) }) : target[column.key as keyof TranslationTarget] as ReactNode}
                                                 </TableCell>
                                             ))}
                                         </TableRow>

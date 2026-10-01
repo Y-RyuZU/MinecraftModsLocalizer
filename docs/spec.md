@@ -1,5 +1,7 @@
 # Minecraft Mod & Quest Translation Tool Specification
 
+> Historical design document; parts of this proposal no longer match the shipped application. For current behavior and verified commands, see [README](../README.md), [Testing](TESTING.md), and [Development](DEVELOPMENT.md).
+
 ## 1. Project Overview
 
 ### 1.1 Purpose

@@ -1,4 +1,12 @@
-import { AppConfig, DEFAULT_CONFIG, STORAGE_KEYS, DEFAULT_MODELS, LLMProviderConfig } from "../types/config";
+import {
+  AppConfig,
+  DEFAULT_CONFIG,
+  STORAGE_KEYS,
+  DEFAULT_MODELS,
+  LLMProviderConfig,
+  normalizeProvider,
+  ApiKeys
+} from "../types/config";
 import { SupportedLanguage } from "../types/llm";
 
 // Flag to indicate if we're in a server-side rendering environment
@@ -36,7 +44,7 @@ const isTauri = !isSSR && isTauriEnvironment();
  * Mock invoke function for development
  * Only used when Tauri is not available
  */
-const mockInvoke = async <T>(command: string): Promise<T> => {
+const mockInvoke = async <T>(command: string, _args?: Record<string, unknown>): Promise<T> => {
   console.log(`[MOCK] Invoking command: ${command}`);
   
   if (command === "load_config") {
@@ -93,7 +101,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
   // In SSR, always use mock
   if (isSSR) {
     console.log(`[SSR] Using mock for command: ${command}`);
-    return mockInvoke<T>(command);
+    return mockInvoke<T>(command, args);
   }
   
   const tauriAvailable = isTauri && tauriInvokeFunction;
@@ -108,7 +116,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
       throw error;
     }
   } else {
-    return mockInvoke<T>(command);
+    return mockInvoke<T>(command, args);
   }
 };
 
@@ -150,10 +158,7 @@ export class ConfigService {
         }
       }
       
-      // Migrate legacy apiKey to provider-specific keys
-      this.config = ConfigService.migrateApiKeys(this.config);
       this.config.llm = migrateRetiredDefaultModel(this.config.llm);
-      
       this.loaded = true;
     } catch (error) {
       console.error("Failed to load configuration:", error);
@@ -168,9 +173,6 @@ export class ConfigService {
    */
   public static async save(config: AppConfig): Promise<void> {
     try {
-      // Update current configuration
-      this.config = config;
-      
       if (isTauri) {
         // Convert to snake_case and save to Tauri backend
         const backendConfig = convertToSnakeCase(config);
@@ -181,17 +183,10 @@ export class ConfigService {
         // Save to localStorage for development
         localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(config));
       }
-      
-      // Clear the loaded flag to force reload on next access
-      // This ensures that any components using getConfig() will get the updated values
-      this.loaded = false;
-      
-      // Immediately reload the config to ensure consistency
-      await this.load();
-      
+      this.config = config;
     } catch (error) {
       console.error("Failed to save configuration:", error);
-      throw error; // Re-throw to let caller handle the error
+      throw error;
     }
   }
 
@@ -285,43 +280,6 @@ export class ConfigService {
     
     return result as T;
   }
-
-  /**
-   * Migrate legacy apiKey to provider-specific keys
-   * @param config Configuration to migrate
-   * @returns Migrated configuration
-   */
-  private static migrateApiKeys(config: AppConfig): AppConfig {
-    // Initialize apiKeys if not present
-    if (!config.llm.apiKeys) {
-      config.llm.apiKeys = {
-        openai: "",
-        anthropic: "",
-        google: ""
-      };
-    }
-    
-    // Migrate legacy apiKey to provider-specific key
-    if (config.llm.apiKey && config.llm.provider) {
-      const provider = config.llm.provider as keyof typeof config.llm.apiKeys;
-      if (!config.llm.apiKeys[provider]) {
-        config.llm.apiKeys[provider] = config.llm.apiKey;
-      }
-    }
-    
-    return config;
-  }
-
-}
-
-/** Only replace the retired defaults shipped by MML; preserve custom endpoints/models. */
-export function migrateRetiredDefaultModel(llm: LLMProviderConfig): LLMProviderConfig {
-  if (llm.baseUrl) return llm;
-  if ((llm.provider === 'anthropic' && llm.model === 'claude-3-5-haiku-20241022') ||
-      (llm.provider === 'google' && llm.model === 'gemini-1.5-flash')) {
-    return { ...llm, model: DEFAULT_MODELS[llm.provider] };
-  }
-  return llm;
 }
 
 /**
@@ -330,14 +288,17 @@ export function migrateRetiredDefaultModel(llm: LLMProviderConfig): LLMProviderC
  * @returns Backend config in snake_case
  */
 export function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
+  const provider = normalizeProvider(config.llm.provider);
+  const apiKey = config.llm.apiKeys?.[provider] || config.llm.apiKey || "";
+
   return {
     llm: {
-      provider: config.llm.provider,
-      api_key: config.llm.apiKey || "", // Keep for backward compatibility
-      api_keys: config.llm.apiKeys || {
-        openai: "",
-        anthropic: "",
-        google: ""
+      provider,
+      api_key: apiKey,
+      api_keys: {
+        openai: config.llm.apiKeys?.openai || "",
+        anthropic: config.llm.apiKeys?.anthropic || "",
+        gemini: config.llm.apiKeys?.gemini || config.llm.apiKeys?.google || ""
       },
       base_url: config.llm.baseUrl,
       model: config.llm.model,
@@ -345,7 +306,12 @@ export function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
       prompt_template: config.llm.promptTemplate,
       system_prompt: config.llm.systemPrompt,
       user_prompt: config.llm.userPrompt,
-      temperature: config.llm.temperature
+      temperature: config.llm.temperature,
+      batch_api_by_provider: {
+        openai: config.llm.batchApiByProvider?.openai ?? false,
+        anthropic: config.llm.batchApiByProvider?.anthropic ?? false,
+        gemini: config.llm.batchApiByProvider?.gemini ?? false
+      }
     },
     translation: {
       mod_chunk_size: config.translation.modChunkSize,
@@ -361,10 +327,13 @@ export function convertToSnakeCase(config: AppConfig): Record<string, unknown> {
     ui: {
       theme: config.ui.theme
     },
-    update: {
-      check_on_startup: config.update?.checkOnStartup,
-      last_dismissed_version: config.update?.lastDismissedVersion,
-      last_check_time: config.update?.lastCheckTime
+    update: { check_on_startup: config.update?.checkOnStartup, last_dismissed_version: config.update?.lastDismissedVersion, last_check_time: config.update?.lastCheckTime },
+    paths: {
+      minecraft_dir: config.paths?.minecraftDir,
+      mods_dir: config.paths?.modsDir,
+      resource_packs_dir: config.paths?.resourcePacksDir,
+      config_dir: config.paths?.configDir,
+      logs_dir: config.paths?.logsDir
     }
   };
 }
@@ -379,26 +348,34 @@ export function convertFromSnakeCase(backendConfig: Record<string, unknown>): Ap
   const translation = backendConfig.translation as Record<string, unknown> | undefined;
   const ui = backendConfig.ui as Record<string, unknown> | undefined;
   const update = backendConfig.update as Record<string, unknown> | undefined;
-
-  // Parse api_keys if it exists
-  const apiKeys = llm?.api_keys as Record<string, string> | undefined;
+  const paths = backendConfig.paths as Record<string, unknown> | undefined;
+  const backendApiKeys = (llm?.api_keys || {}) as Record<string, unknown>;
+  const backendBatchSettings = (llm?.batch_api_by_provider || {}) as Record<string, unknown>;
+  const apiKeys: ApiKeys = {
+    openai: (backendApiKeys.openai as string) || "",
+    anthropic: (backendApiKeys.anthropic as string) || "",
+    gemini: (backendApiKeys.gemini as string) || (backendApiKeys.google as string) || ""
+  };
+  const provider = normalizeProvider(llm?.provider as string | undefined);
+  const legacyApiKey = (llm?.api_key as string) || "";
 
   return {
     llm: {
-      provider: (llm?.provider as string) || "",
-      apiKey: (llm?.api_key as string) || "", // Keep for backward compatibility
-      apiKeys: apiKeys || {
-        openai: "",
-        anthropic: "",
-        google: ""
-      },
+      provider,
+      apiKey: apiKeys[provider] || legacyApiKey,
+      apiKeys,
       baseUrl: llm?.base_url as string | undefined,
       model: llm?.model as string | undefined,
       maxRetries: (llm?.max_retries as number) ?? DEFAULT_CONFIG.llm.maxRetries,
       promptTemplate: llm?.prompt_template as string | undefined,
       systemPrompt: llm?.system_prompt as string | undefined,
       userPrompt: llm?.user_prompt as string | undefined,
-      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature
+      temperature: (llm?.temperature as number) ?? DEFAULT_CONFIG.llm.temperature,
+      batchApiByProvider: {
+        openai: backendBatchSettings.openai === true,
+        anthropic: backendBatchSettings.anthropic === true,
+        gemini: backendBatchSettings.gemini === true
+      }
     },
     translation: {
       modChunkSize: (translation?.mod_chunk_size as number) || DEFAULT_CONFIG.translation.modChunkSize,
@@ -407,17 +384,20 @@ export function convertFromSnakeCase(backendConfig: Record<string, unknown>): Ap
       additionalLanguages: (translation?.custom_languages as SupportedLanguage[]) || DEFAULT_CONFIG.translation.additionalLanguages,
       resourcePackName: (translation?.resource_pack_name as string) || DEFAULT_CONFIG.translation.resourcePackName,
       useTokenBasedChunking: (translation?.use_token_based_chunking as boolean) ?? DEFAULT_CONFIG.translation.useTokenBasedChunking,
-      maxTokensPerChunk: (translation?.max_tokens_per_chunk as number) || DEFAULT_CONFIG.translation.maxTokensPerChunk,
+      maxTokensPerChunk: (translation?.max_tokens_per_chunk as number) ?? DEFAULT_CONFIG.translation.maxTokensPerChunk,
       fallbackToEntryBased: (translation?.fallback_to_entry_based as boolean) ?? DEFAULT_CONFIG.translation.fallbackToEntryBased,
-      skipExistingTranslations: (translation?.skip_existing_translations as boolean) ?? DEFAULT_CONFIG.translation.skipExistingTranslations
+      skipExistingTranslations: (translation?.skip_existing_translations as boolean) ?? true
     },
     ui: {
       theme: (ui?.theme as "light" | "dark" | "system") || DEFAULT_CONFIG.ui.theme
     },
-    update: {
-      checkOnStartup: (update?.check_on_startup as boolean) ?? DEFAULT_CONFIG.update?.checkOnStartup ?? false,
-      lastDismissedVersion: update?.last_dismissed_version as string | undefined,
-      lastCheckTime: update?.last_check_time as number | undefined
+    update: { checkOnStartup: (update?.check_on_startup as boolean) ?? true, lastDismissedVersion: update?.last_dismissed_version as string | undefined, lastCheckTime: update?.last_check_time as number | undefined },
+    paths: {
+      minecraftDir: (paths?.minecraft_dir as string) || (DEFAULT_CONFIG.paths?.minecraftDir ?? ""),
+      modsDir: (paths?.mods_dir as string) || (DEFAULT_CONFIG.paths?.modsDir ?? ""),
+      resourcePacksDir: (paths?.resource_packs_dir as string) || (DEFAULT_CONFIG.paths?.resourcePacksDir ?? ""),
+      configDir: (paths?.config_dir as string) || (DEFAULT_CONFIG.paths?.configDir ?? ""),
+      logsDir: (paths?.logs_dir as string) || (DEFAULT_CONFIG.paths?.logsDir ?? "")
     }
   };
 }
@@ -429,4 +409,13 @@ export function convertFromSnakeCase(backendConfig: Record<string, unknown>): Ap
  */
 function isObject(item: unknown): item is Record<string, unknown> {
   return Boolean(item) && typeof item === "object" && !Array.isArray(item);
+}
+
+export function migrateRetiredDefaultModel(llm: LLMProviderConfig): LLMProviderConfig {
+  if (llm.baseUrl) return llm;
+  if ((llm.provider === 'anthropic' && llm.model === 'claude-3-5-haiku-20241022') ||
+      (['google', 'gemini'].includes(llm.provider) && llm.model === 'gemini-1.5-flash')) {
+    return { ...llm, model: DEFAULT_MODELS[normalizeProvider(llm.provider)] };
+  }
+  return llm;
 }

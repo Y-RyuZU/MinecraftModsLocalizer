@@ -25,7 +25,7 @@ describe('FileService.writeLangFile with format support', () => {
       language: 'ja_jp',
       content: JSON.stringify({ 'item.test': 'テストアイテム' }),
       dir: '/path/to/resourcepack',
-      format: 'json'
+      fileExtension: 'json'
     });
   });
 
@@ -46,7 +46,7 @@ describe('FileService.writeLangFile with format support', () => {
       language: 'ja_jp',
       content: JSON.stringify({ 'item.test': 'テストアイテム' }),
       dir: '/path/to/resourcepack',
-      format: 'json'
+      fileExtension: 'json'
     });
   });
 
@@ -67,7 +67,7 @@ describe('FileService.writeLangFile with format support', () => {
       language: 'ja_jp',
       content: JSON.stringify({ 'item.test': 'テストアイテム', 'block.test': 'テストブロック' }),
       dir: '/path/to/resourcepack',
-      format: 'lang'
+      fileExtension: 'lang'
     });
   });
 

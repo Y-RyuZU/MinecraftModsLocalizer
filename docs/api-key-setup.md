@@ -21,7 +21,7 @@ The current frontend preview shows the input locations with an empty key field. 
 
 The app's **Model** field accepts a model ID. Confirm availability with the provider's current catalog: [OpenAI](https://developers.openai.com/api/docs/models), [Anthropic](https://platform.claude.com/docs/en/about-claude/models/overview), or [Gemini](https://ai.google.dev/gemini-api/docs/models). A model that worked in an older release may have been retired. For example, the app's previous Claude 3.5 Haiku default was [retired on February 19, 2026](https://platform.claude.com/docs/en/about-claude/model-deprecations).
 
-The v3 defaults are `gpt-4o-mini`, `claude-haiku-4-5-20251001`, and `gemini-3.5-flash-lite`. See the [Anthropic retirement notice](https://platform.claude.com/docs/en/about-claude/model-deprecations) and [Gemini model guidance](https://ai.google.dev/gemini-api/docs/deprecations). Only the exact previous Anthropic/Google defaults are migrated automatically, and only when no custom endpoint is configured. Custom models are preserved.
+The v3 defaults are `gpt-6-luna`, `claude-haiku-4-5-20251001`, and `gemini-3.8-flash`. See the [Anthropic retirement notice](https://platform.claude.com/docs/en/about-claude/model-deprecations) and [Gemini model guidance](https://ai.google.dev/gemini-api/docs/deprecations). Only the exact previous Anthropic/Google defaults are migrated automatically, and only when no custom endpoint is configured. Custom models are preserved.
 
 **Save Settings** stores the configuration; it does not send a test translation. Start with one small mod, check the progress log, and confirm the result in Minecraft using the [first translation guide](getting-started.md). For authentication errors, check the key/provider pairing; for quota errors, check billing and usage; for model errors, check the model ID and account access.
 
@@ -29,6 +29,12 @@ The v3 defaults are `gpt-4o-mini`, `claude-haiku-4-5-20251001`, and `gemini-3.5-
 
 The app does **not** contain a shared API key. A key embedded in an installer or frontend bundle could be extracted and used by anyone, potentially creating charges on the key owner's account.
 
-In the current version, a key entered in Settings is stored as plain text in the app's local `config.json` (under the operating system's application-config directory). It is not encrypted with Windows Credential Manager, macOS Keychain, or a Linux secret service. Protect your OS account, avoid sharing or syncing this file, and revoke the key in the provider console if you suspect it was exposed. OS credential-store integration would be a future security improvement.
+The desktop app saves provider keys in the operating system credential store. Saving settings migrates keys from older `config.json` files and clears the keys from that file. Environment-variable import is also available for each provider. The browser development preview uses localStorage instead; use synthetic keys in previews. Protect your OS account and do not share configuration files or browser storage.
 
 For OpenAI's official guidance, see [Where do I find my API key?](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key) and [Best practices for API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety).
+
+## Enable Batch API
+
+In **Settings → LLM Settings**, choose the provider and model, enable **Use Batch API for this provider**, then save. The setting is independent for OpenAI, Anthropic, and Gemini and defaults to off. Translation uses the selected provider’s asynchronous Batch API, including one-chunk jobs. Invalid batch results may be retried with the regular API, which can incur regular request charges.
+
+Keep the app open until results are saved. Restart/resume of a submitted batch is not implemented. A batch can take up to 24 hours depending on the provider. Saving settings does not submit a request.

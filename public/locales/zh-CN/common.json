@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "{{provider}} 设置",
     "showApiKey": "显示 API 密钥",
-    "hideApiKey": "隐藏 API 密钥"
+    "hideApiKey": "隐藏 API 密钥",
+    "getApiKey": "获取 API 密钥",
+    "loadApiKeyFromEnvironment": "从环境变量加载",
+    "environmentVariable": "环境变量",
+    "apiKeyLoaded": "已从环境变量加载 API 密钥",
+    "apiKeyNotFound": "未找到 API 密钥",
+    "providerBatchApi": "使用此提供商的 Batch API",
+    "providerBatchApiHint": "默认关闭。启用后，即使只有一个分块也使用 Batch。处理可能需要最多 24 小时，请保持应用开启直到保存完成。价格、模型支持和保留规则由提供商决定。"
   },
   "tabs": {
     "mods": "模组",
@@ -166,7 +173,12 @@
     "format": "格式",
     "translation": "翻译",
     "existing": "已有翻译",
-    "new": "未翻译"
+    "new": "未翻译",
+    "existingTranslation": "已有目标语言",
+    "existingTranslationSkipped": "已有 {{language}}；已跳过",
+    "translateAnyway": "仍然翻译",
+    "forceTranslationHint": "从英文重新生成翻译。原文件会一次性备份为 .mml-original.bak，不修改原始 Mod JAR。",
+    "questLanguage": "任务语言文件"
   },
   "progress": {
     "translatingMods": "翻译模组...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "所选目录无效",
     "directorySelectionFailed": "无法选择目录",
     "scanFailed": "扫描失败",
-    "translationFailed": "翻译失败"
+    "translationFailed": "翻译失败",
+    "allTargetsAlreadyTranslated": "所选项目均已有 {{language}}。保留任务翻译；如需替换 Mod 翻译，请选择“仍然翻译”。",
+    "apiKeyNotConfigured": "未配置 API 密钥，应用环境中也没有可用密钥。"
   },
   "info": {
     "translationCancelled": "用户取消翻译",
@@ -220,7 +234,8 @@
     "openLogs": "打开日志",
     "clearLogs": "清除日志",
     "noLogs": "无可用日志",
-    "autoScroll": "自动滚动"
+    "autoScroll": "自动滚动",
+    "desktopOnly": "翻译日志仅在桌面应用中可用。"
   },
   "completion": {
     "completed": "翻译完成",
@@ -329,5 +344,8 @@
     "requiredMod": "请输入模组路径和 ID",
     "checkTranslation": "检查翻译",
     "selectMod": "选择模组 JAR"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "{{count}} 个旧格式任务文件没有独立的语言文件，将直接替换原文。原文件仅备份一次，保存为 .mml-original.bak。这些格式同一时间只能使用一种语言。是否继续？"
   }
 }

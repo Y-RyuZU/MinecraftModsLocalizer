@@ -24,7 +24,7 @@ describe('OpenAIAdapter current JSON contract', () => {
   it('uses the default model and returns content with usage metadata', async () => {
     sdk.create.mockResolvedValue(response());
     const result = await adapter().translate(request);
-    expect(OpenAI).toHaveBeenCalledWith({ apiKey: 'synthetic-key', baseURL: undefined, dangerouslyAllowBrowser: true });
+    expect(OpenAI).toHaveBeenCalledWith({ apiKey: 'synthetic-key', baseURL: undefined, maxRetries: 0, dangerouslyAllowBrowser: true });
     expect(sdk.create).toHaveBeenCalledWith(expect.objectContaining({
       model: DEFAULT_MODELS.openai,
       messages: [expect.objectContaining({ role: 'system' }), expect.objectContaining({ role: 'user', content: expect.stringContaining(JSON.stringify(request.content)) })]
@@ -51,23 +51,10 @@ describe('OpenAIAdapter current JSON contract', () => {
     sdk.create.mockResolvedValue(response(''));
     await expect(adapter().translate(request)).rejects.toThrow('Empty response');
   });
-  it('retries transient failures up to the configured limit', async () => {
-    vi.useFakeTimers();
-    sdk.create.mockRejectedValueOnce(new Error('Network error')).mockResolvedValue(response());
-    const pending = adapter({ maxRetries: 1 }).translate(request);
-    await vi.runAllTimersAsync();
-    expect((await pending).content).toEqual({ 'test.key': 'テスト値' });
-    expect(sdk.create).toHaveBeenCalledTimes(2);
-  });
-  it('honors rate limiting and recovers', async () => {
-    vi.useFakeTimers();
-    const error = new OpenAI.APIError(429, {}, 'Rate limit', new Headers());
-    Object.assign(error, { headers: { 'retry-after': '0' } });
-    sdk.create.mockRejectedValueOnce(error).mockResolvedValue(response());
-    const pending = adapter({ maxRetries: 1 }).translate(request);
-    await vi.runAllTimersAsync();
-    expect((await pending).content).toEqual({ 'test.key': 'テスト値' });
-    expect(sdk.create).toHaveBeenCalledTimes(2);
+  it.each([new Error('Network error'), new OpenAI.APIError(429, {}, 'Rate limit', new Headers())])('leaves retry policy to TranslationService: %s', async error => {
+    sdk.create.mockRejectedValue(error);
+    await expect(adapter({ maxRetries: 3 }).translate(request)).rejects.toBe(error);
+    expect(sdk.create).toHaveBeenCalledTimes(1);
   });
   it.each(['Invalid API key', 'Model not found', 'Persistent error'])('surfaces API errors without losing their cause: %s', async message => {
     sdk.create.mockRejectedValue(new Error(message));
@@ -76,6 +63,6 @@ describe('OpenAIAdapter current JSON contract', () => {
   it('logs cache usage', async () => {
     sdk.create.mockResolvedValue(response());
     await adapter().translate(request);
-    expect(invoke).toHaveBeenCalledWith('log_api_request', { message: expect.stringContaining('cached: 20/50') });
+    expect(invoke).toHaveBeenCalledWith('log_api_request', { message: expect.stringContaining('cached=20') });
   });
 });

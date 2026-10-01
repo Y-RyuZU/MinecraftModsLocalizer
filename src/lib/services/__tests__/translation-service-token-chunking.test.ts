@@ -1,8 +1,11 @@
+/** @jest-environment node */
 /**
  * Translation Service Token-Based Chunking Integration Tests
  */
 
 import { describe, expect, test, beforeEach } from "@jest/globals";
+jest.mock('../../adapters/llm-adapter-factory', () => ({ LLMAdapterFactory: { getAdapter: () => ({ id: 'openai', getMaxChunkSize: () => 100 }) } }));
+
 import { TranslationService, TranslationServiceOptions } from "../translation-service";
 import { LLMConfig } from "../../types/llm";
 

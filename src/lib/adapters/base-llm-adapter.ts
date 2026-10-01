@@ -1,4 +1,4 @@
-import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT } from "../types/llm";
+import { LLMAdapter, LLMConfig, TranslationRequest, TranslationResponse, DEFAULT_LANGUAGES, DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT, JAPANESE_LOCALIZATION_PROMPT } from "../types/llm";
 import { DEFAULT_API_CONFIG } from "../types/config";
 
 /**
@@ -49,28 +49,6 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   }
 
   /**
-   * Get the maximum token limit for this LLM provider
-   * @returns Maximum tokens per chunk
-   */
-  public getMaxTokensPerChunk(): number {
-    // Very conservative limit to prevent token overflow across all models
-    // Individual adapters can override this for model-specific limits
-    return 3000;
-  }
-
-  /**
-   * Get provider-specific token overhead estimation
-   * @returns Token overhead for prompts and formatting
-   */
-  public getTokenOverhead(): { system: number; user: number; response: number } {
-    return {
-      system: 100,
-      user: 50,
-      response: 30
-    };
-  }
-
-  /**
    * Get the maximum number of retries
    * @returns Maximum number of retries
    */
@@ -80,31 +58,30 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
 
   /**
    * Get the system prompt
+   * @param targetLanguage Target language
    * @param customSystemPrompt Optional custom system prompt
    * @returns System prompt
    */
-  protected getSystemPrompt(customSystemPrompt?: string): string {
-    // Use custom system prompt if provided
-    if (customSystemPrompt) {
-      return customSystemPrompt;
-    }
-    
-    // Use config system prompt if available
+  protected getSystemPrompt(targetLanguage: string, systemPromptSupplement?: string): string {
+    let systemPrompt: string;
     if (this.config.systemPrompt) {
-      return this.config.systemPrompt;
-    }
-    
-    // If using legacy promptTemplate, extract system part (everything before user task)
-    if (this.config.promptTemplate) {
+      // Use config system prompt if available
+      systemPrompt = this.config.systemPrompt;
+    } else {
+      // If using legacy promptTemplate, extract system part (everything before user task)
       const userMarker = "Please translate the following";
-      const systemEndIdx = this.config.promptTemplate.indexOf(userMarker);
+      const systemEndIdx = this.config.promptTemplate?.indexOf(userMarker) ?? -1;
       if (systemEndIdx > 0) {
-        return this.config.promptTemplate.substring(0, systemEndIdx).trim();
+        systemPrompt = this.config.promptTemplate!.substring(0, systemEndIdx).trim();
+      } else {
+        systemPrompt = DEFAULT_SYSTEM_PROMPT;
       }
     }
-    
-    // Default system prompt
-    return DEFAULT_SYSTEM_PROMPT;
+
+    if (systemPromptSupplement) systemPrompt += `\n\n${systemPromptSupplement}`;
+    return isJapaneseLanguage(targetLanguage)
+      ? systemPrompt + "\n\n" + JAPANESE_LOCALIZATION_PROMPT
+      : systemPrompt;
   }
 
   /**
@@ -149,14 +126,21 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     customUserPrompt?: string
   ): string {
     const userPromptTemplate = this.getUserPromptTemplate(customUserPrompt);
-    const formatted = userPromptTemplate
-      .replace(/\{\{\s*(?:language|targetLanguage)\s*\}\}|\{language\}/gi, targetLanguage)
-      .replace(/\{\{\s*line_count\s*\}\}|\{line_count\}/g, String(Object.keys(content).length))
-      .replace(/\{\{\s*content\s*\}\}|\{content\}/g, JSON.stringify(content));
+    const lineCount = Object.keys(content).length;
 
-    return /^ja(?:[_-]|$)/i.test(targetLanguage.trim())
-      ? `${formatted}\n\nWhen translating into Japanese, use natural Japanese. If a foreign or coined term has no suitable Japanese equivalent, keep it in katakana instead of forcing an unnatural kanji translation.`
-      : formatted;
+    // Serialize the whole object so keys containing punctuation, newlines, or
+    // quotes cannot be confused with the translated text.
+    const formattedContent = JSON.stringify(content);
+
+    // Replace variables
+    const variables: Record<string, string> = {
+      targetLanguage,
+      language: DEFAULT_LANGUAGES.find(({ id }) => id.toLowerCase() === targetLanguage.trim().toLowerCase().replace(/-/g, "_"))?.name ?? targetLanguage,
+      line_count: lineCount.toString(),
+      content: formattedContent
+    };
+    return userPromptTemplate.replace(/\{\{(targetLanguage|language|line_count|content)\}\}|\{(targetLanguage|language|line_count|content)\}/g,
+      (_match, doubleKey, singleKey) => variables[doubleKey || singleKey]);
   }
 
   /**
@@ -202,20 +186,45 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
   /**
    * Parse the response from the LLM
    * @param response Raw response from the LLM
+   * @param originalContent Original content keys
    * @returns Parsed translation response
    */
   protected parseResponse(
-    response: string
+    response: string,
+    originalContent: Record<string, string>
   ): Record<string, string> {
-    const parsed: unknown = JSON.parse(response.trim());
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("LLM response must be a JSON object");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(response);
+    } catch {
+      throw new Error("Invalid JSON translation response");
     }
-    for (const value of Object.values(parsed)) {
-      if (typeof value !== "string") {
-        throw new Error("LLM response JSON values must all be strings");
-      }
-    }
-    return parsed as Record<string, string>;
+    return this.validateJsonTranslation(parsed, originalContent);
   }
+
+  /** Accept only the exact key:value JSON object requested from the model. */
+  private validateJsonTranslation(
+    parsed: unknown,
+    originalContent: Record<string, string>
+  ): Record<string, string> {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Translation response must be a JSON object");
+    }
+
+    const translated = parsed as Record<string, unknown>;
+    const expectedKeys = Object.keys(originalContent).sort();
+    const actualKeys = Object.keys(translated).sort();
+    if (expectedKeys.length !== actualKeys.length || expectedKeys.some((key, index) => key !== actualKeys[index])) {
+      throw new Error("Invalid translation response schema (keys do not match input)");
+    }
+    if (actualKeys.some((key) => typeof translated[key] !== "string")) {
+      throw new Error("Invalid translation response schema (values must be strings)");
+    }
+    return translated as Record<string, string>;
+  }
+}
+
+function isJapaneseLanguage(language: string): boolean {
+  const normalized = language.trim().toLowerCase().replace(/-/g, "_");
+  return normalized === "ja" || normalized.startsWith("ja_") || normalized === "japanese" || normalized === "日本語";
 }

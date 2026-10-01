@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "Настройки {{provider}}",
     "showApiKey": "Показать ключ API",
-    "hideApiKey": "Скрыть ключ API"
+    "hideApiKey": "Скрыть ключ API",
+    "getApiKey": "Получить ключ API",
+    "loadApiKeyFromEnvironment": "Загрузить из окружения",
+    "environmentVariable": "Переменная окружения",
+    "apiKeyLoaded": "Ключ API загружен из окружения",
+    "apiKeyNotFound": "Ключ API не найден",
+    "providerBatchApi": "Использовать Batch API этого провайдера",
+    "providerBatchApiHint": "По умолчанию выключено. После включения даже один блок отправляется через Batch. Обработка может занять 24 часа. Не закрывайте приложение до сохранения. Действуют тарифы, модели и правила хранения провайдера."
   },
   "tabs": {
     "mods": "Моды",
@@ -166,7 +173,12 @@
     "format": "Формат",
     "translation": "Перевод",
     "existing": "Есть",
-    "new": "Новый"
+    "new": "Новый",
+    "existingTranslation": "Существующий целевой язык",
+    "existingTranslationSkipped": "{{language}} уже есть; пропущено",
+    "translateAnyway": "Всё равно перевести",
+    "forceTranslationHint": "Создаёт перевод заново с английского. Предыдущий файл один раз сохраняется как .mml-original.bak. JAR мода не изменяется.",
+    "questLanguage": "Языковой файл заданий"
   },
   "progress": {
     "translatingMods": "Перевод модов...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "Выбрана недопустимая папка",
     "directorySelectionFailed": "Не удалось выбрать папку",
     "scanFailed": "Ошибка сканирования",
-    "translationFailed": "Ошибка перевода"
+    "translationFailed": "Ошибка перевода",
+    "allTargetsAlreadyTranslated": "Все выбранные элементы уже содержат {{language}}. Переводы заданий сохраняются; для замены переводов модов выберите «Всё равно перевести».",
+    "apiKeyNotConfigured": "Ключ API не настроен и отсутствует в окружении приложения."
   },
   "info": {
     "translationCancelled": "Перевод отменен пользователем",
@@ -220,7 +234,8 @@
     "openLogs": "Открыть журналы",
     "clearLogs": "Очистить журналы",
     "noLogs": "Журналы недоступны",
-    "autoScroll": "Автопрокрутка"
+    "autoScroll": "Автопрокрутка",
+    "desktopOnly": "Журналы перевода доступны только в настольном приложении."
   },
   "completion": {
     "completed": "Перевод завершен",
@@ -329,5 +344,8 @@
     "requiredMod": "Укажите путь и ID мода",
     "checkTranslation": "Проверить перевод",
     "selectMod": "Выбрать JAR мода"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "Старые файлы заданий ({{count}} шт.) без отдельных языковых файлов будут заменены напрямую. Оригинал сохраняется один раз в .mml-original.bak. Эти форматы поддерживают только один активный язык. Продолжить?"
   }
 }

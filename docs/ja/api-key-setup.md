@@ -21,7 +21,7 @@ AnthropicやGoogle Geminiも、各社の公式コンソールでキーを作成�
 
 設定の**モデル**には、プロバイダーの現在のモデルIDを入力します。[OpenAI](https://developers.openai.com/api/docs/models)・[Anthropic](https://platform.claude.com/docs/en/about-claude/models/overview)・[Gemini](https://ai.google.dev/gemini-api/docs/models)の公式一覧で、アカウントから利用できるものを確認してください。旧版で使えた名前も提供終了後には使えません。例えば旧既定値のClaude 3.5 Haikuは[2026年2月19日に提供終了](https://platform.claude.com/docs/en/about-claude/model-deprecations)しています。
 
-v3の既定値は`gpt-4o-mini`、`claude-haiku-4-5-20251001`、`gemini-3.5-flash-lite`です。[Anthropicの終了案内](https://platform.claude.com/docs/en/about-claude/model-deprecations)と[Geminiのモデル案内](https://ai.google.dev/gemini-api/docs/deprecations)を参照してください。独自エンドポイントが未設定で、以前のAnthropic／Google既定値と完全一致する場合だけ自動移行します。独自モデルは保持します。
+v3の既定値は`gpt-6-luna`、`claude-haiku-4-5-20251001`、`gemini-3.8-flash`です。[Anthropicの終了案内](https://platform.claude.com/docs/en/about-claude/model-deprecations)と[Geminiのモデル案内](https://ai.google.dev/gemini-api/docs/deprecations)を参照してください。独自エンドポイントが未設定で、以前のAnthropic／Google既定値と完全一致する場合だけ自動移行します。独自モデルは保持します。
 
 **設定を保存**してもテスト翻訳は送信されません。[最初の翻訳ガイド](getting-started.md)に沿って小さなModで試し、ログとゲーム内表示を確認します。認証エラーはキーとプロバイダーの組み合わせ、利用枠エラーは請求・利用量、モデルエラーはモデルIDとアカウントのアクセス権を確認してください。
 
@@ -29,6 +29,12 @@ v3の既定値は`gpt-4o-mini`、`claude-haiku-4-5-20251001`、`gemini-3.5-flash
 
 アプリに共通APIキーは埋め込みません。インストーラーやフロントエンドへ埋め込んだキーは取り出せてしまい、第三者に使われるとキーの所有者へ利用料が請求されるおそれがあります。
 
-現在のバージョンでは、設定画面に入力したキーはOSの資格情報ストア（Windows Credential Manager、macOS Keychain、Linux Secret Service）では暗号化されず、OSのアプリ設定ディレクトリにある`config.json`へ平文で保存されます。OSアカウントを保護し、このファイルを共有・同期しないでください。漏えいが疑われる場合は、プロバイダーの管理画面でキーを失効させてください。OSの資格情報ストアを使う仕組みは今後のセキュリティ改善候補です。
+デスクトップアプリは、プロバイダーのキーをOSの資格情報ストアに保存します。設定を保存すると、旧 `config.json` 内のキーを移行し、ファイル内のキーを空にします。各プロバイダーの環境変数からの読み込みにも対応しています。ブラウザー開発プレビューではlocalStorageを使用するため、実キーを入力せずダミーキーを使ってください。OSアカウントを保護し、設定ファイルやブラウザーの保存内容を共有しないでください。
 
 OpenAI公式情報：[APIキーの確認・作成方法](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key) · [APIキーを安全に扱うベストプラクティス](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety)
+
+## Batch APIを有効にする
+
+**設定 → LLM設定**でプロバイダーとモデルを選び、**このプロバイダーのBatch APIを使う**にチェックを入れて保存します。OpenAI・Anthropic・Geminiで別々に設定でき、初期状態はオフです。1チャンクだけでもBatch APIを使います。Batch結果が不正な場合は通常APIで再試行することがあり、その分は通常リクエストの料金がかかります。
+
+結果を保存するまでアプリを開いたままにしてください。送信済みBatchの再起動後の再開には未対応です。プロバイダーによっては完了まで最大24時間かかります。設定の保存だけではAPIを呼びません。

@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "{{provider}} 설정",
     "showApiKey": "API 키 표시",
-    "hideApiKey": "API 키 숨기기"
+    "hideApiKey": "API 키 숨기기",
+    "getApiKey": "API 키 발급",
+    "loadApiKeyFromEnvironment": "환경 변수에서 불러오기",
+    "environmentVariable": "환경 변수",
+    "apiKeyLoaded": "환경 변수에서 API 키를 불러왔습니다",
+    "apiKeyNotFound": "API 키를 찾지 못했습니다",
+    "providerBatchApi": "이 제공업체의 Batch API 사용",
+    "providerBatchApiHint": "기본값은 꺼짐입니다. 켜면 한 청크도 Batch로 처리합니다. 최대 24시간 걸릴 수 있으므로 저장될 때까지 앱을 열어 두세요. 제공업체의 요금, 모델 지원 및 보존 정책이 적용됩니다."
   },
   "tabs": {
     "mods": "모드",
@@ -166,7 +173,12 @@
     "format": "형식",
     "translation": "번역",
     "existing": "번역 있음",
-    "new": "미번역"
+    "new": "미번역",
+    "existingTranslation": "기존 대상 언어",
+    "existingTranslationSkipped": "{{language}} 있음; 건너뜀",
+    "translateAnyway": "다시 번역",
+    "forceTranslationHint": "영어 원문에서 번역을 다시 만듭니다. 이전 파일은 .mml-original.bak으로 한 번 백업하며 원본 Mod JAR는 변경하지 않습니다.",
+    "questLanguage": "퀘스트 언어 파일"
   },
   "progress": {
     "translatingMods": "모드 번역 중...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "선택한 디렉터리가 유효하지 않습니다",
     "directorySelectionFailed": "디렉터리를 선택하지 못했습니다",
     "scanFailed": "검색 실패",
-    "translationFailed": "번역 실패"
+    "translationFailed": "번역 실패",
+    "allTargetsAlreadyTranslated": "선택한 모든 항목에 {{language}}가 있습니다. 퀘스트 번역은 유지합니다. Mod 번역을 바꾸려면 다시 번역을 선택하세요.",
+    "apiKeyNotConfigured": "설정이나 앱 환경에 API 키가 없습니다."
   },
   "info": {
     "translationCancelled": "사용자 에 의해 번역이 취소되었습니다.",
@@ -220,7 +234,8 @@
     "openLogs": "로그 열기",
     "clearLogs": "로그 지우기",
     "noLogs": "사용 가능한 로그가 없습니다",
-    "autoScroll": "자동 스크롤"
+    "autoScroll": "자동 스크롤",
+    "desktopOnly": "번역 로그는 데스크톱 앱에서만 볼 수 있습니다."
   },
   "completion": {
     "completed": "번역 완료",
@@ -329,5 +344,8 @@
     "requiredMod": "모드 경로와 ID를 모두 입력하세요",
     "checkTranslation": "번역 확인",
     "selectMod": "모드 JAR 선택"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "언어별 파일이 없는 구형 퀘스트 파일 {{count}}개를 직접 교체합니다. 원본은 .mml-original.bak으로 한 번만 백업됩니다. 이 형식에서는 한 번에 하나의 언어만 적용할 수 있습니다. 계속할까요?"
   }
 }

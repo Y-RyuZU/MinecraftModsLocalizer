@@ -1,0 +1,5 @@
+# direct default quest language data
+quest.welcome=Welcome to the quest book
+quest.description=Gather\nmaterials and return
+quest.escaped\=key=Use a \\ before the equals sign
+quest.unicode=\u0410 potion

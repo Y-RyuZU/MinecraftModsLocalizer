@@ -1,20 +1,16 @@
 "use client";
 
-import { useAppTranslation } from "@/lib/i18n";
-
 import { useAppStore } from "@/lib/store";
 import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
-import { TranslationService, TranslationJob } from "@/lib/services/translation-service";
+import { isFtbQuestSourcePath } from "@/lib/services/custom-files";
+import { TranslationService } from "@/lib/services/translation-service";
+import { applyCustomJsonTranslations, extractCustomJsonText } from "@/lib/services/custom-json";
+import { applyQuestTranslations, extractQuestText } from "@/lib/services/quest-text";
+import { addToTranslationBatch, createTranslationBatch, restoreBatchedTranslations } from "@/lib/services/translation-batch";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
-import { runTranslationJobs } from "@/lib/services/translation-runner";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { useEffect } from "react";
-import { getFileName, getRelativePath, getDirectoryPath, joinPath } from "@/lib/utils/path-utils";
 
 export function CustomFilesTab() {
-  const { t } = useAppTranslation();
   const { 
     config, 
     customFilesTranslationTargets, 
@@ -28,11 +24,6 @@ export function CustomFilesTab() {
     setWholeProgress,
     setTotalChunks,
     setCompletedChunks,
-    incrementCompletedChunks,
-    // Custom files-level progress tracking
-    setTotalCustomFiles,
-    setCompletedCustomFiles,
-    incrementCompletedCustomFiles,
     addTranslationResult,
     error,
     setError,
@@ -41,106 +32,35 @@ export function CustomFilesTab() {
     isCompletionDialogOpen,
     setCompletionDialogOpen,
     setLogDialogOpen,
-    resetTranslationState,
-    // Scanning state
-    setScanning,
-    // Scan progress state
-    scanProgress,
-    setScanProgress,
-    resetScanProgress
+    resetTranslationState
   } = useAppStore();
-
-  // Listen for scan progress events
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const setupScanProgressListener = async () => {
-      try {
-        const unlisten = await listen<{
-          currentFile: string;
-          processedCount: number;
-          totalCount?: number;
-          scanType: string;
-          completed: boolean;
-        }>('scan_progress', (event) => {
-          const progress = event.payload;
-          
-          // Only process events for custom-files scan
-          if (progress.scanType === 'custom-files') {
-            setScanProgress({
-              currentFile: progress.currentFile,
-              processedCount: progress.processedCount,
-              totalCount: progress.totalCount,
-              scanType: progress.scanType,
-            });
-            
-            // Reset progress after completion
-            if (progress.completed) {
-              setTimeout(() => resetScanProgress(), 500);
-            }
-          }
-        });
-        
-        return unlisten;
-      } catch (error) {
-        console.error('Failed to set up scan progress listener:', error);
-        return () => {};
-      }
-    };
-
-    const unlistenPromise = setupScanProgressListener();
-    return () => {
-      unlistenPromise.then(unlisten => unlisten());
-    };
-  }, [setScanProgress, resetScanProgress]);
 
   // Scan for custom files
   const handleScan = async (directory: string) => {
-    try {
-      setScanning(true);
-      
-      // Set initial scan progress immediately
-      setScanProgress({
-        currentFile: t('progress.initializingScan'),
-        processedCount: 0,
-        totalCount: undefined,
-        scanType: 'custom-files',
-      });
-      
-      // Get JSON and SNBT files
-      const jsonFiles = await FileService.getFilesWithExtension(directory, ".json");
-      const snbtFiles = await FileService.getFilesWithExtension(directory, ".snbt");
-      
-      // Combine files
-      const allFiles = [...jsonFiles, ...snbtFiles];
-      
-      // Update progress immediately after file discovery
-      setScanProgress({
-        currentFile: t('progress.analyzingFiles'),
-        processedCount: 0,
-        totalCount: allFiles.length,
-        scanType: 'custom-files',
-      });
-      
-      // Create translation targets
+    // Get JSON and SNBT files
+    const jsonFiles = await FileService.getFilesWithExtension(directory, ".json");
+    const snbtFiles = await FileService.getFilesWithExtension(directory, ".snbt");
+
+    const translatedDirectory = `${directory.replace(/[\\/]+$/, "")}/translated`.replace(/\\/g, "/").toLowerCase();
+    const allFiles = [...jsonFiles, ...snbtFiles].filter((filePath) => {
+      const normalizedPath = filePath.replace(/\\/g, "/").toLowerCase();
+      return !normalizedPath.startsWith(`${translatedDirectory}/`)
+        && !isFtbQuestSourcePath(filePath);
+    });
+
+    // Create translation targets
     const targets: TranslationTarget[] = [];
     
     for (let i = 0; i < allFiles.length; i++) {
       const filePath = allFiles[i];
       try {
-        // Update progress for file analysis phase
-        setScanProgress({
-          currentFile: filePath.split('/').pop() || filePath,
-          processedCount: i + 1,
-          totalCount: allFiles.length,
-          scanType: 'custom-files',
-        });
-
-        // Get file name (cross-platform)
-        const fileName = getFileName(filePath);
+        // Get file name
+        const fileName = filePath.split(/[\\/]/).pop() || "unknown";
         
-        // Calculate relative path (cross-platform)
-        const relativePath = getRelativePath(filePath, directory);
+        // Calculate relative path by removing the selected directory part
+        const relativePath = filePath.startsWith(directory)
+          ? filePath.substring(directory.length).replace(/^[/\\]+/, '')
+          : filePath;
         
         targets.push({
           type: "custom",
@@ -156,11 +76,6 @@ export function CustomFilesTab() {
     }
     
     setCustomFilesTranslationTargets(targets);
-    } finally {
-      setScanning(false);
-      // Reset scan progress after completion
-      resetScanProgress();
-    }
   };
 
   // Translate custom files
@@ -170,246 +85,126 @@ export function CustomFilesTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    selectedDirectory: string,
-    sessionId: string
+    selectedDirectory: string
   ) => {
-    try {
-      setTranslating(true);
-      
-      // Get the directory from the first target (cross-platform)
-      const directory = selectedTargets[0] ? getDirectoryPath(selectedTargets[0].path) : '';
-      
-      // Create output directory (cross-platform)
-      const outputDir = joinPath(directory, 'translated');
-      await FileService.createDirectory(outputDir);
-      
-      // Sort targets alphabetically for consistent processing
-      const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-      
-      // Reset progress tracking
-      setCompletedChunks(0);
-      setWholeProgress(0);
-      setProgress(0);
-      setCompletedCustomFiles(0);
-      
-      // Create jobs for all files
-      const jobs: Array<{
-        target: TranslationTarget;
-        job: TranslationJob;
-        fileType: 'json' | 'snbt' | 'unsupported';
-        content: string;
-        jsonData?: unknown;
-      }> = [];
-      
-      for (const target of sortedTargets) {
-        try {
-          // Read file content
-          const content = await FileService.readTextFile(target.path);
-          
-          // Determine file type
-          const isJson = target.path.toLowerCase().endsWith('.json');
-          const isSnbt = target.path.toLowerCase().endsWith('.snbt');
-          
-          if (isJson) {
-            try {
-              const jsonData = JSON.parse(content);
-              // Flatten JSON to key-value pairs for translation
-              const flattenedContent = flattenJson(jsonData);
-              
-              // Create a translation job
-              const job = translationService.createJob(
-                flattenedContent,
-                targetLanguage,
-                target.name
-              );
-              
-              jobs.push({ target, job, fileType: 'json', content, jsonData });
-            } catch (error) {
-              console.error(`Failed to parse JSON: ${target.path}`, error);
-              // Add failed result immediately
-              addTranslationResult({
-                type: "custom",
-                id: target.id,
-                targetLanguage: targetLanguage,
-                content: {},
-                outputPath: "",
-                success: false
-              });
-              incrementCompletedChunks();
-            }
-          } else if (isSnbt) {
-            // Create a translation job for SNBT content
-            const job = translationService.createJob(
-              { content },
-              targetLanguage,
-              target.name
-            );
-            
-            jobs.push({ target, job, fileType: 'snbt', content });
-          } else {
-            console.warn(`Unsupported file type: ${target.path}`);
-            // Add failed result immediately
-            addTranslationResult({
-              type: "custom",
-              id: target.id,
-              targetLanguage: targetLanguage,
-              content: {},
-              outputPath: "",
-              success: false
-            });
-            incrementCompletedChunks();
-          }
-        } catch (error) {
-          console.error(`Failed to read file: ${target.path}`, error);
-          // Add failed result immediately
-          addTranslationResult({
-            type: "custom",
-            id: target.id,
-            targetLanguage: targetLanguage,
-            content: {},
-            outputPath: "",
-            success: false
-          });
-          incrementCompletedChunks();
+    const separator = selectedDirectory.includes("\\") ? "\\" : "/";
+    const rootDirectory = selectedDirectory.replace(/[\\/]+$/, "");
+    const outputDir = `${rootDirectory}${separator}translated`;
+    setCompletedChunks(0);
+    setWholeProgress(0);
+
+    type PreparedFile = {
+      target: TranslationTarget;
+      outputPath: string;
+      sourceContent: Record<string, string>;
+      batchKeyByLocalKey: Record<string, string | null>;
+      render: (translated: Record<string, string>) => string;
+    };
+    const batch = createTranslationBatch();
+    const prepared: PreparedFile[] = [];
+
+    for (const target of selectedTargets) {
+      const relativeSegments = (target.relativePath || target.name)
+        .split(/[\\/]/)
+        .filter((segment) => segment && segment !== "." && segment !== "..");
+      const fileName = relativeSegments.pop() || target.name;
+      const outputPath = [...[outputDir, ...relativeSegments], `${targetLanguage}_${fileName}`].join(separator);
+
+      try {
+        const content = await FileService.readTextFile(target.path);
+        let sourceContent: Record<string, string>;
+        let render: PreparedFile["render"];
+
+        if (target.path.toLowerCase().endsWith(".json")) {
+          const jsonData: unknown = JSON.parse(content);
+          const bundle = extractCustomJsonText(jsonData);
+          sourceContent = bundle.content;
+          render = (translated) => JSON.stringify(applyCustomJsonTranslations(jsonData, bundle, translated), null, 2);
+        } else if (target.path.toLowerCase().endsWith(".snbt")) {
+          const bundle = extractQuestText(content);
+          const isStructuredQuest = bundle.spans.length > 0;
+          sourceContent = isStructuredQuest ? bundle.content : { content };
+          render = (translated) => {
+            if (isStructuredQuest) return applyQuestTranslations(content, bundle, translated);
+            const translatedText = translated.content;
+            if (typeof translatedText !== "string") throw new Error("The model returned no complete SNBT translation");
+            return translatedText;
+          };
+        } else {
+          throw new Error(`Unsupported file type: ${target.path}`);
         }
+
+        prepared.push({
+          target,
+          outputPath,
+          sourceContent,
+          batchKeyByLocalKey: addToTranslationBatch(batch, sourceContent),
+          render,
+        });
+      } catch (error) {
+        console.error(`Failed to prepare custom file: ${target.path}`, error);
+        addTranslationResult({ type: "custom", id: target.id, targetLanguage, content: {}, outputPath, success: false });
       }
-      
-      // Set total files for progress tracking: denominator = actual jobs, numerator = completed files
-      // This ensures progress reaches 100% when all translatable files are processed
-      setTotalCustomFiles(jobs.length);
-      setTotalChunks(jobs.length); // Track at file level
-      
-      // Use the session ID provided by the common translation tab
-      const minecraftDir = selectedDirectory;
-      const sessionPath = await invoke<string>('create_logs_directory_with_session', {
-          minecraftDir: minecraftDir,
-          sessionId: sessionId
-      });
-      console.log(`Custom files translation session created: ${sessionPath}`);
-      
-      // Use runTranslationJobs for consistent processing
-      await runTranslationJobs({
-        jobs: jobs.map(({ job }) => job),
-        translationService,
-        setCurrentJobId,
-        incrementCompletedChunks, // Track at chunk level for real-time progress
-        incrementWholeProgress: incrementCompletedCustomFiles, // Track at file level
-        targetLanguage,
-        type: "custom",
-        sessionId,
-        getOutputPath: () => outputDir,
-        getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
-        writeOutput: async (job, outputPath, content) => {
-          // Find the corresponding file data
-          const fileData = jobs.find(j => j.job.id === job.id);
-          if (!fileData) return;
-          
-          const fileName = getFileName(fileData.target.path);
-          const outputFilePath = joinPath(outputPath, `${targetLanguage}_${fileName}`);
-          
-          if (fileData.fileType === 'json' && fileData.jsonData) {
-            // Reconstruct JSON from flattened content
-            const reconstructedJson = reconstructJson(fileData.jsonData, content);
-            const translatedContent = JSON.stringify(reconstructedJson, null, 2);
-            await FileService.writeTextFile(outputFilePath, translatedContent);
-          } else if (fileData.fileType === 'snbt') {
-            const translatedText = content.content || `[${targetLanguage}] ${fileData.content}`;
-            await FileService.writeTextFile(outputFilePath, translatedText);
-          }
-        },
-        onResult: addTranslationResult,
-        onJobStart: async (job) => {
-          const fileData = jobs.find(j => j.job.id === job.id);
-          if (!fileData) return;
-          try {
-            await invoke('log_translation_process', {
-              message: `Starting translation for custom file: ${fileData.target.name} (${fileData.target.id})`
-            });
-          } catch {}
-        },
-        onJobComplete: async (job) => {
-          const fileData = jobs.find(j => j.job.id === job.id);
-          if (!fileData) return;
-          try {
-            await invoke('log_translation_process', {
-              message: `Completed translation for custom file: ${fileData.target.name} (${fileData.target.id})`
-            });
-          } catch {}
-        },
-        onJobInterrupted: async (job) => {
-          const fileData = jobs.find(j => j.job.id === job.id);
-          if (!fileData) return;
-          try {
-            await invoke('log_translation_process', {
-              message: `Translation cancelled by user during custom file: ${fileData.target.name} (${fileData.target.id})`
-            });
-          } catch {}
-        }
-      });
-    } finally {
-      setTranslating(false);
     }
-  };
-  
-  // Flatten JSON to key-value pairs
-  const flattenJson = (json: unknown, prefix = ''): Record<string, string> => {
-    const result: Record<string, string> = {};
-    
-    const flatten = (obj: unknown, currentPrefix: string) => {
-      if (typeof obj === 'string') {
-        result[currentPrefix] = obj;
-      } else if (Array.isArray(obj)) {
-        obj.forEach((item, index) => {
-          flatten(item, `${currentPrefix}[${index}]`);
-        });
-      } else if (obj && typeof obj === 'object') {
-        Object.entries(obj).forEach(([key, value]) => {
-          const newPrefix = currentPrefix ? `${currentPrefix}.${key}` : key;
-          flatten(value, newPrefix);
-        });
+
+    let translatedBatch: Record<string, string> = {};
+    if (Object.keys(batch.content).length > 0) {
+      const job = translationService.createJob(batch.content, targetLanguage, `${selectedTargets.length} custom files`);
+      setCurrentJobId(job.id);
+      setTotalChunks(job.chunks.length);
+      try {
+        await translationService.startJob(job.id);
+        translatedBatch = translationService.getCombinedTranslatedContent(job.id);
+      } catch (error) {
+        console.error("Failed to translate the shared custom-file batch", error);
       }
-    };
-    
-    flatten(json, prefix);
-    return result;
-  };
-  
-  // Reconstruct JSON from flattened content
-  const reconstructJson = (originalJson: unknown, translatedContent: Record<string, string>): unknown => {
-    const reconstruct = (obj: unknown, prefix = ''): unknown => {
-      if (typeof obj === 'string') {
-        return translatedContent[prefix] || obj;
-      } else if (Array.isArray(obj)) {
-        return obj.map((item, index) => 
-          reconstruct(item, `${prefix}[${index}]`)
+      setCompletedChunks(job.chunks.filter((chunk) => chunk.status === "completed").length);
+    } else {
+      setTotalChunks(0);
+    }
+
+    for (let index = 0; index < prepared.length; index++) {
+      const file = prepared[index];
+      setProgress(Math.round((index / Math.max(1, prepared.length)) * 100));
+      try {
+        const localTranslations = restoreBatchedTranslations(
+          file.sourceContent,
+          file.batchKeyByLocalKey,
+          translatedBatch
         );
-      } else if (obj && typeof obj === 'object') {
-        const result: Record<string, unknown> = {};
-        Object.entries(obj).forEach(([key, value]) => {
-          const newPrefix = prefix ? `${prefix}.${key}` : key;
-          result[key] = reconstruct(value, newPrefix);
+        const translatedContent = file.render(localTranslations);
+        const outputDirectory = file.outputPath.slice(0, file.outputPath.lastIndexOf(separator));
+        await FileService.createDirectory(outputDirectory);
+        await FileService.writeTextFile(file.outputPath, translatedContent);
+        addTranslationResult({
+          type: "custom",
+          id: file.target.id,
+          targetLanguage,
+          content: { [file.target.id]: translatedContent },
+          outputPath: file.outputPath,
+          success: true,
         });
-        return result;
+      } catch (error) {
+        console.error(`Failed to render or write custom file: ${file.target.path}`, error);
+        addTranslationResult({
+          type: "custom",
+          id: file.target.id,
+          targetLanguage,
+          content: {},
+          outputPath: file.outputPath,
+          success: false,
+        });
       }
-      return obj;
-    };
-    
-    return reconstruct(originalJson);
+      setWholeProgress(Math.round(((index + 1) / Math.max(1, prepared.length)) * 100));
+    }
+
+    setProgress(100);
+    setCurrentJobId(null);
   };
 
   // Custom render function for the file type column
   const renderFileType = (target: TranslationTarget) => {
-    const isJson = target.path.toLowerCase().endsWith('.json');
-    const type = isJson ? "JSON" : "SNBT";
-    const className = isJson 
-      ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-      : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
-        {type}
-      </span>
-    );
+    return target.path.toLowerCase().endsWith('.json') ? "JSON" : "SNBT";
   };
 
   return (
@@ -429,6 +224,7 @@ export function CustomFilesTab() {
         { 
           key: "relativePath", 
           label: "tables.path", 
+          className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
         }
       ]}
@@ -453,7 +249,6 @@ export function CustomFilesTab() {
       setCompletionDialogOpen={setCompletionDialogOpen}
       setLogDialogOpen={setLogDialogOpen}
       resetTranslationState={resetTranslationState}
-      scanProgress={scanProgress}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

@@ -1,19 +1,14 @@
 "use client";
 
-import { useAppTranslation } from "@/lib/i18n";
-
 import { useAppStore } from "@/lib/store";
 import { LangFile, PatchouliBook, TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
 import { FileService } from "@/lib/services/file-service";
 import { TranslationService } from "@/lib/services/translation-service";
 import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { useEffect } from "react";
-import { getRelativePath } from "@/lib/utils/path-utils";
+import { shouldTranslateMod } from "@/lib/services/mod-language";
 
 export function GuidebooksTab() {
-  const { t } = useAppTranslation();
   const {
     config,
     guidebookTranslationTargets,
@@ -28,10 +23,6 @@ export function GuidebooksTab() {
     setTotalChunks,
     setCompletedChunks,
     incrementCompletedChunks,
-    // Guidebook-level progress tracking
-    setTotalGuidebooks,
-    setCompletedGuidebooks,
-    incrementCompletedGuidebooks,
     addTranslationResult,
     error,
       setError,
@@ -40,99 +31,21 @@ export function GuidebooksTab() {
       isCompletionDialogOpen,
       setCompletionDialogOpen,
       setLogDialogOpen,
-      resetTranslationState,
-      // Scanning state
-      setScanning,
-      // Scan progress state
-      scanProgress,
-      setScanProgress,
-      resetScanProgress
+      resetTranslationState
   } = useAppStore();
 
-  // Listen for scan progress events
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const setupScanProgressListener = async () => {
-      try {
-        const unlisten = await listen<{
-          currentFile: string;
-          processedCount: number;
-          totalCount?: number;
-          scanType: string;
-          completed: boolean;
-        }>('scan_progress', (event) => {
-          const progress = event.payload;
-          
-          // Only process events for guidebooks scan
-          if (progress.scanType === 'guidebooks') {
-            setScanProgress({
-              currentFile: progress.currentFile,
-              processedCount: progress.processedCount,
-              totalCount: progress.totalCount,
-              scanType: progress.scanType,
-            });
-            
-            // Reset progress after completion
-            if (progress.completed) {
-              setTimeout(() => resetScanProgress(), 500);
-            }
-          }
-        });
-        
-        return unlisten;
-      } catch (error) {
-        console.error('Failed to set up scan progress listener:', error);
-        return () => {};
-      }
-    };
-
-    const unlistenPromise = setupScanProgressListener();
-    return () => {
-      unlistenPromise.then(unlisten => unlisten());
-    };
-  }, [setScanProgress, resetScanProgress]);
-
   // Scan for guidebooks
-  const handleScan = async (directory: string, targetLanguage?: string) => {
-    try {
-      setScanning(true);
-      
-      // Set initial scan progress immediately
-      setScanProgress({
-        currentFile: t('progress.initializingScan'),
-        processedCount: 0,
-        totalCount: undefined,
-        scanType: 'guidebooks',
-      });
-      
-      // Get mods directory
-      const modsDirectory = directory + "/mods";
-      // Get mod files
-      const modFiles = await FileService.getModFiles(modsDirectory);
+  const handleScan = async (directory: string) => {
+    // Get mods directory
+    const modsDirectory = directory + "/mods";
+    // Get mod files
+    const modFiles = await FileService.getModFiles(modsDirectory);
 
-      // Update progress immediately after file discovery
-      setScanProgress({
-        currentFile: t('progress.analyzingFiles'),
-        processedCount: 0,
-        totalCount: modFiles.length,
-        scanType: 'guidebooks',
-      });
+    // Create translation targets
+    const targets: TranslationTarget[] = [];
 
-      // Create translation targets
-      const targets: TranslationTarget[] = [];
-
-    for (let i = 0; i < modFiles.length; i++) {
-      const modFile = modFiles[i];
+    for (const modFile of modFiles) {
       try {
-        // Update progress for mod analysis phase
-        setScanProgress({
-          currentFile: modFile.split('/').pop() || modFile,
-          processedCount: i + 1,
-          totalCount: modFiles.length,
-          scanType: 'guidebooks',
-        });
-
         // Extract Patchouli books
         const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", {
           jarPath: modFile,
@@ -140,38 +53,20 @@ export function GuidebooksTab() {
         });
 
         if (books.length > 0) {
-          // Calculate relative path (cross-platform)
-          let relativePath = getRelativePath(modFile, directory);
-          
-          // Remove common "mods/" prefix if present
-          if (relativePath.startsWith('mods/') || relativePath.startsWith('mods\\')) {
-            relativePath = relativePath.substring(5);
-          }
+          // Calculate relative path by removing the selected directory part
+          const relativePath = modFile.startsWith(directory)
+            ? modFile.substring(directory.length).replace(/^[/\\]+/, '')
+            : modFile;
 
           for (const book of books) {
-            // Check for existing translation if target language is provided
-            let hasExistingTranslation = false;
-            if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
-              try {
-                hasExistingTranslation = await FileService.invoke<boolean>("check_guidebook_translation_exists", {
-                  guidebookPath: modFile,
-                  modId: book.modId,
-                  bookId: book.id,
-                  targetLanguage: targetLanguage
-                });
-              } catch (error) {
-                console.error(`Failed to check existing translation for ${book.name}:`, error);
-              }
-            }
-            
             targets.push({
               type: "patchouli",
               id: book.id,
               name: `${book.modId}: ${book.name}`,
               path: modFile,
               relativePath: relativePath,
-              selected: true,
-              hasExistingTranslation
+              availableLanguages: book.availableLanguages || [],
+              selected: true
             });
           }
         }
@@ -188,11 +83,6 @@ export function GuidebooksTab() {
     }
 
     setGuidebookTranslationTargets(targets);
-    } finally {
-      setScanning(false);
-      // Reset scan progress after completion
-      resetScanProgress();
-    }
   };
 
   // Translate guidebooks (refactored to match mods/custom-files/quests pattern)
@@ -202,25 +92,19 @@ export function GuidebooksTab() {
     translationService: TranslationService,
     setCurrentJobId: (jobId: string | null) => void,
     addTranslationResult: (result: TranslationResult) => void,
-    selectedDirectory: string,
-    sessionId: string
+    _selectedDirectory: string,
+    sessionId: string,
   ) => {
-    // Sort targets alphabetically for consistent processing
-    const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-    
     // Reset whole progress tracking
     setCompletedChunks(0);
     setWholeProgress(0);
-    setCompletedGuidebooks(0);
-    
+
     // Prepare jobs and count total chunks
     let totalChunksCount = 0;
     const jobs = [];
-    let skippedCount = 0;
-    
-    for (const target of sortedTargets) {
+    for (const target of selectedTargets) {
       try {
-        // Extract Patchouli books first to get mod ID
+        // Extract Patchouli books
         const books = await FileService.invoke<PatchouliBook[]>("extract_patchouli_books", {
           jarPath: target.path,
           tempDir: ""
@@ -228,62 +112,42 @@ export function GuidebooksTab() {
 
         // Find the book
         const book = books.find(b => b.id === target.id);
-        
+
         if (!book) {
           console.warn(`Book not found: ${target.id}`);
           continue;
         }
-        
-        // Check if translation already exists when skipExistingTranslations is enabled
-        if (config.translation.skipExistingTranslations ?? true) {
-          const exists = await FileService.invoke<boolean>("check_guidebook_translation_exists", {
-            guidebookPath: target.path,
-            modId: book.modId,
-            bookId: target.id,
-            targetLanguage: targetLanguage
-          });
-          
-          if (exists) {
-            console.log(`Skipping guidebook ${target.name} (${target.id}) - translation already exists`);
-            try {
-              await invoke('log_translation_process', { 
-                message: `Skipped: ${target.name} (${target.id}) - translation already exists`, 
-                processType: "TRANSLATION" 
-              });
-            } catch {
-              // ignore logging errors
-            }
-            skippedCount++;
-            continue;
-          }
-        }
 
-        // Find source language file (default to en_us)
-        const sourceFile = book.langFiles.find((file: LangFile) =>
-          file.language === "en_us"
-        );
+        // Namespace each JSON-pointer key by its stable file index. This lets
+        // one book use normal 50-entry batches without collisions between files.
+        const sourceFiles = book.langFiles
+          .filter((file: LangFile) => file.language === "en_us")
+          .sort((left: LangFile, right: LangFile) => left.path.localeCompare(right.path));
 
-        if (!sourceFile) {
+        if (sourceFiles.length === 0) {
           console.warn(`Source language file not found for book: ${target.name}`);
           continue;
         }
 
-        // Count the number of entries in the source file
-        const entriesCount = Object.keys(sourceFile.content).length;
+        const combinedContent: Record<string, string> = {};
+        sourceFiles.forEach((sourceFile, index) => {
+          for (const [pointer, text] of Object.entries(sourceFile.content)) {
+            combinedContent[`file_${index}::${pointer}`] = text;
+          }
+        });
+        const entriesCount = Object.keys(combinedContent).length;
+        if (entriesCount === 0) continue;
+        totalChunksCount += Math.ceil(entriesCount / config.translation.guidebookChunkSize);
 
-        // Calculate number of chunks based on chunk size
-        const chunksCount = Math.ceil(entriesCount / config.translation.guidebookChunkSize);
-        totalChunksCount += chunksCount;
-
-        // Create a translation job
         const job: import("@/lib/types/minecraft").PatchouliTranslationJob = {
           ...translationService.createJob(
-            sourceFile.content,
+            combinedContent,
             targetLanguage,
-            target.name
+            `${target.name} (${sourceFiles.length} files)`
           ),
           bookId: book.id,
           modId: book.modId,
+          sourcePaths: sourceFiles.map((file) => file.path),
           targetPath: target.path
         };
         jobs.push(job);
@@ -292,39 +156,28 @@ export function GuidebooksTab() {
       }
     }
 
-    // Set total guidebooks for progress tracking: denominator = actual jobs, numerator = completed guidebooks
-    // This ensures progress reaches 100% when all translatable guidebooks are processed
-    setTotalGuidebooks(jobs.length);
-
     // Ensure totalChunks is set correctly, fallback to jobs.length if calculation failed
     const finalTotalChunks = totalChunksCount > 0 ? totalChunksCount : jobs.length;
     setTotalChunks(finalTotalChunks);
+    console.log(`GuidebooksTab: Set totalChunks to ${finalTotalChunks} for ${jobs.length} jobs`);
 
     // Set currentJobId to the first job's ID immediately (enables cancel button promptly)
     if (jobs.length > 0) {
       setCurrentJobId(jobs[0].id);
     }
 
-    // Use the session ID provided by the common translation tab
-    const minecraftDir = selectedDirectory;
-    const sessionPath = await invoke<string>('create_logs_directory_with_session', {
-        minecraftDir: minecraftDir,
-        sessionId: sessionId
-    });
-    console.log(`Guidebooks translation session created: ${sessionPath}`);
-
     // Use the shared translation runner
     const { runTranslationJobs } = await import("@/lib/services/translation-runner");
     try {
       await runTranslationJobs({
         jobs,
+        sessionId,
+        setProgress,
         translationService,
         setCurrentJobId,
         incrementCompletedChunks, // Connect to store for overall progress tracking
-        incrementWholeProgress: incrementCompletedGuidebooks, // Track at guidebook level
         targetLanguage,
         type: "patchouli",
-        sessionId,
         getOutputPath: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => job.targetPath,
         getResultContent: (job: import("@/lib/types/minecraft").PatchouliTranslationJob) => translationService.getCombinedTranslatedContent(job.id),
         writeOutput: async (job: import("@/lib/types/minecraft").PatchouliTranslationJob, outputPath, content) => {
@@ -333,41 +186,27 @@ export function GuidebooksTab() {
             bookId: job.bookId,
             modId: job.modId,
             language: targetLanguage,
+            sourcePaths: job.sourcePaths,
             content: JSON.stringify(content)
           });
         },
         onResult: addTranslationResult,
-        onJobStart: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobStart: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Starting translation for guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Starting translation for guidebook: ${job.modId}:${job.bookId} (${job.sourcePaths.length} files)` });
           } catch {}
         },
-        onJobComplete: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobComplete: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Finished translation for guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Finished translation for guidebook: ${job.modId}:${job.bookId} (${job.sourcePaths.length} files)` });
           } catch {}
         },
-        onJobInterrupted: async (job, i) => {
-          const target = selectedTargets[i];
+        onJobInterrupted: async (job) => {
           try {
-            await invoke('log_translation_process', { message: `Translation cancelled by user during guidebook: ${target.name} (${target.id})` });
+            await invoke('log_translation_process', { message: `Translation cancelled during guidebook: ${job.modId}:${job.bookId}` });
           } catch {}
         }
       });
-      
-      // Log skipped items summary
-      if (skippedCount > 0) {
-        try {
-          await invoke('log_translation_process', { 
-            message: `Translation completed. Skipped ${skippedCount} guidebooks that already have translations.`, 
-            processType: "TRANSLATION" 
-          });
-        } catch {
-          // ignore logging errors
-        }
-      }
     } finally {
       setTranslating(false);
     }
@@ -389,27 +228,20 @@ export function GuidebooksTab() {
         {
           key: "relativePath",
           label: "tables.path",
+          className: "truncate max-w-[300px]",
           render: (target) => target.relativePath || target.path
-        },
-        {
-          key: "hasExistingTranslation",
-          label: "tables.translation",
-          className: "w-24",
-          render: (target) => (
-            target.hasExistingTranslation !== undefined ? (
-              <span className={`px-2 py-1 text-xs rounded ${
-                target.hasExistingTranslation
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-              }`}>
-                {t(target.hasExistingTranslation ? 'tables.existing' : 'tables.new')}
-              </span>
-            ) : null
-          )
         }
       ]}
       config={config}
       translationTargets={guidebookTranslationTargets}
+      prepareTranslationTargets={(targets, targetLanguage) => {
+        if (config.translation.skipExistingTranslations === false) return targets;
+        const filteredTargets = targets.filter((target) => shouldTranslateMod(target, targetLanguage));
+        if (filteredTargets.length !== targets.length) {
+          console.info(`Skipped ${targets.length - filteredTargets.length} guidebooks with existing ${targetLanguage} translations`);
+        }
+        return filteredTargets;
+      }}
       setTranslationTargets={setGuidebookTranslationTargets}
       updateTranslationTarget={updateGuidebookTranslationTarget}
       isTranslating={isTranslating}
@@ -429,7 +261,6 @@ export function GuidebooksTab() {
       setCompletionDialogOpen={setCompletionDialogOpen}
       setLogDialogOpen={setLogDialogOpen}
       resetTranslationState={resetTranslationState}
-      scanProgress={scanProgress}
       onScan={handleScan}
       onTranslate={handleTranslate}
     />

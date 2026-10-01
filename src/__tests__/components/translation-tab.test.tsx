@@ -302,7 +302,7 @@ describe('TranslationTab', () => {
             const checkbox = screen.getAllByRole('checkbox')[1]; // First is select all
             await user.click(checkbox);
 
-            expect(mockUpdateTranslationTarget).toHaveBeenCalledWith('minecraft', false);
+            expect(mockUpdateTranslationTarget).toHaveBeenCalledWith(expect.objectContaining({ id: 'minecraft', path: expect.any(String) }), false);
         });
 
         it('should handle select all functionality', async () => {

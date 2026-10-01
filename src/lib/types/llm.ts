@@ -13,6 +13,8 @@ export interface TranslationRequest {
   targetLanguage: string;
   /** Optional custom prompt to use for translation */
   promptTemplate?: string;
+  /** Extra system guidance for a retry after response validation fails. */
+  systemPromptSupplement?: string;
 }
 
 /**
@@ -29,7 +31,17 @@ export interface TranslationResponse {
     timeTaken?: number;
     /** Model used for translation */
     model?: string;
+    /** Per-request error returned by an asynchronous provider batch. */
+    error?: string;
+    /** Whether retrying this failed batch item synchronously is likely to help. */
+    errorRetryable?: boolean;
   };
+}
+
+export interface TranslationBatchProgress {
+  completed: number;
+  total: number;
+  status: string;
 }
 
 /**
@@ -57,6 +69,14 @@ export interface LLMAdapter {
   requiresApiKey: boolean;
   /** Translate content using the LLM service */
   translate(request: TranslationRequest): Promise<TranslationResponse>;
+  /** Submit independent translations in one provider-managed async job, when supported. */
+  translateBatch?(
+    requests: TranslationRequest[],
+    options?: {
+      onProgress?: (progress: TranslationBatchProgress) => void;
+      shouldCancel?: () => boolean;
+    }
+  ): Promise<TranslationResponse[]>;
   /** Validate API key */
   validateApiKey(apiKey: string): Promise<boolean>;
   /** Get the maximum chunk size recommended for this LLM */
@@ -85,6 +105,8 @@ export interface LLMConfig {
   userPrompt?: string;
   /** Temperature setting for the LLM (0.0 to 2.0) */
   temperature?: number;
+  /** Use the provider's asynchronous discounted batch API when available. */
+  useBatchApi?: boolean;
 }
 
 /**
@@ -121,29 +143,38 @@ export const DEFAULT_LANGUAGES: SupportedLanguage[] = [
 export const DEFAULT_SYSTEM_PROMPT = `You are a professional translator specializing in Minecraft mods and gaming content.
 
 ## Important Translation Rules
-- Translate line by line, strictly in order
-- Ensure the number of lines before and after translation matches exactly (do not add or remove lines)
-- Output only the translation result, without any greetings or explanations
+- Translate every JSON value while preserving every JSON key exactly
+- Return exactly one valid JSON object with the same keys as the input
+- Do not add, remove, rename, reorder, or duplicate keys
+- Output JSON only, without Markdown fences, greetings, or explanations
 
 ## Detailed Translation Instructions
-- Treat sentences on different lines as separate, even if they seem contextually connected
-- If multiple sentences appear on a single line, translate them as one line
-- Use appropriate phonetic transcription for proper nouns when needed
+- Treat each JSON value as an independent translation unit
 - Preserve programming variables (e.g., %s, $1, \\") and special symbols as they are
 - Maintain backslashes (\\\\) as they may be used as escape characters
+- Preserve exact placeholders such as %s, %1$d, %%, $1, \${name}, and numeric tokens such as {0}; preserve markup tags such as <item>
+- Treat Minecraft formatting codes such as §a, &6, &l, and &r as literal control tokens: copy each exactly once without translating, omitting, duplicating, or changing it. Keep each code with the same formatted phrase; when target-language word order changes, move the code with that phrase.
+- Some mod guidebook markup wraps translatable words in braces (for example, {fish}); keep the braces but translate the words inside them. Do not confuse these with actual placeholders such as {0}.
+- If the entire value is a visible label wrapped in angle brackets (for example, <Off> or <None>), translate the label but retain the brackets.
 - Do not edit any characters that appear to be special symbols
 - For idiomatic expressions, prioritize conveying the meaning over literal translation
 - When appropriate, adapt cultural references to be more relevant to the target language audience
-- The text is about Minecraft mods. Keep this context in mind while translating`;
+- Use terminology and transliteration natural to the selected target language and its Minecraft community
+- Keep established localized terms when they exist, and preserve the original spelling of names or acronyms when that is clearest
+- This is Minecraft mod localization. Values may be item, block, GUI, tooltip, configuration, quest, or guidebook text; use that game context rather than translating as generic prose`;
+
+/** Added only for Japanese translations; do not apply these language-specific rules elsewhere. */
+export const JAPANESE_LOCALIZATION_PROMPT = `## Japanese Localization Guidance
+- Use natural Japanese terminology familiar to Minecraft players and mod communities
+- If an imported, technical, or mod-specific term has no established natural Japanese equivalent, use readable katakana rather than forcing an unnatural kanji compound
+- Do not arbitrarily convert mod names, acronyms, brands, or specialized terms into kanji
+- Keep established Japanese terms when available; preserve original spelling when it is clearer`;
 
 /**
  * Default user prompt template for translation
  * Contains the specific task with variables
  */
-export const DEFAULT_USER_PROMPT = `Translate the JSON object below into {language}.
-Translate values only; preserve every key and the object structure exactly.
-Return only a valid JSON object whose values are all strings. Do not add markdown or explanations.
-
+export const DEFAULT_USER_PROMPT = `Translate the string values in this JSON object into {language}:
 {content}`;
 
 /**

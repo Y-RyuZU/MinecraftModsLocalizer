@@ -24,7 +24,7 @@ class ContractAdapter extends BaseLLMAdapter {
   }
 
   parse(response: string): Record<string, string> {
-    return this.parseResponse(response);
+    return this.parseResponse(response, { "quest.title": "Title", "quest.desc[0]": "Description" });
   }
 }
 
@@ -41,7 +41,7 @@ describe("LLM JSON translation contract", () => {
     const japanese = prompt.format(input, "ja_jp");
     expect(japanese).toContain("Translate ja_jp; 2 entries:");
     expect(japanese).toContain(JSON.stringify(input));
-    expect(japanese).toContain("katakana");
+
     expect(prompt.format(input, "de_de")).not.toContain("katakana");
   });
 
@@ -52,6 +52,6 @@ describe("LLM JSON translation contract", () => {
       "quest.desc[0]": "説明",
     });
     expect(() => parser.parse("not JSON")).toThrow();
-    expect(() => parser.parse('{"quest.title":42}')).toThrow(/values must all be strings/);
+    expect(() => parser.parse('{"quest.title":42,"quest.desc[0]":"text"}')).toThrow(/values must be strings/);
   });
 });

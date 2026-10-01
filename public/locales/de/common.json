@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "{{provider}}-Konfiguration",
     "showApiKey": "API-Schlüssel anzeigen",
-    "hideApiKey": "API-Schlüssel verbergen"
+    "hideApiKey": "API-Schlüssel verbergen",
+    "getApiKey": "API-Schlüssel erstellen",
+    "loadApiKeyFromEnvironment": "Aus Umgebung laden",
+    "environmentVariable": "Umgebungsvariable",
+    "apiKeyLoaded": "API-Schlüssel aus Umgebung geladen",
+    "apiKeyNotFound": "API-Schlüssel nicht gefunden",
+    "providerBatchApi": "Batch API dieses Anbieters verwenden",
+    "providerBatchApiHint": "Standardmäßig aus. Aktiviert werden auch einzelne Blöcke per Batch verarbeitet. Dies kann bis zu 24 Stunden dauern. App bis zum Speichern geöffnet lassen. Preise, Modellunterstützung und Aufbewahrung richten sich nach dem Anbieter."
   },
   "tabs": {
     "mods": "Mods",
@@ -166,7 +173,12 @@
     "format": "Format",
     "translation": "Übersetzung",
     "existing": "Vorhanden",
-    "new": "Neu"
+    "new": "Neu",
+    "existingTranslation": "Vorhandene Zielsprache",
+    "existingTranslationSkipped": "{{language}} vorhanden; übersprungen",
+    "translateAnyway": "Trotzdem übersetzen",
+    "forceTranslationHint": "Erstellt die Übersetzung dieses Mods aus dem englischen Original neu. Die vorige Ausgabe wird einmal als .mml-original.bak gesichert. Das Mod-JAR bleibt unverändert.",
+    "questLanguage": "Quest-Sprachdatei"
   },
   "progress": {
     "translatingMods": "Mods werden übersetzt...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "Ungültiges Verzeichnis ausgewählt",
     "directorySelectionFailed": "Verzeichnis konnte nicht ausgewählt werden",
     "scanFailed": "Scan fehlgeschlagen",
-    "translationFailed": "Übersetzung fehlgeschlagen"
+    "translationFailed": "Übersetzung fehlgeschlagen",
+    "allTargetsAlreadyTranslated": "Alle gewählten Ziele enthalten bereits {{language}}. Questübersetzungen bleiben erhalten; Mods lassen sich mit „Trotzdem übersetzen“ ersetzen.",
+    "apiKeyNotConfigured": "Kein API-Schlüssel in Einstellungen oder Anwendungsumgebung vorhanden."
   },
   "info": {
     "translationCancelled": "Übersetzung vom Benutzer abgebrochen",
@@ -220,7 +234,8 @@
     "openLogs": "Offene Protokolle",
     "clearLogs": "Protokolle löschen",
     "noLogs": "Keine Protokolle verfügbar",
-    "autoScroll": "Automatischer Bildlauf"
+    "autoScroll": "Automatischer Bildlauf",
+    "desktopOnly": "Übersetzungsprotokolle sind nur in der Desktop-App verfügbar."
   },
   "completion": {
     "completed": "Übersetzung abgeschlossen",
@@ -329,5 +344,8 @@
     "requiredMod": "Bitte Mod-Pfad und Mod-ID angeben",
     "checkTranslation": "Übersetzung prüfen",
     "selectMod": "Mod-JAR auswählen"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "{{count}} ältere Questdatei(en) haben keine Sprachdateien und werden direkt ersetzt. Das Original wird einmal als .mml-original.bak gesichert. In diesen Formaten kann jeweils nur eine Sprache aktiv sein. Fortfahren?"
   }
 }

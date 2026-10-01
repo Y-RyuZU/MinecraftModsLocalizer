@@ -1,649 +1,428 @@
 "use client";
 
 import { useAppTranslation } from "@/lib/i18n";
-
-import {useAppStore} from "@/lib/store";
-import {TranslationResult, TranslationTarget} from "@/lib/types/minecraft";
-import {FileService} from "@/lib/services/file-service";
-import {TranslationService, TranslationJob} from "@/lib/services/translation-service";
-import {TranslationTab} from "@/components/tabs/common/translation-tab";
-import {invoke} from "@tauri-apps/api/core";
-import {listen} from "@tauri-apps/api/event";
-import {useEffect} from "react";
-import {runTranslationJobs} from "@/lib/services/translation-runner";
-import {parseLangFile} from "@/lib/utils/lang-parser";
-import {getFileName, getRelativePath} from "@/lib/utils/path-utils";
-import type {FtbLangEntry} from "@/lib/utils/ftb-lang-snbt";
+import { useAppStore } from "@/lib/store";
+import { TranslationResult, TranslationTarget } from "@/lib/types/minecraft";
+import { FileService } from "@/lib/services/file-service";
+import { TranslationService } from "@/lib/services/translation-service";
+import { TranslationTab } from "@/components/tabs/common/translation-tab";
 import {
-    ftbQuestLangToMap,
-    getFtbQuestLangOutputPath,
-    mapToFtbQuestLang,
-    parseFtbQuestLang,
-    validateFtbQuestLangTranslation,
-} from "@/lib/utils/ftb-lang-snbt";
+  applyBetterQuestJsonTranslations,
+  applyJavaLangTranslations,
+  applyJsonLangTranslations,
+  applyQuestTranslations,
+  extractBetterQuestJsonText,
+  extractJavaLangText,
+  extractJsonLangText,
+  extractQuestText,
+  filterExistingQuestTranslations,
+  getDirectQuestBackupPath,
+  getQuestOutputPath,
+  getQuestSourceCacheKey,
+  isDirectQuestSource,
+  type QuestTextBundle
+} from "@/lib/services/quest-text";
 
 export function QuestsTab() {
   const { t } = useAppTranslation();
-    const {
-        config,
-        questTranslationTargets,
-        setQuestTranslationTargets,
-        updateQuestTranslationTarget,
-        isTranslating,
-        progress,
-        wholeProgress,
-        setTranslating,
-        setProgress,
-        setWholeProgress,
-        setTotalChunks,
-        setCompletedChunks,
-        incrementCompletedChunks,
-        // Quest-level progress tracking
-        setTotalQuests,
-        setCompletedQuests,
-        incrementCompletedQuests,
-        addTranslationResult,
-        error,
-        setError,
-        currentJobId,
-        setCurrentJobId,
-        isCompletionDialogOpen,
-        setCompletionDialogOpen,
-        setLogDialogOpen,
-        resetTranslationState,
-        // Scanning state
-        setScanning,
-        // Scan progress state
-        scanProgress,
-        setScanProgress,
-        resetScanProgress
-    } = useAppStore();
+  const {
+    config,
+    questTranslationTargets,
+    setQuestTranslationTargets,
+    updateQuestTranslationTarget,
+    isTranslating,
+    progress,
+    wholeProgress,
+    setTranslating,
+    setProgress,
+    setWholeProgress,
+    setTotalChunks,
+    setCompletedChunks,
+    incrementCompletedChunks,
+    addTranslationResult,
+    error,
+    setError,
+    currentJobId,
+    setCurrentJobId,
+    isCompletionDialogOpen,
+    setCompletionDialogOpen,
+    setLogDialogOpen,
+    resetTranslationState
+  } = useAppStore();
 
-    // Listen for scan progress events
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
+  // Scan for quests
+  const handleScan = async (directory: string) => {
+    // Get FTB quest files
+    const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
 
-        const setupScanProgressListener = async () => {
-            try {
-                const unlisten = await listen<{
-                    currentFile: string;
-                    processedCount: number;
-                    totalCount?: number;
-                    scanType: string;
-                    completed: boolean;
-                }>('scan_progress', (event) => {
-                    const progress = event.payload;
-                    
-                    // Only process events for quests scan
-                    if (progress.scanType === 'quests') {
-                        setScanProgress({
-                            currentFile: progress.currentFile,
-                            processedCount: progress.processedCount,
-                            totalCount: progress.totalCount,
-                            scanType: progress.scanType,
-                        });
-                        
-                        // Reset progress after completion
-                        if (progress.completed) {
-                            setTimeout(() => resetScanProgress(), 500);
-                        }
-                    }
-                });
-                
-                return unlisten;
-            } catch (error) {
-                console.error('Failed to set up scan progress listener:', error);
-                return () => {};
-            }
-        };
+    // Get Better Quests files
+    const betterQuestFiles = await FileService.getBetterQuestFiles(directory);
 
-        const unlistenPromise = setupScanProgressListener();
-        return () => {
-            unlistenPromise.then(unlisten => unlisten());
-        };
-    }, [setScanProgress, resetScanProgress]);
+    // Create translation targets
+    const targets: TranslationTarget[] = [];
 
-    // Scan for quests
-    const handleScan = async (directory: string, targetLanguage?: string) => {
-        try {
-            setScanning(true);
-            
-            // Set initial scan progress immediately
-            setScanProgress({
-                currentFile: t('progress.initializingScan'),
-                processedCount: 0,
-                totalCount: undefined,
-                scanType: 'quests',
-            });
-            
-            // Clear existing targets before scanning
-            setQuestTranslationTargets([]);
-            
-            // Get FTB quest files
-            const ftbQuestFiles = await FileService.getFTBQuestFiles(directory);
+    // Add FTB quests
+    for (let i = 0; i < ftbQuestFiles.length; i++) {
+      const questFile = ftbQuestFiles[i];
+      try {
+        // In a real implementation, we would parse the quest file to get more information
+        // For now, we'll just use the file path
+        const fileName = questFile.split('/').pop() || "unknown";
+        const questNumber = i + 1;
 
-        // Get Better Quests files
-        const betterQuestFiles = await FileService.getBetterQuestFiles(directory);
+        // Calculate relative path by removing the selected directory part
+        const relativePath = questFile.startsWith(directory)
+          ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
+          : questFile;
 
-        // Update progress immediately after file discovery
-        setScanProgress({
-            currentFile: t('progress.analyzingFiles'),
-            processedCount: 0,
-            totalCount: ftbQuestFiles.length + betterQuestFiles.length,
-            scanType: 'quests',
+        targets.push({
+          type: "ftb",
+          id: `ftb-quest-${questNumber}`,
+          name: `${/[\\/]config[\\/](?:ftbquests|ftb_quests)[\\/]quests[\\/]/i.test(questFile) ? "FTB Quest" : "Quest Language"} ${questNumber}: ${fileName}`,
+          path: questFile,
+          relativePath: relativePath,
+          selected: true
         });
+      } catch (error) {
+        console.error(`Failed to analyze FTB quest: ${questFile}`, error);
+      }
+    }
 
-        // Create translation targets
-        const targets: TranslationTarget[] = [];
+    // Add Better Quests
+    for (let i = 0; i < betterQuestFiles.length; i++) {
+      const questFile = betterQuestFiles[i];
+      try {
+        // In a real implementation, we would parse the quest file to get more information
+        // For now, we'll just use the file path
+        const fileName = questFile.split('/').pop() || "unknown";
+        const questNumber = i + 1;
 
-        // Add FTB quests
-        for (let i = 0; i < ftbQuestFiles.length; i++) {
-            const questFile = ftbQuestFiles[i];
-            try {
-                // Update progress for FTB quest analysis phase
-                setScanProgress({
-                    currentFile: questFile.split('/').pop() || questFile,
-                    processedCount: i + 1,
-                    totalCount: ftbQuestFiles.length + betterQuestFiles.length,
-                    scanType: 'quests',
-                });
+        // Calculate relative path by removing the selected directory part
+        const relativePath = questFile.startsWith(directory)
+          ? questFile.substring(directory.length).replace(/^[/\\]+/, '')
+          : questFile;
 
-                // Extract just the filename for the quest name (cross-platform)
-                const fileName = getFileName(questFile);
-                const questNumber = i + 1;
+        targets.push({
+          type: "better",
+          id: `better-quest-${questNumber}`,
+          name: `Better Quest ${questNumber}: ${fileName}`,
+          path: questFile,
+          relativePath: relativePath,
+          selected: true
+        });
+      } catch (error) {
+        console.error(`Failed to analyze Better quest: ${questFile}`, error);
+      }
+    }
 
-                // Calculate relative path (cross-platform)
-                const relativePath = getRelativePath(questFile, directory);
+    setQuestTranslationTargets(targets);
+  };
 
-                // Check for existing translation if target language is provided
-                let hasExistingTranslation = false;
-                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
-                    try {
-                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
-                            questPath: questFile,
-                            targetLanguage: targetLanguage
-                        });
-                    } catch (error) {
-                        console.error(`Failed to check existing translation for ${fileName}:`, error);
-                    }
-                }
+  // Translate quests
+  const handleTranslate = async (
+    selectedTargets: TranslationTarget[],
+    targetLanguage: string,
+    translationService: TranslationService,
+    setCurrentJobId: (jobId: string | null) => void,
+    addTranslationResult: (result: TranslationResult) => void,
+    /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+    selectedDirectory: string // for API compatibility, not used
+  ) => {
+    // Reset whole progress tracking
+    setCompletedChunks(0);
+    setWholeProgress(0);
 
-                targets.push({
-                    type: "quest",
-                    questFormat: "ftb",
-                    id: `ftb-quest-${questNumber}`,
-                    name: `FTB Quest ${questNumber}: ${fileName}`,
-                    path: questFile,
-                    relativePath: relativePath,
-                    selected: true,
-                    hasExistingTranslation
-                });
-            } catch (error) {
-                console.error(`Failed to analyze FTB quest: ${questFile}`, error);
-            }
-        }
-
-        // Add Better Quests
-        for (let i = 0; i < betterQuestFiles.length; i++) {
-            const questFile = betterQuestFiles[i];
-            try {
-                // Update progress for Better quest analysis phase
-                setScanProgress({
-                    currentFile: questFile.split('/').pop() || questFile,
-                    processedCount: ftbQuestFiles.length + i + 1,
-                    totalCount: ftbQuestFiles.length + betterQuestFiles.length,
-                    scanType: 'quests',
-                });
-
-                // Extract just the filename for the quest name (cross-platform)
-                const fileName = getFileName(questFile);
-                const questNumber = i + 1;
-
-                // Calculate relative path (cross-platform)
-                const relativePath = getRelativePath(questFile, directory);
-
-                // Determine if it's a DefaultQuests.lang file (direct mode)
-                const isDirectMode = fileName === "DefaultQuests.lang";
-                const questName = isDirectMode 
-                    ? `Better Quest (Direct): ${fileName}` 
-                    : `Better Quest ${questNumber}: ${fileName}`;
-
-                // Check for existing translation if target language is provided
-                let hasExistingTranslation = false;
-                if (targetLanguage && (config.translation.skipExistingTranslations ?? true)) {
-                    try {
-                        hasExistingTranslation = await FileService.invoke<boolean>("check_quest_translation_exists", {
-                            questPath: questFile,
-                            targetLanguage: targetLanguage
-                        });
-                    } catch (error) {
-                        console.error(`Failed to check existing translation for ${fileName}:`, error);
-                    }
-                }
-
-                targets.push({
-                    type: "quest",
-                    questFormat: "better",
-                    id: `better-quest-${questNumber}`,
-                    name: questName,
-                    path: questFile,
-                    relativePath: relativePath,
-                    selected: true,
-                    hasExistingTranslation
-                });
-            } catch (error) {
-                console.error(`Failed to analyze Better quest: ${questFile}`, error);
-            }
-        }
-
-        setQuestTranslationTargets(targets);
-        } finally {
-            setScanning(false);
-            // Reset scan progress after completion
-            resetScanProgress();
-        }
+    type PreparedQuest = {
+      target: TranslationTarget;
+      source: string;
+      questText: QuestTextBundle;
+      isJsonLang: boolean;
+      isJavaLang: boolean;
+      isBetterQuestData: boolean;
+      localCacheKeys: Record<string, string>;
+      jobCacheKeys: Record<string, string>;
+      job: ReturnType<TranslationService["createJob"]> | null;
+      error?: unknown;
     };
 
-    // Translate quests
-    const handleTranslate = async (
-        selectedTargets: TranslationTarget[],
-        targetLanguage: string,
-        translationService: TranslationService,
-        setCurrentJobId: (jobId: string | null) => void,
-        addTranslationResult: (result: TranslationResult) => void,
-        selectedDirectory: string,
-        sessionId: string
-    ) => {
-        try {
-            setTranslating(true);
-            
-            // Sort targets alphabetically for consistent processing
-            const sortedTargets = [...selectedTargets].sort((a, b) => a.name.localeCompare(b.name));
-            
-            // Reset progress tracking
-            setCompletedChunks(0);
-            setWholeProgress(0);
-            setProgress(0);
-            setCompletedQuests(0);
-            
-            // Use the session ID provided by the common translation tab
-            const minecraftDir = selectedDirectory;
-            const sessionPath = await invoke<string>('create_logs_directory_with_session', {
-                minecraftDir: minecraftDir,
-                sessionId: sessionId
-            });
-            
-            // Backup SNBT files before translation (only for FTB quests)
-            const snbtFiles = sortedTargets
-                .filter(target => target.questFormat === 'ftb' && target.path.endsWith('.snbt'))
-                .map(target => target.path);
-            
-            if (snbtFiles.length > 0) {
-                try {
-                    await invoke('backup_snbt_files', {
-                        files: snbtFiles,
-                        sessionPath: sessionPath
-                    });
-                        } catch (error) {
-                    console.error('Failed to backup SNBT files:', error);
-                    // Continue with translation even if backup fails
-                }
-            }
-            
-            // Create jobs for all quests
-            const jobs: Array<{
-                target: TranslationTarget;
-                job: TranslationJob;
-                content: string;
-                contentType?: string;
-                hasKubeJSFiles?: boolean;
-                ftbLangEntries?: FtbLangEntry[];
-                ftbLangOutputPath?: string;
-            }> = [];
-            let skippedCount = 0;
-            
-            for (const target of sortedTargets) {
-                try {
-                    // Check if translation already exists when skipExistingTranslations is enabled
-                    if (config.translation.skipExistingTranslations ?? true) {
-                        const exists = await FileService.invoke<boolean>("check_quest_translation_exists", {
-                            questPath: target.path,
-                            targetLanguage: targetLanguage
-                        });
-                        
-                        if (exists) {
-                            console.log(`Skipping quest ${target.name} - translation already exists`);
-                            try {
-                                await invoke('log_translation_process', { 
-                                    message: `Skipped: ${target.name} - translation already exists`, 
-                                    processType: "TRANSLATION" 
-                                });
-                            } catch {
-                                // ignore logging errors
-                            }
-                            skippedCount++;
-                            continue;
-                        }
-                    }
-                    
-                    const ftbLangOutputPath = target.questFormat === "ftb"
-                        ? getFtbQuestLangOutputPath(target.path, targetLanguage) ?? undefined
-                        : undefined;
-
-                    // For legacy SNBT files, detect content type
-                    let contentType = "direct_text"; // Default
-                    let hasKubeJSFiles = false;
-                    
-                    if (target.path.endsWith('.snbt') || target.path.endsWith('.snbt_merged')) {
-                        try {
-                            contentType = await FileService.invoke<string>("detect_snbt_content_type", {
-                                filePath: target.path
-                            });
-                            console.log(`SNBT content type for ${target.name}: ${contentType}`);
-                        } catch (error) {
-                            console.warn(`Failed to detect SNBT content type for ${target.name}:`, error);
-                        }
-                        
-                        // Check if this target has KubeJS files
-                        hasKubeJSFiles = target.path.includes('kubejs/assets/kubejs/lang');
-                    }
-                    // Read quest file
-                    const content = await FileService.readTextFile(target.path);
-                    
-                    let processedContent = content;
-                    let ftbLangEntries: FtbLangEntry[] | undefined;
-                    let jobContent: Record<string, string>;
-                    
-                    if (ftbLangOutputPath) {
-                        ftbLangEntries = parseFtbQuestLang(content);
-                        if (ftbLangEntries.length === 0) {
-                            throw new Error(`No FTB Quests language entries found in ${target.path}`);
-                        }
-                        jobContent = ftbQuestLangToMap(ftbLangEntries);
-                    } else if (target.path.endsWith('.lang')) {
-                        // If it's a .lang file, convert to JSON format for translation
-                        const langMap = parseLangFile(content);
-                        processedContent = JSON.stringify(langMap, null, 2);
-                        jobContent = {content: processedContent};
-                    } else {
-                        jobContent = {content: processedContent};
-                    }
-                    
-                    // Create a translation job
-                    const job = translationService.createJob(
-                        jobContent,
-                        targetLanguage,
-                        target.name
-                    );
-                    
-                    jobs.push({
-                        target,
-                        job,
-                        content: processedContent,
-                        contentType,
-                        hasKubeJSFiles,
-                        ftbLangEntries,
-                        ftbLangOutputPath,
-                    });
-                } catch (error) {
-                    console.error(`Failed to prepare quest: ${target.name}`, error);
-                    // Add failed result immediately
-                    addTranslationResult({
-                        type: "quest",
-                        id: target.id,
-                        targetLanguage: targetLanguage,
-                        content: {},
-                        outputPath: "",
-                        success: false
-                    });
-                    incrementCompletedChunks();
-                }
-            }
-            
-            // Set total quests for progress tracking: denominator = actual jobs, numerator = completed quests
-            // This ensures progress reaches 100% when all translatable quests are processed
-            setTotalQuests(jobs.length);
-            setTotalChunks(jobs.length); // For quests, we track at file level instead of chunk level
-            
-            // Use runTranslationJobs for consistent processing
-            await runTranslationJobs({
-                jobs: jobs.map(({ job }) => job),
-                translationService,
-                setCurrentJobId,
-                incrementCompletedChunks, // Track at chunk level for real-time progress
-                incrementWholeProgress: incrementCompletedQuests, // Track at quest level
-                targetLanguage,
-                type: "quest",
-                sessionId,
-                getOutputPath: () => selectedDirectory,
-                getResultContent: (job) => translationService.getCombinedTranslatedContent(job.id),
-                writeOutput: async (job, outputPath, content) => {
-                    // Find the corresponding quest data
-                    const questData = jobs.find(j => j.job.id === job.id);
-                    if (!questData) return;
-
-                    if (questData.ftbLangEntries && questData.ftbLangOutputPath) {
-                        validateFtbQuestLangTranslation(questData.ftbLangEntries, content);
-                        const translatedSnbt = mapToFtbQuestLang(questData.ftbLangEntries, content);
-                        const reparsed = parseFtbQuestLang(translatedSnbt);
-                        const sourceShape = questData.ftbLangEntries.map(({key, isArray, values}) => [key, isArray, values.length]);
-                        const outputShape = reparsed.map(({key, isArray, values}) => [key, isArray, values.length]);
-                        if (JSON.stringify(sourceShape) !== JSON.stringify(outputShape)) {
-                            throw new Error("FTB Quests SNBT validation failed: keys or array structure changed");
-                        }
-                        await FileService.writeTextFile(questData.ftbLangOutputPath, translatedSnbt);
-                        return;
-                    }
-                    
-                    let translatedText = content.content || `[${targetLanguage}] ${questData.content}`;
-                    
-                    // Write translated file with language suffix
-                    let fileExtension: string;
-                    let outputFilePath: string;
-                    
-                    // Special handling for KubeJS lang files
-                    if (questData.target.path.includes('kubejs/assets/kubejs/lang') && questData.target.path.endsWith('en_us.json')) {
-                        // For KubeJS en_us.json files, create target language file
-                        const kubejsLangDir = questData.target.path.replace('en_us.json', '');
-                        outputFilePath = `${kubejsLangDir}${targetLanguage}.json`;
-                        console.log(`KubeJS lang file translation: ${outputFilePath}`);
-                        await FileService.writeTextFile(outputFilePath, translatedText);
-                        return;
-                    }
-                    
-                    if (questData.target.questFormat === "ftb") {
-                        fileExtension = "snbt";
-                    } else {
-                        // For BetterQuest, check if it's a .lang file
-                        fileExtension = questData.target.path.endsWith('.lang') ? "lang" : "json";
-                    }
-                    
-                    // If it's a .lang file, format the output properly
-                    if (fileExtension === "lang") {
-                        try {
-                            // Parse the translated JSON content
-                            const translatedMap = JSON.parse(translatedText);
-                            
-                            // Convert to .lang format
-                            const langLines: string[] = [];
-                            const sortedKeys = Object.keys(translatedMap).sort();
-                            
-                            for (const key of sortedKeys) {
-                                langLines.push(`${key}=${translatedMap[key]}`);
-                            }
-                            
-                            translatedText = langLines.join('\n');
-                        } catch (error) {
-                            console.error('Failed to format .lang file output:', error);
-                            // Keep original format if parsing fails
-                        }
-                    }
-                    
-                    // Special handling for DefaultQuests.lang files
-                    if (questData.target.path.endsWith('DefaultQuests.lang')) {
-                        // For direct DefaultQuests.lang, create a copy with language suffix
-                        outputFilePath = questData.target.path.replace('.lang', `.${targetLanguage}.lang`);
-                    } else {
-                        // Check if the file already has a language suffix and remove it
-                        const languagePattern = /\.[a-z]{2}_[a-z]{2}\.(snbt|json|lang)$/;
-                        let basePath = questData.target.path;
-                        
-                        // Remove existing language suffix if present
-                        if (languagePattern.test(basePath)) {
-                            basePath = basePath.replace(languagePattern, `.${fileExtension}`);
-                        }
-                        
-                        // For SNBT files, always modify the original file in-place
-                        if (fileExtension === 'snbt') {
-                            // All SNBT files should be modified in-place to maintain Minecraft compatibility
-                            outputFilePath = basePath;
-                            console.log(`SNBT translation (in-place): ${outputFilePath}`);
-                        } else {
-                            // For non-SNBT files (lang files, etc.), add language suffix
-                            const lastDotIndex = basePath.lastIndexOf('.');
-                            if (lastDotIndex !== -1) {
-                                outputFilePath = basePath.substring(0, lastDotIndex) + `.${targetLanguage}` + basePath.substring(lastDotIndex);
-                            } else {
-                                // Fallback if no extension found
-                                outputFilePath = `${basePath}.${targetLanguage}.${fileExtension}`;
-                            }
-                            console.log(`Non-SNBT file translation: ${outputFilePath}`);
-                        }
-                    }
-                    
-                    await FileService.writeTextFile(outputFilePath, translatedText);
-                },
-                onResult: addTranslationResult,
-                onJobStart: async (job) => {
-                    const questData = jobs.find(j => j.job.id === job.id);
-                    if (!questData) return;
-                    try {
-                        await invoke('log_translation_process', {
-                            message: `Starting translation for quest: ${questData.target.name} (${questData.target.id})`
-                        });
-                    } catch {}
-                },
-                onJobComplete: async (job) => {
-                    const questData = jobs.find(j => j.job.id === job.id);
-                    if (!questData) return;
-                    try {
-                        await invoke('log_translation_process', {
-                            message: `Completed translation for quest: ${questData.target.name} (${questData.target.id})`
-                        });
-                    } catch {}
-                },
-                onJobInterrupted: async (job) => {
-                    const questData = jobs.find(j => j.job.id === job.id);
-                    if (!questData) return;
-                    try {
-                        await invoke('log_translation_process', {
-                            message: `Translation cancelled by user during quest: ${questData.target.name} (${questData.target.id})`
-                        });
-                    } catch {}
-                }
-            });
-            
-            // Log skipped items summary
-            if (skippedCount > 0) {
-                try {
-                    await invoke('log_translation_process', { 
-                        message: `Translation completed. Skipped ${skippedCount} quests that already have translations.`, 
-                        processType: "TRANSLATION" 
-                    });
-                } catch {
-                    // ignore logging errors
-                }
-            }
-        } finally {
-            setTranslating(false);
-        }
-    };
-
-    // Custom render function for the type column
-    const renderQuestType = (target: TranslationTarget) => {
-        const isFTB = target.questFormat === "ftb";
-        const isDirectMode = !isFTB && target.path.endsWith('DefaultQuests.lang');
-        
-        let type: string;
-        let className: string;
-        
-        if (isFTB) {
-            type = "FTB Quest";
-            className = "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-        } else if (isDirectMode) {
-            type = "Better Quest (Direct)";
-            className = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-        } else {
-            type = "Better Quest";
-            className = "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200";
-        }
-        
-        return (
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>
-                {type}
-            </span>
-        );
-    };
-
-    return (
-        <TranslationTab
-            tabType="quests"
-            scanButtonLabel="buttons.scanQuests"
-            scanningLabel="buttons.scanning"
-            progressLabel="progress.translatingQuests"
-            noItemsSelectedError="errors.noQuestsSelected"
-            noItemsFoundLabel="tables.noQuestsFound"
-            scanningForItemsLabel="tables.scanningForQuests"
-            filterPlaceholder="filters.filterQuests"
-            tableColumns={[
-                {key: "name", label: "tables.questName"},
-                {key: "type", label: "tables.type", render: renderQuestType},
-                {
-                    key: "relativePath",
-                    label: "tables.path",
-                    render: (target) => target.relativePath || getFileName(target.path)
-                },
-                {
-                    key: "hasExistingTranslation",
-                    label: "tables.translation",
-                    className: "w-24",
-                    render: (target) => (
-                        target.hasExistingTranslation !== undefined ? (
-                            <span className={`px-2 py-1 text-xs rounded ${
-                                target.hasExistingTranslation
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                            }`}>
-                                {t(target.hasExistingTranslation ? 'tables.existing' : 'tables.new')}
-                            </span>
-                        ) : null
-                    )
-                }
-            ]}
-            config={config}
-            translationTargets={questTranslationTargets}
-            setTranslationTargets={setQuestTranslationTargets}
-            updateTranslationTarget={updateQuestTranslationTarget}
-            isTranslating={isTranslating}
-            progress={progress}
-            wholeProgress={wholeProgress}
-            setTranslating={setTranslating}
-            setProgress={setProgress}
-            setWholeProgress={setWholeProgress}
-            setTotalChunks={setTotalChunks}
-            setCompletedChunks={setCompletedChunks}
-            addTranslationResult={addTranslationResult}
-            error={error}
-            setError={setError}
-            currentJobId={currentJobId}
-            setCurrentJobId={setCurrentJobId}
-            isCompletionDialogOpen={isCompletionDialogOpen}
-            setCompletionDialogOpen={setCompletionDialogOpen}
-            setLogDialogOpen={setLogDialogOpen}
-            resetTranslationState={resetTranslationState}
-            scanProgress={scanProgress}
-            onScan={handleScan}
-            onTranslate={handleTranslate}
-        />
+    // Translate split FTB locale files first, so the older flat locale file can reuse their results.
+    const isFlatFtbLocale = (target: TranslationTarget) =>
+      target.type === "ftb" && /[\\/]lang[\\/]en_us\.snbt(?:_merged)?$/i.test(target.path);
+    const orderedTargets = [...selectedTargets].sort((left, right) =>
+      Number(isFlatFtbLocale(left)) - Number(isFlatFtbLocale(right)) || left.path.localeCompare(right.path)
     );
+    const plannedTranslations = new Set<string>();
+    const prepared: PreparedQuest[] = [];
+    let totalChunksCount = 0;
+    for (const target of orderedTargets) {
+      try {
+        const normalizedPath = target.path.replace(/\\/g, "/").toLowerCase();
+        const isBetterQuestData = target.type === "better" && /\/config\/betterquesting\/(?:defaultquests\.json|defaultquests\/.*\.json)$/.test(normalizedPath);
+        const isJsonLang = target.path.toLowerCase().endsWith(".json") && !isBetterQuestData;
+        const isJavaLang = target.path.toLowerCase().endsWith(".lang");
+        let source = await FileService.readTextFile(target.path);
+        if (isDirectQuestSource(target.path)) {
+          const backupPath = getDirectQuestBackupPath(target.path);
+          if (await FileService.invoke<boolean>("file_exists", { path: backupPath })) {
+            source = await FileService.readTextFile(backupPath);
+          }
+        }
+        const questText: QuestTextBundle = isBetterQuestData
+          ? extractBetterQuestJsonText(source)
+          : isJsonLang
+            ? { content: extractJsonLangText(source), spans: [] }
+            : isJavaLang
+              ? extractJavaLangText(source)
+              : extractQuestText(source);
+        const spanByKey = new Map(questText.spans.map((span) => [span.key, span]));
+        const localCacheKeys: Record<string, string> = {};
+        const jobCacheKeys: Record<string, string> = {};
+        const jobContent: Record<string, string> = {};
+        for (const [localKey, sourceText] of Object.entries(questText.content)) {
+          const cacheKey = getQuestSourceCacheKey(target.path, localKey, sourceText, spanByKey.get(localKey)?.sourceKey);
+          localCacheKeys[localKey] = cacheKey;
+          if (plannedTranslations.has(cacheKey)) continue;
+          plannedTranslations.add(cacheKey);
+          const jobKey = `entry.${Object.keys(jobContent).length}`;
+          jobContent[jobKey] = sourceText;
+          jobCacheKeys[jobKey] = cacheKey;
+        }
+        const job = Object.keys(jobContent).length > 0
+          ? translationService.createJob(jobContent, targetLanguage, target.name)
+          : null;
+        if (job) totalChunksCount += job.chunks.length;
+        prepared.push({ target, source, questText, isJsonLang, isJavaLang, isBetterQuestData, localCacheKeys, jobCacheKeys, job });
+      } catch (error) {
+        // Keep the target visible in progress/results even if its source cannot be read.
+        totalChunksCount += 1;
+        prepared.push({
+          target, source: "", questText: { content: {}, spans: [] }, isJsonLang: false, isJavaLang: false, isBetterQuestData: false,
+          localCacheKeys: {}, jobCacheKeys: {}, job: null, error
+        });
+      }
+    }
+
+    setTotalChunks(totalChunksCount);
+    console.log(`QuestsTab: Set totalChunks to ${totalChunksCount} for ${prepared.length} quest files after reusing duplicate FTB keys`);
+
+    const translatedBySource = new Map<string, string>();
+    const jobs = prepared.flatMap((item) => item.job ? [item.job] : []);
+    const batchChunks = jobs.flatMap((job) => job.chunks.map((chunk, chunkIndex) => ({ job, chunk, chunkIndex })));
+    const useBatchApi = translationService.usesBatchApi && batchChunks.length > 0;
+    if (useBatchApi) {
+      setCurrentJobId(jobs[0]?.id ?? null);
+      for (const job of jobs) {
+        job.status = "processing";
+        job.startTime = Date.now();
+        for (const chunk of job.chunks) chunk.status = "processing";
+      }
+
+      let progressCount = 0;
+      const recordProgress = (completed: number) => {
+        const bounded = Math.max(progressCount, Math.min(batchChunks.length, completed));
+        while (progressCount < bounded) {
+          progressCount++;
+          incrementCompletedChunks();
+        }
+      };
+
+      try {
+        const results = await translationService.translateChunksBatch(
+          batchChunks.map(({ job, chunk }) => ({
+            content: chunk.content,
+            targetLanguage: job.targetLanguage,
+            jobId: job.id
+          })),
+          ({ completed }) => recordProgress(completed)
+        );
+        for (let index = 0; index < batchChunks.length; index++) {
+          const { chunk } = batchChunks[index];
+          const result = results[index];
+          if (result?.translatedContent) {
+            chunk.translatedContent = result.translatedContent;
+            chunk.status = "completed";
+          } else {
+            chunk.status = "failed";
+            chunk.error = result?.error || "Batch API did not return a translation for this chunk";
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        for (const { chunk } of batchChunks) {
+          chunk.status = "failed";
+          chunk.error = message;
+        }
+      }
+
+      for (const job of jobs) {
+        job.status = job.chunks.every((chunk) => chunk.status === "completed") ? "completed" : "failed";
+        job.endTime = Date.now();
+        if (job.status === "failed") {
+          job.error = job.chunks.find((chunk) => chunk.status === "failed")?.error || "One or more Batch requests failed";
+        }
+      }
+      recordProgress(batchChunks.length);
+    }
+
+    for (let i = 0; i < prepared.length; i++) {
+      const { target, source, questText, isJsonLang, isJavaLang, isBetterQuestData, localCacheKeys, jobCacheKeys, job, error: preparationError } = prepared[i];
+      setProgress(Math.round((i / prepared.length) * 100));
+
+      try {
+        if (preparationError) throw preparationError;
+        if (Object.keys(questText.content).length === 0) {
+          console.warn(`No translatable quest text found: ${target.name}`);
+          continue;
+        }
+
+        let completedJob: ReturnType<TranslationService["getJob"]> | null = null;
+        if (job) {
+          if (useBatchApi) {
+            completedJob = job;
+          } else {
+            setCurrentJobId(job.id);
+            await translationService.startJob(job.id);
+            completedJob = translationService.getJob(job.id);
+            for (let chunkIndex = 0; chunkIndex < job.chunks.length; chunkIndex++) {
+              incrementCompletedChunks();
+            }
+          }
+          if (completedJob?.status !== "completed") {
+            throw new Error(completedJob?.error || "Translation job did not complete; refusing to write a partial locale file");
+          }
+          const translatedJobContent = translationService.getCombinedTranslatedContent(job.id);
+          for (const [jobKey, cacheKey] of Object.entries(jobCacheKeys)) {
+            const translation = translatedJobContent[jobKey];
+            if (typeof translation === "string") translatedBySource.set(cacheKey, translation);
+          }
+        }
+
+        const translatedContent: Record<string, string> = {};
+        for (const [localKey, cacheKey] of Object.entries(localCacheKeys)) {
+          const translation = translatedBySource.get(cacheKey);
+          if (translation === undefined) throw new Error(`No validated translation available for ${localKey}`);
+          translatedContent[localKey] = translation;
+        }
+        const translatedText = isBetterQuestData
+          ? applyBetterQuestJsonTranslations(source, questText, translatedContent)
+          : isJsonLang
+            ? applyJsonLangTranslations(source, translatedContent)
+            : isJavaLang
+              ? applyJavaLangTranslations(source, questText, translatedContent)
+              : applyQuestTranslations(source, questText, translatedContent);
+
+        // Write a language-specific output; never overwrite the English source.
+        const outputPath = getQuestOutputPath(target.path, targetLanguage);
+
+        if (outputPath === target.path && isDirectQuestSource(target.path)) {
+          const backupPath = getDirectQuestBackupPath(target.path);
+          if (!(await FileService.invoke<boolean>("file_exists", { path: backupPath }))) {
+            await FileService.writeTextFile(backupPath, await FileService.readTextFile(target.path));
+          }
+        }
+        
+        await FileService.writeTextFile(outputPath, translatedText);
+        
+        // Add translation result with proper success determination
+        addTranslationResult({
+          type: target.type,
+          id: target.id,
+          targetLanguage: targetLanguage,
+          content: translatedContent,
+          outputPath,
+          success: !completedJob || completedJob.status === "completed"
+        });
+      } catch (error) {
+        console.error(`Failed to translate quest: ${target.name}`, error);
+        // Add failed translation result
+        addTranslationResult({
+          type: target.type,
+          id: target.id,
+          targetLanguage: targetLanguage,
+          content: {},
+          outputPath: "",
+          success: false
+        });
+        
+        if (!job) incrementCompletedChunks();
+      }
+    }
+
+    // Clear the job ID
+    setCurrentJobId(null);
+    setProgress(100);
+    setWholeProgress(100);
+    setTranslating(false);
+  };
+
+  // Custom render function for the type column
+  const renderQuestType = (target: TranslationTarget) => {
+    if (target.type === "better") return "Better Quest";
+    return /[\\/]config[\\/](?:ftbquests|ftb_quests)[\\/]quests[\\/]/i.test(target.path)
+      ? "FTB Quest"
+      : t("tables.questLanguage");
+  };
+
+  return (
+    <TranslationTab
+      tabType="quests"
+      scanButtonLabel="buttons.scanQuests"
+      scanningLabel="buttons.scanning"
+      progressLabel="progress.translatingQuests"
+      noItemsSelectedError="errors.noQuestsSelected"
+      noItemsFoundLabel="tables.noQuestsFound"
+      scanningForItemsLabel="tables.scanningForQuests"
+      filterPlaceholder="filters.filterQuests"
+      tableColumns={[
+        { key: "name", label: "tables.questName" },
+        { key: "type", label: "tables.type", render: renderQuestType },
+        {
+          key: "relativePath",
+          label: "tables.path",
+          className: "truncate max-w-[300px]",
+          render: (target) => target.relativePath || target.path
+        }
+      ]}
+      config={config}
+      translationTargets={questTranslationTargets}
+      prepareTranslationTargets={async (targets, targetLanguage) => {
+        if (config.translation.skipExistingTranslations === false) return targets;
+        const filteredTargets = await filterExistingQuestTranslations(
+          targets,
+          targetLanguage,
+          (path) => FileService.invoke<boolean>("file_exists", { path })
+        );
+        if (filteredTargets.length !== targets.length) {
+          console.info(`Skipped ${targets.length - filteredTargets.length} quest files with existing ${targetLanguage} translations`);
+        }
+        return filteredTargets;
+      }}
+      confirmBeforeTranslate={(targets) => {
+        const directCount = targets.filter((target) => isDirectQuestSource(target.path)).length;
+        if (directCount === 0) return true;
+        return window.confirm(t('confirmation.overwriteLegacyQuests', { count: directCount }));
+      }}
+      setTranslationTargets={setQuestTranslationTargets}
+      updateTranslationTarget={updateQuestTranslationTarget}
+      isTranslating={isTranslating}
+      progress={progress}
+      wholeProgress={wholeProgress}
+      setTranslating={setTranslating}
+      setProgress={setProgress}
+      setWholeProgress={setWholeProgress}
+      setTotalChunks={setTotalChunks}
+      setCompletedChunks={setCompletedChunks}
+      addTranslationResult={addTranslationResult}
+      error={error}
+      setError={setError}
+      currentJobId={currentJobId}
+      setCurrentJobId={setCurrentJobId}
+      isCompletionDialogOpen={isCompletionDialogOpen}
+      setCompletionDialogOpen={setCompletionDialogOpen}
+      setLogDialogOpen={setLogDialogOpen}
+      resetTranslationState={resetTranslationState}
+      onScan={handleScan}
+      onTranslate={handleTranslate}
+    />
+  );
 }

@@ -5,7 +5,7 @@
 /**
  * Common translation target type
  */
-export type TranslationTargetType = "mod" | "quest" | "patchouli" | "custom";
+export type TranslationTargetType = "mod" | "quest" | "ftb" | "better" | "patchouli" | "custom";
 
 /**
  * Mod information
@@ -21,6 +21,12 @@ export interface ModInfo {
   jarPath: string;
   /** Language files in the mod */
   langFiles: LangFile[];
+  /** Languages available for each English asset namespace and file format. */
+  availableLanguagesByNamespaceAndFormat?: Record<string, Partial<Record<"json" | "lang", string[]>>>;
+  /** Language codes already present in the mod archive. */
+  availableLanguages: string[];
+  /** Languages available for each asset namespace that has English source text. */
+  availableLanguagesByNamespace: Record<string, string[]>;
   /** Patchouli books in the mod */
   patchouliBooks: PatchouliBook[];
   /** Source language file format ('json' or 'lang') */
@@ -37,6 +43,8 @@ export interface LangFile {
   path: string;
   /** Content of the file */
   content: Record<string, string>;
+  /** Non-string JSON values whose text leaves are translated and rebuilt in place. */
+  structuredContent?: Record<string, unknown>;
 }
 
 /**
@@ -53,6 +61,8 @@ export interface PatchouliBook {
   path: string;
   /** Language files in the book */
   langFiles: LangFile[];
+  /** Language codes already present in this book. */
+  availableLanguages: string[];
 }
 
 /**
@@ -111,6 +121,16 @@ export interface TranslationTarget {
   path: string;
   /** Relative path (for display) */
   relativePath?: string;
+  /** Languages already present in the mod archive. */
+  availableLanguages?: string[];
+  /** Languages available for each English asset namespace in the mod archive. */
+  availableLanguagesByNamespace?: Record<string, string[]>;
+  /** Languages available for each English asset namespace and file format. */
+  availableLanguagesByNamespaceAndFormat?: Record<string, Partial<Record<"json" | "lang", string[]>>>;
+  /** Locales already emitted for each namespace/format in the configured output resource pack. */
+  resourcePackLanguagesByNamespaceAndFormat?: Record<string, Partial<Record<"json" | "lang", string[]>>>;
+  /** Language explicitly opted into replacing when an existing translation is found. */
+  forceTranslationLanguage?: string;
   /** Whether the target is selected for translation */
   selected: boolean;
   /** Quest format (only for quest type) */
@@ -128,6 +148,7 @@ import type { TranslationJob } from "../services/translation-service";
 export interface PatchouliTranslationJob extends TranslationJob {
   bookId: string;
   modId: string;
+  sourcePaths: string[];
   targetPath: string;
 }
 
@@ -135,7 +156,10 @@ export interface PatchouliTranslationJob extends TranslationJob {
  * Mod-specific translation job
  */
 export interface ModTranslationJob extends TranslationJob {
-  modId: string;
+  resourceNamespace: string;
+  modName: string;
+  fileExtension: "json" | "lang";
+  structuredContent?: Record<string, unknown>;
 }
 
 /**

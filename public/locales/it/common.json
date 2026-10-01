@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "Configurazione di {{provider}}",
     "showApiKey": "Mostra chiave API",
-    "hideApiKey": "Nascondi chiave API"
+    "hideApiKey": "Nascondi chiave API",
+    "getApiKey": "Ottieni chiave API",
+    "loadApiKeyFromEnvironment": "Carica dall’ambiente",
+    "environmentVariable": "Variabile d’ambiente",
+    "apiKeyLoaded": "Chiave API caricata dall’ambiente",
+    "apiKeyNotFound": "Chiave API non trovata",
+    "providerBatchApi": "Usa l’API Batch di questo provider",
+    "providerBatchApiHint": "Disattivata per impostazione predefinita. Se attiva, anche un solo blocco usa Batch. Può richiedere 24 ore. Lascia l’app aperta fino al salvataggio. Valgono tariffe, modelli e conservazione del provider."
   },
   "tabs": {
     "mods": "Mod",
@@ -166,7 +173,12 @@
     "format": "Formato",
     "translation": "Traduzione",
     "existing": "Esistente",
-    "new": "Nuova"
+    "new": "Nuova",
+    "existingTranslation": "Lingua di destinazione esistente",
+    "existingTranslationSkipped": "{{language}} presente; ignorato",
+    "translateAnyway": "Traduci comunque",
+    "forceTranslationHint": "Rigenera la traduzione dall’inglese. Il file precedente viene salvato una volta come .mml-original.bak. Il JAR del mod rimane invariato.",
+    "questLanguage": "File di lingua delle missioni"
   },
   "progress": {
     "translatingMods": "Traduzione delle mod in corso...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "La cartella selezionata non è valida",
     "directorySelectionFailed": "Impossibile selezionare la cartella",
     "scanFailed": "Scansione non riuscita",
-    "translationFailed": "Traduzione non riuscita"
+    "translationFailed": "Traduzione non riuscita",
+    "allTargetsAlreadyTranslated": "Tutti gli elementi contengono già {{language}}. Le traduzioni delle missioni vengono conservate; usa «Traduci comunque» per sostituire quelle dei mod.",
+    "apiKeyNotConfigured": "Nessuna chiave API configurata o disponibile nell’ambiente dell’applicazione."
   },
   "info": {
     "translationCancelled": "Traduzione annullata dall'utente",
@@ -220,7 +234,8 @@
     "openLogs": "Apri registri",
     "clearLogs": "Cancella registri",
     "noLogs": "Nessun registro disponibile",
-    "autoScroll": "Scorrimento automatico"
+    "autoScroll": "Scorrimento automatico",
+    "desktopOnly": "I registri di traduzione sono disponibili solo nell’app desktop."
   },
   "completion": {
     "completed": "Traduzione completata",
@@ -329,5 +344,8 @@
     "requiredMod": "Inserisci il percorso e l’ID della mod",
     "checkTranslation": "Verifica traduzione",
     "selectMod": "Seleziona JAR della mod"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "{{count}} file di missioni legacy senza file di lingua verranno sostituiti direttamente. L’originale viene salvato una sola volta come .mml-original.bak. Questi formati consentono una sola lingua attiva. Continuare?"
   }
 }

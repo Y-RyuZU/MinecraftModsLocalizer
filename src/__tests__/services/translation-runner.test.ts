@@ -53,7 +53,7 @@ describe('runTranslationJobs', () => {
             incrementCompletedChunks: vi.fn(),
             incrementCompletedMods: vi.fn(),
             getOutputPath: vi.fn().mockReturnValue('/output/path'),
-            getResultContent: vi.fn().mockReturnValue({ 'key': 'translated value' }),
+            getResultContent: vi.fn().mockReturnValue({ 'test.key': 'translated value' }),
             writeOutput: vi.fn()
         };
 
@@ -108,7 +108,7 @@ describe('runTranslationJobs', () => {
             expect(mockCallbacks.writeOutput).toHaveBeenCalledWith(
                 job,
                 '/output/path',
-                { 'key': 'translated value' }
+                { 'test.key': 'translated value' }
             );
 
             // Verify result
@@ -117,7 +117,7 @@ describe('runTranslationJobs', () => {
                 id: 'job-1',
                 displayName: 'job-1',
                 targetLanguage: 'ja_jp',
-                content: { 'key': 'translated value' },
+                content: { 'test.key': 'translated value' },
                 outputPath: '/output/path',
                 success: true,
                 enableBackup: true,
@@ -403,6 +403,7 @@ describe('runTranslationJobs', () => {
             options.jobs = [job];
             
             mockTranslationService.translateChunk.mockResolvedValue({ 'key1': '値1' });
+            mockCallbacks.getResultContent.mockReturnValue({ key1: '値1' });
             mockCallbacks.writeOutput.mockRejectedValue(new Error('Write failed'));
 
             await runTranslationJobs(options);

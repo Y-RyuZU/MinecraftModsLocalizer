@@ -1,4 +1,4 @@
-use crate::filesystem::serialize_json_sorted;
+use keyring::Entry;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
@@ -6,17 +6,19 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use thiserror::Error;
 
+const KEYRING_SERVICE: &str = "MinecraftModsLocalizer";
+
 /// Configuration errors
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("IO error: {0}")]
-    Io(#[from] io::Error),
+  #[error("IO error: {0}")]
+  Io(#[from] io::Error),
 
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+  #[error("JSON error: {0}")]
+  Json(#[from] serde_json::Error),
 
-    #[error("Config error: {0}")]
-    Config(String),
+  #[error("Config error: {0}")]
+  Config(String),
 }
 
 // Type alias for internal Result with ConfigError
@@ -25,267 +27,524 @@ type Result<T, E = ConfigError> = std::result::Result<T, E>;
 /// Application configuration
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppConfig {
-    /// LLM provider configuration
-    pub llm: LLMProviderConfig,
-    /// Translation configuration
-    pub translation: TranslationConfig,
-    /// UI configuration
-    pub ui: UIConfig,
-    /// File paths configuration
-    #[serde(default)]
-    pub paths: PathsConfig,
+  /// LLM provider configuration
+  pub llm: LLMProviderConfig,
+  /// Translation configuration
+  pub translation: TranslationConfig,
+  /// UI configuration
+  pub ui: UIConfig,
+  /// File paths configuration
+  #[serde(default)]
+  pub paths: PathsConfig,
 }
 
 /// LLM provider configuration
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LLMProviderConfig {
-    /// Provider ID
-    pub provider: String,
-    /// API key
-    pub api_key: String,
-    /// Base URL (optional for some providers)
-    pub base_url: Option<String>,
-    /// Model to use
-    pub model: Option<String>,
-    /// Maximum number of retries on failure
-    pub max_retries: u32,
-    /// Custom prompt template
-    pub prompt_template: Option<String>,
+  /// Provider ID
+  pub provider: String,
+  /// API key
+  pub api_key: String,
+  /// API keys stored per provider
+  #[serde(default)]
+  pub api_keys: ApiKeys,
+  /// Base URL (optional for some providers)
+  pub base_url: Option<String>,
+  /// Model to use
+  pub model: Option<String>,
+  /// Maximum number of retries on failure
+  pub max_retries: u32,
+  /// Custom prompt template
+  pub prompt_template: Option<String>,
+  /// System prompt
+  #[serde(default)]
+  pub system_prompt: Option<String>,
+  /// User prompt template
+  #[serde(default)]
+  pub user_prompt: Option<String>,
+  /// Sampling temperature
+  #[serde(default)]
+  pub temperature: Option<f32>,
+  /// Per-provider asynchronous batch API preferences.
+  #[serde(default)]
+  pub batch_api_by_provider: BatchApiProviders,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct BatchApiProviders {
+  #[serde(default)]
+  pub openai: bool,
+  #[serde(default)]
+  pub anthropic: bool,
+  #[serde(default)]
+  pub gemini: bool,
+}
+
+/// Provider-specific API keys.
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ApiKeys {
+  #[serde(default)]
+  pub openai: String,
+  #[serde(default)]
+  pub anthropic: String,
+  #[serde(default)]
+  pub gemini: String,
+  /// Legacy Google provider key.
+  #[serde(default)]
+  pub google: String,
+}
+
+fn keyring_entry(provider: &str) -> std::result::Result<Entry, String> {
+  let provider = match provider.to_ascii_lowercase().as_str() {
+    "openai" | "anthropic" | "gemini" | "google" => provider.to_ascii_lowercase(),
+    _ => return Err(format!("Unsupported LLM provider: {provider}")),
+  };
+
+  Entry::new(KEYRING_SERVICE, &format!("llm.{provider}"))
+    .map_err(|error| format!("Failed to access OS credential store: {error}"))
+}
+
+fn read_keyring_key(provider: &str) -> std::result::Result<Option<String>, String> {
+  let entry = keyring_entry(provider)?;
+  match entry.get_password() {
+    Ok(value) if !value.trim().is_empty() => Ok(Some(value)),
+    Ok(_) => Ok(None),
+    Err(keyring::Error::NoEntry) => Ok(None),
+    Err(error) => Err(format!("Failed to read API key from OS credential store: {error}")),
+  }
+}
+
+fn write_keyring_key(provider: &str, value: &str) -> std::result::Result<(), String> {
+  let entry = keyring_entry(provider)?;
+  entry
+    .set_password(value)
+    .map_err(|error| format!("Failed to save API key to OS credential store: {error}"))
+}
+
+fn delete_keyring_key(provider: &str) -> std::result::Result<(), String> {
+  let entry = keyring_entry(provider)?;
+  match entry.delete_credential() {
+    Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+    Err(error) => Err(format!("Failed to remove API key from OS credential store: {error}")),
+  }
+}
+
+fn normalize_legacy_key(config: &mut AppConfig) {
+  if config.llm.api_key.trim().is_empty() {
+    return;
+  }
+
+  let provider = config.llm.provider.to_ascii_lowercase();
+  match provider.as_str() {
+    "openai" if config.llm.api_keys.openai.trim().is_empty() => {
+      config.llm.api_keys.openai = config.llm.api_key.clone();
+    }
+    "anthropic" if config.llm.api_keys.anthropic.trim().is_empty() => {
+      config.llm.api_keys.anthropic = config.llm.api_key.clone();
+    }
+    "gemini" | "google" if config.llm.api_keys.gemini.trim().is_empty() => {
+      config.llm.api_keys.gemini = config.llm.api_key.clone();
+    }
+    _ => {}
+  }
+}
+
+fn load_keyring_keys(config: &mut AppConfig) {
+  for provider in ["openai", "anthropic", "gemini"] {
+    if let Ok(Some(value)) = read_keyring_key(provider) {
+      match provider {
+        "openai" => config.llm.api_keys.openai = value,
+        "anthropic" => config.llm.api_keys.anthropic = value,
+        "gemini" => config.llm.api_keys.gemini = value,
+        _ => unreachable!(),
+      }
+    }
+  }
+
+  let active_provider = config.llm.provider.to_ascii_lowercase();
+  let active_key = match active_provider.as_str() {
+    "openai" => config.llm.api_keys.openai.clone(),
+    "anthropic" => config.llm.api_keys.anthropic.clone(),
+    "gemini" | "google" => config.llm.api_keys.gemini.clone(),
+    _ => String::new(),
+  };
+  if !active_key.is_empty() {
+    config.llm.api_key = active_key;
+  }
+}
+
+fn save_keyring_keys(config: &AppConfig) -> std::result::Result<(), String> {
+  for (provider, value) in [
+    ("openai", config.llm.api_keys.openai.as_str()),
+    ("anthropic", config.llm.api_keys.anthropic.as_str()),
+    ("gemini", config.llm.api_keys.gemini.as_str()),
+  ] {
+    if value.trim().is_empty() {
+      delete_keyring_key(provider)?;
+    } else {
+      write_keyring_key(provider, value)?;
+    }
+  }
+  Ok(())
 }
 
 /// Translation configuration
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TranslationConfig {
-    /// Chunk size for mod translations
-    pub mod_chunk_size: u32,
-    /// Chunk size for quest translations
-    pub quest_chunk_size: u32,
-    /// Chunk size for guidebook translations
-    pub guidebook_chunk_size: u32,
-    /// Custom languages
-    pub custom_languages: Vec<SupportedLanguage>,
-    /// Resource pack name
-    pub resource_pack_name: String,
+  /// Chunk size for mod translations
+  pub mod_chunk_size: u32,
+  /// Chunk size for quest translations
+  pub quest_chunk_size: u32,
+  /// Chunk size for guidebook translations
+  pub guidebook_chunk_size: u32,
+  /// Custom languages
+  pub custom_languages: Vec<SupportedLanguage>,
+  /// Resource pack name
+  pub resource_pack_name: String,
 }
 
 /// UI configuration
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UIConfig {
-    /// Theme (light or dark)
-    pub theme: String,
+  /// Theme (light or dark)
+  pub theme: String,
 }
 
 /// Paths configuration
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct PathsConfig {
-    /// Minecraft directory
-    pub minecraft_dir: String,
-    /// Mods directory
-    pub mods_dir: String,
-    /// Resource packs directory
-    pub resource_packs_dir: String,
-    /// Config directory
-    pub config_dir: String,
-    /// Logs directory
-    pub logs_dir: String,
+  /// Minecraft directory
+  pub minecraft_dir: String,
+  /// Mods directory
+  pub mods_dir: String,
+  /// Resource packs directory
+  pub resource_packs_dir: String,
+  /// Config directory
+  pub config_dir: String,
+  /// Logs directory
+  pub logs_dir: String,
 }
 
 /// Supported language
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SupportedLanguage {
-    /// Display name of the language
-    pub name: String,
-    /// Language ID (e.g., "ja_jp", "zh_cn")
-    pub id: String,
-    /// Optional flag emoji
-    pub flag: Option<String>,
+  /// Display name of the language
+  pub name: String,
+  /// Language ID (e.g., "ja_jp", "zh_cn")
+  pub id: String,
+  /// Optional flag emoji
+  pub flag: Option<String>,
 }
 
 /// Default application configuration
 pub fn default_config() -> AppConfig {
-    AppConfig {
-        llm: LLMProviderConfig {
-            provider: "openai".to_string(),
-            api_key: "".to_string(),
-            base_url: None,
-            model: Some("gpt-4o-mini".to_string()),
-            max_retries: 5,
-            prompt_template: None,
-        },
-        translation: TranslationConfig {
-            mod_chunk_size: 50,
-            quest_chunk_size: 1,
-            guidebook_chunk_size: 1,
-            custom_languages: vec![],
-            resource_pack_name: "MinecraftModsLocalizer".to_string(),
-        },
-        ui: UIConfig {
-            theme: "system".to_string(),
-        },
-        paths: PathsConfig {
-            minecraft_dir: "".to_string(),
-            mods_dir: "".to_string(),
-            resource_packs_dir: "".to_string(),
-            config_dir: "".to_string(),
-            logs_dir: "".to_string(),
-        },
-    }
+  AppConfig {
+    llm: LLMProviderConfig {
+      provider: "openai".to_string(),
+      api_key: "".to_string(),
+      api_keys: ApiKeys::default(),
+      base_url: None,
+      model: Some("gpt-6-luna".to_string()),
+      max_retries: 3,
+      prompt_template: None,
+      system_prompt: None,
+      user_prompt: None,
+      temperature: Some(1.0),
+      batch_api_by_provider: BatchApiProviders::default(),
+    },
+    translation: TranslationConfig {
+      mod_chunk_size: 100,
+      quest_chunk_size: 100,
+      guidebook_chunk_size: 100,
+      custom_languages: vec![],
+      resource_pack_name: "MinecraftModsLocalizer".to_string(),
+    },
+    ui: UIConfig {
+      theme: "system".to_string(),
+    },
+    paths: PathsConfig {
+      minecraft_dir: "".to_string(),
+      mods_dir: "".to_string(),
+      resource_packs_dir: "".to_string(),
+      config_dir: "".to_string(),
+      logs_dir: "".to_string(),
+    },
+  }
 }
 
 /// Get the config file path
 fn get_config_path() -> Result<PathBuf> {
-    // For Tauri 2.x, we'll use a simpler approach
-    let app_dir = dirs::config_dir()
-        .ok_or_else(|| ConfigError::Config("Failed to get config directory".to_string()))?
-        .join("MinecraftModsLocalizer");
+  // For Tauri 2.x, we'll use a simpler approach
+  let app_dir = dirs::config_dir()
+    .ok_or_else(|| ConfigError::Config("Failed to get config directory".to_string()))?
+    .join("MinecraftModsLocalizer");
 
-    // Create the directory if it doesn't exist
-    if !app_dir.exists() {
-        fs::create_dir_all(&app_dir)?;
-    }
+  // Create the directory if it doesn't exist
+  if !app_dir.exists() {
+    fs::create_dir_all(&app_dir)?;
+  }
 
-    Ok(app_dir.join("config.json"))
+  Ok(app_dir.join("config.json"))
 }
 
 /// Load configuration
 #[tauri::command]
 pub fn load_config() -> std::result::Result<String, String> {
-    info!("Loading configuration");
+  info!("Loading configuration");
 
-    // Get the config file path
-    let config_path = match get_config_path() {
-        Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {e}")),
+  // Get the config file path
+  let config_path = match get_config_path() {
+    Ok(path) => path,
+    Err(e) => return Err(format!("Failed to get config path: {}", e)),
+  };
+
+  // Check if the config file exists
+  if !config_path.exists() {
+    // Create a default config
+    let default_config = default_config();
+
+    // Serialize the default config
+    let config_json = match serde_json::to_string_pretty(&default_config) {
+      Ok(json) => json,
+      Err(e) => return Err(format!("Failed to serialize default config: {}", e)),
     };
 
-    // Check if the config file exists
-    if !config_path.exists() {
-        // Create a default config
-        let default_config = default_config();
+    // Create the config file
+    let mut config_file = match File::create(&config_path) {
+      Ok(file) => file,
+      Err(e) => return Err(format!("Failed to create config file: {}", e)),
+    };
 
-        // Serialize the default config with sorted keys
-        let config_json = match serialize_json_sorted(&default_config) {
-            Ok(json) => json,
-            Err(e) => return Err(format!("Failed to serialize default config: {e}")),
-        };
-
-        // Create the config file
-        let mut config_file = match File::create(&config_path) {
-            Ok(file) => file,
-            Err(e) => return Err(format!("Failed to create config file: {e}")),
-        };
-
-        // Write the default config
-        if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-            return Err(format!("Failed to write default config: {e}"));
-        }
-
-        return Ok(config_json);
+    // Write the default config
+    if let Err(e) = config_file.write_all(config_json.as_bytes()) {
+      return Err(format!("Failed to write default config: {}", e));
     }
 
-    // Open the config file
-    let mut config_file = match File::open(&config_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to open config file: {e}")),
-    };
+    return Ok(config_json);
+  }
 
-    // Read the config file
-    let mut config_json = String::new();
-    if let Err(e) = config_file.read_to_string(&mut config_json) {
-        return Err(format!("Failed to read config file: {e}"));
-    }
+  // Open the config file
+  let mut config_file = match File::open(&config_path) {
+    Ok(file) => file,
+    Err(e) => return Err(format!("Failed to open config file: {}", e)),
+  };
 
-    // Parse the config
-    let config = match parse_config_preserving_fields(&config_json) {
-        Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {e}")),
-    };
+  // Read the config file
+  let mut config_json = String::new();
+  if let Err(e) = config_file.read_to_string(&mut config_json) {
+    return Err(format!("Failed to read config file: {}", e));
+  }
 
-    // TODO: Update the config with any missing fields from default_config()
+  // Parse the config
+  let mut config: AppConfig = match serde_json::from_str(&config_json) {
+    Ok(config) => config,
+    Err(e) => return Err(format!("Failed to parse config: {}", e)),
+  };
 
-    // Serialize the updated config with sorted keys
-    let updated_config_json = match serialize_json_sorted(&config) {
-        Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize updated config: {e}")),
-    };
+  // API keys are loaded from the OS credential store at runtime. Older
+  // config files may still contain a key and are migrated on the next save.
+  load_keyring_keys(&mut config);
 
-    Ok(updated_config_json)
+  // TODO: Update the config with any missing fields from default_config()
+
+  // Serialize the updated config
+  let updated_config_json = match serialize_preserving_fields(&config_json, &config) {
+    Ok(json) => json,
+    Err(e) => return Err(format!("Failed to serialize updated config: {}", e)),
+  };
+
+  Ok(updated_config_json)
 }
 
 /// Save configuration
 #[tauri::command]
 pub fn save_config(config_json: &str) -> std::result::Result<bool, String> {
-    info!("Saving configuration");
+  info!("Saving configuration");
 
-    // Parse the config
-    let mut config = match parse_config_preserving_fields(config_json) {
-        Ok(config) => config,
-        Err(e) => return Err(format!("Failed to parse config: {e}")),
-    };
+  // Parse the config and move secrets to the OS credential store before
+  // writing the non-secret settings file.
+  let config: AppConfig = match serde_json::from_str(config_json) {
+    Ok(config) => config,
+    Err(e) => return Err(format!("Failed to parse config: {}", e)),
+  };
 
-    // Get the config file path
-    let config_path = match get_config_path() {
-        Ok(path) => path,
-        Err(e) => return Err(format!("Failed to get config path: {e}")),
-    };
+  let mut config = config;
+  normalize_legacy_key(&mut config);
+  save_keyring_keys(&config)?;
 
-    // The current frontend no longer sends the legacy paths section.
-    if config.get("paths").is_none() {
-        if let Some(paths) = fs::read_to_string(&config_path)
-            .ok()
-            .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
-            .and_then(|old| old.get("paths").cloned())
-        {
-            config["paths"] = paths;
-        }
-    }
+  let mut persisted_config = config;
+  persisted_config.llm.api_key.clear();
+  persisted_config.llm.api_keys = ApiKeys::default();
 
-    // Create the config file
-    let mut config_file = match File::create(&config_path) {
-        Ok(file) => file,
-        Err(e) => return Err(format!("Failed to create config file: {e}")),
-    };
+  // Get the config file path
+  let config_path = match get_config_path() {
+    Ok(path) => path,
+    Err(e) => return Err(format!("Failed to get config path: {}", e)),
+  };
 
-    // Serialize the config with sorted keys
-    let config_json = match serialize_json_sorted(&config) {
-        Ok(json) => json,
-        Err(e) => return Err(format!("Failed to serialize config: {e}")),
-    };
+  // Create the config file
+  let mut config_file = match File::create(&config_path) {
+    Ok(file) => file,
+    Err(e) => return Err(format!("Failed to create config file: {}", e)),
+  };
 
-    // Write the config
-    if let Err(e) = config_file.write_all(config_json.as_bytes()) {
-        return Err(format!("Failed to write config: {e}"));
-    }
+  // Serialize the config
+  let config_json = match serialize_preserving_fields(config_json, &persisted_config) {
+    Ok(json) => json,
+    Err(e) => return Err(format!("Failed to serialize config: {}", e)),
+  };
 
-    Ok(true)
+  // Write the config
+  if let Err(e) = config_file.write_all(config_json.as_bytes()) {
+    return Err(format!("Failed to write config: {}", e));
+  }
+
+  Ok(true)
 }
 
-// Validate the required backend fields while retaining frontend settings unknown to Rust.
-fn parse_config_preserving_fields(config_json: &str) -> serde_json::Result<serde_json::Value> {
-    let value: serde_json::Value = serde_json::from_str(config_json)?;
-    serde_json::from_value::<AppConfig>(value.clone())?;
-    Ok(value)
+/// Read a provider API key from the process environment without logging its value.
+#[tauri::command]
+pub fn get_api_key_from_environment(provider: &str) -> std::result::Result<Option<String>, String> {
+  find_api_key_from_environment(provider, |name| std::env::var(name).ok())
+}
+
+fn normalize_provider(provider: &str) -> Option<&'static str> {
+  if provider.eq_ignore_ascii_case("openai") {
+    Some("openai")
+  } else if provider.eq_ignore_ascii_case("anthropic") {
+    Some("anthropic")
+  } else if provider.eq_ignore_ascii_case("gemini") || provider.eq_ignore_ascii_case("google") {
+    Some("gemini")
+  } else {
+    None
+  }
+}
+
+fn find_api_key_from_environment(
+  provider: &str,
+  mut read_env: impl FnMut(&str) -> Option<String>,
+) -> std::result::Result<Option<String>, String> {
+  let (normalized_provider, variables): (&str, &[&str]) = match normalize_provider(provider) {
+    Some("openai") => ("openai", &["OPENAI_API_KEY"]),
+    Some("anthropic") => ("anthropic", &["ANTHROPIC_API_KEY"]),
+    Some("gemini") => ("gemini", &["GEMINI_API_KEY", "GOOGLE_API_KEY"]),
+    _ => return Err(format!("Unsupported LLM provider: {provider}")),
+  };
+
+  let provider_key = variables
+    .iter()
+    .filter_map(|variable| read_env(variable))
+    .find(|value| !value.trim().is_empty());
+  if provider_key.is_some() {
+    return Ok(provider_key);
+  }
+
+  let configured_provider = read_env("MML_PROVIDER").and_then(|value| normalize_provider(&value));
+  if configured_provider != Some(normalized_provider) {
+    return Ok(None);
+  }
+
+  Ok(read_env("MML_API_KEY").filter(|value| !value.trim().is_empty()))
+}
+
+#[cfg(test)]
+mod environment_key_tests {
+  use super::find_api_key_from_environment;
+  use std::collections::HashMap;
+
+  fn lookup(provider: &str, values: &[(&str, &str)]) -> Result<Option<String>, String> {
+    let values = values
+      .iter()
+      .map(|(name, value)| ((*name).to_string(), (*value).to_string()))
+      .collect::<HashMap<_, _>>();
+    find_api_key_from_environment(provider, |name| values.get(name).cloned())
+  }
+
+  #[test]
+  fn generic_key_requires_a_matching_provider() {
+    assert_eq!(
+      lookup("gemini", &[("MML_PROVIDER", "google"), ("MML_API_KEY", "test-key")]),
+      Ok(Some("test-key".into()))
+    );
+    assert_eq!(
+      lookup("openai", &[("MML_PROVIDER", "gemini"), ("MML_API_KEY", "test-key")]),
+      Ok(None)
+    );
+  }
+
+  #[test]
+  fn provider_specific_key_takes_precedence() {
+    assert_eq!(
+      lookup(
+        "gemini",
+        &[
+          ("GEMINI_API_KEY", "gemini-key"),
+          ("MML_PROVIDER", "openai"),
+          ("MML_API_KEY", "generic-key"),
+        ],
+      ),
+      Ok(Some("gemini-key".into()))
+    );
+  }
+}
+
+#[cfg(test)]
+mod batch_api_config_tests {
+  use super::{default_config, AppConfig};
+
+  #[test]
+  fn batch_preferences_default_to_off_and_survive_config_round_trip() {
+    let mut config = default_config();
+    assert!(!config.llm.batch_api_by_provider.openai);
+    assert!(!config.llm.batch_api_by_provider.anthropic);
+    assert!(!config.llm.batch_api_by_provider.gemini);
+
+    config.llm.batch_api_by_provider.openai = true;
+    let encoded = serde_json::to_string(&config).unwrap();
+    let decoded: AppConfig = serde_json::from_str(&encoded).unwrap();
+    assert!(decoded.llm.batch_api_by_provider.openai);
+    assert!(!decoded.llm.batch_api_by_provider.anthropic);
+  }
+
+  #[test]
+  fn old_saved_configs_without_batch_preferences_still_load_with_all_off() {
+    let mut value = serde_json::to_value(default_config()).unwrap();
+    value["llm"].as_object_mut().unwrap().remove("batch_api_by_provider");
+    let config: AppConfig = serde_json::from_value(value).unwrap();
+    assert!(!config.llm.batch_api_by_provider.openai);
+    assert!(!config.llm.batch_api_by_provider.anthropic);
+    assert!(!config.llm.batch_api_by_provider.gemini);
+  }
+}
+
+// Preserve UI/update and translation options not modeled by the native credential layer.
+fn serialize_preserving_fields(original: &str, config: &AppConfig) -> serde_json::Result<String> {
+  let mut value: serde_json::Value = serde_json::from_str(original)?;
+  value["llm"] = serde_json::to_value(&config.llm)?;
+  if value.get("paths").is_none() {
+    value["paths"] = serde_json::to_value(&config.paths)?;
+  }
+  serde_json::to_string_pretty(&value)
 }
 
 #[cfg(test)]
 mod persistence_tests {
-    use super::*;
-
-    #[test]
-    fn retains_frontend_settings_and_validates_required_fields() {
-        let mut value = serde_json::to_value(default_config()).unwrap();
-        value["llm"]["api_keys"] = serde_json::json!({"google": "synthetic-test-key"});
-        value["llm"]["temperature"] = serde_json::json!(0);
-        value["llm"]["system_prompt"] = serde_json::json!("Custom prompt");
-        value["translation"]["skip_existing_translations"] = serde_json::json!(false);
-        value["update"] = serde_json::json!({"check_on_startup": false});
-        let saved = parse_config_preserving_fields(&value.to_string()).unwrap();
-        let loaded =
-            parse_config_preserving_fields(&serialize_json_sorted(&saved).unwrap()).unwrap();
-        assert_eq!(loaded, value);
-        value.as_object_mut().unwrap().remove("paths");
-        assert!(parse_config_preserving_fields(&value.to_string()).is_ok());
-        value["llm"]["max_retries"] = serde_json::json!("invalid");
-        assert!(parse_config_preserving_fields(&value.to_string()).is_err());
-    }
+  use super::*;
+  #[test]
+  fn preserves_frontend_fields_while_removing_persisted_secrets() {
+    let mut value = serde_json::to_value(default_config()).unwrap();
+    value["llm"]["api_key"] = "synthetic-secret".into();
+    value["translation"]["skip_existing_translations"] = false.into();
+    value["translation"]["max_tokens_per_chunk"] = 1234.into();
+    value["update"] = serde_json::json!({"check_on_startup": false});
+    value.as_object_mut().unwrap().remove("paths");
+    let mut typed: AppConfig = serde_json::from_value(value.clone()).unwrap();
+    typed.llm.api_key.clear();
+    typed.llm.api_keys = ApiKeys::default();
+    let saved = serialize_preserving_fields(&value.to_string(), &typed).unwrap();
+    assert!(!saved.contains("synthetic-secret"));
+    let saved: serde_json::Value = serde_json::from_str(&saved).unwrap();
+    assert_eq!(saved["translation"], value["translation"]);
+    assert_eq!(saved["update"], value["update"]);
+  }
 }

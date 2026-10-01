@@ -137,7 +137,8 @@ describe('TranslationService', () => {
             expect(mockAdapter.translate).toHaveBeenCalledWith({
                 content,
                 targetLanguage: 'ja_jp',
-                promptTemplate: undefined
+                promptTemplate: undefined,
+                systemPromptSupplement: expect.stringContaining('exact input keys')
             });
 
             expect(result).toEqual(expectedResponse.content);
@@ -275,8 +276,7 @@ describe('TranslationService', () => {
 
             expect(observedProgress).toEqual([0, 50]);
             expect(service.getJob(job.id)?.progress).toBe(100);
-            // The runner owns UI callbacks; the service updates its job state.
-            expect(onProgress).not.toHaveBeenCalled();
+            expect(onProgress).toHaveBeenCalled();
         });
     });
 

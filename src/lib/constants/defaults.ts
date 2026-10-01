@@ -6,17 +6,7 @@
 // ============================================
 // Model and Provider Defaults
 // ============================================
-export const DEFAULT_MODELS = {
-  openai: "gpt-4o-mini",
-  anthropic: "claude-haiku-4-5-20251001",
-  google: "gemini-3.5-flash-lite",
-} as const;
-
-export const DEFAULT_API_URLS = {
-  openai: "https://api.openai.com/v1/chat/completions",
-  anthropic: "https://api.anthropic.com",
-  google: undefined,
-} as const;
+export { DEFAULT_MODELS, DEFAULT_API_URLS } from "../types/config";
 
 export const DEFAULT_PROVIDER = "openai";
 

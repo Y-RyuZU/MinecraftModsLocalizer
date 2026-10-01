@@ -136,7 +136,8 @@ describe('TranslationService', () => {
             expect(mockAdapter.translate).toHaveBeenCalledWith({
                 content,
                 targetLanguage: 'ja_jp',
-                promptTemplate: undefined
+                promptTemplate: undefined,
+                systemPromptSupplement: expect.stringContaining('exact input keys')
             });
 
             expect(result).toEqual(expectedResponse.content);

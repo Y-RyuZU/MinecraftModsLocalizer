@@ -110,7 +110,14 @@
     },
     "providerConfiguration": "Configuration de {{provider}}",
     "showApiKey": "Afficher la clé API",
-    "hideApiKey": "Masquer la clé API"
+    "hideApiKey": "Masquer la clé API",
+    "getApiKey": "Obtenir une clé API",
+    "loadApiKeyFromEnvironment": "Charger depuis l’environnement",
+    "environmentVariable": "Variable d’environnement",
+    "apiKeyLoaded": "Clé API chargée depuis l’environnement",
+    "apiKeyNotFound": "Clé API introuvable",
+    "providerBatchApi": "Utiliser l’API Batch de ce fournisseur",
+    "providerBatchApiHint": "Désactivé par défaut. Une fois activé, même un seul bloc utilise Batch. Le traitement peut prendre 24 heures. Gardez l’application ouverte jusqu’à l’enregistrement. Tarifs, modèles et conservation dépendent du fournisseur."
   },
   "tabs": {
     "mods": "Mods",
@@ -166,7 +173,12 @@
     "format": "Format",
     "translation": "Traduction",
     "existing": "Existante",
-    "new": "Nouvelle"
+    "new": "Nouvelle",
+    "existingTranslation": "Langue cible existante",
+    "existingTranslationSkipped": "{{language}} existe ; ignoré",
+    "translateAnyway": "Traduire quand même",
+    "forceTranslationHint": "Régénère la traduction depuis l’anglais. Le fichier précédent est sauvegardé une fois sous .mml-original.bak. Le JAR du mod reste intact.",
+    "questLanguage": "Fichier de langue des quêtes"
   },
   "progress": {
     "translatingMods": "Traduction des mods...",
@@ -201,7 +213,9 @@
     "invalidDirectory": "Le dossier sélectionné est invalide",
     "directorySelectionFailed": "Impossible de sélectionner le dossier",
     "scanFailed": "Échec de l’analyse",
-    "translationFailed": "Échec de la traduction"
+    "translationFailed": "Échec de la traduction",
+    "allTargetsAlreadyTranslated": "Tous les éléments sélectionnés contiennent déjà {{language}}. Les traductions de quêtes sont conservées ; utilisez « Traduire quand même » pour remplacer celles des mods.",
+    "apiKeyNotConfigured": "Aucune clé API configurée ou disponible dans l’environnement de l’application."
   },
   "info": {
     "translationCancelled": "Traduction annulée par l'utilisateur",
@@ -220,7 +234,8 @@
     "openLogs": "Journaux ouverts",
     "clearLogs": "Effacer les journaux",
     "noLogs": "Aucun journal disponible",
-    "autoScroll": "Défilement automatique"
+    "autoScroll": "Défilement automatique",
+    "desktopOnly": "Les journaux de traduction sont disponibles uniquement dans l’application de bureau."
   },
   "completion": {
     "completed": "Traduction terminée",
@@ -329,5 +344,8 @@
     "requiredMod": "Indiquez le chemin et l’identifiant du mod",
     "checkTranslation": "Vérifier la traduction",
     "selectMod": "Sélectionner le JAR du mod"
+  },
+  "confirmation": {
+    "overwriteLegacyQuests": "{{count}} fichier(s) de quêtes anciens sans fichiers de langue seront remplacés directement. L’original est sauvegardé une fois dans .mml-original.bak. Ces formats ne permettent qu’une langue active à la fois. Continuer ?"
   }
 }

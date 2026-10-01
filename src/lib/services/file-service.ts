@@ -5,6 +5,7 @@
 const isSSR = typeof window === 'undefined';
 
 // Note: We use the Rust backend for dialog operations to avoid chunk loading issues
+import { invoke as tauriCoreInvoke } from "@tauri-apps/api/core";
 
 /**
  * Check if we're running in a Tauri environment
@@ -21,7 +22,7 @@ const isTauriEnvironment = (): boolean => {
     // Use type assertions with unknown first to avoid direct any usage
     const hasTauriInternals = typeof (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== 'undefined';
     const hasIsTauri = typeof (window as unknown as Record<string, unknown>).isTauri !== 'undefined';
-    const hasTauriClass = typeof document !== 'undefined' && document.documentElement?.classList?.contains('tauri');
+    const hasTauriClass = document.documentElement.classList.contains('tauri');
     
     console.log('Tauri detection:', {
       hasTauriInternals,
@@ -65,8 +66,6 @@ const getTauriInvokeFunction = () => {
 
 // Define a function to safely invoke Tauri commands
 const tauriInvokeFunction = !isSSR ? getTauriInvokeFunction() : null;
-
-// Allow tests to override the invoke function
 let testInvokeOverride: (<T>(command: string, args?: Record<string, unknown>) => Promise<T>) | null = null;
 
 // Log Tauri availability
@@ -90,13 +89,9 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
   
   switch (command) {
     case "open_directory_dialog":
-      // Return a realistic test minecraft path for development
+      // Return a mock path with the NATIVE_DIALOG prefix to match what the Rust backend would return
       console.log("[MOCK] Simulating native dialog selection");
-      // Use a path that resembles actual Minecraft installations
-      const testPath = process.platform === 'win32' 
-        ? 'C:\\Users\\Test\\AppData\\Roaming\\.minecraft'
-        : '/home/test/.minecraft';
-      return testPath as unknown as T;
+      return `NATIVE_DIALOG:/mock/path` as unknown as T;
       
     case "get_mod_files":
       return [
@@ -135,6 +130,9 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
       
     case "read_text_file":
       return `Mock content for ${args?.path}` as unknown as T;
+
+    case "file_exists":
+      return false as unknown as T;
       
     case "write_text_file":
       return true as unknown as T;
@@ -146,7 +144,6 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
       return `${args?.dir}/${args?.name}` as unknown as T;
       
     case "write_lang_file":
-      console.log(`[MOCK] Writing lang file with format: ${args?.format || 'json'}`);
       return true as unknown as T;
       
     default:
@@ -159,15 +156,20 @@ const mockInvoke = async <T>(command: string, args?: Record<string, unknown>): P
  * In SSR, always use mock
  */
 const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
-  // If test override is set, use it
-  if (testInvokeOverride) {
-    return testInvokeOverride<T>(command, args);
-  }
-  
+  if (testInvokeOverride) return testInvokeOverride<T>(command, args);
   // In SSR, always use mock
   if (isSSR) {
-    console.log(`[SSR] Using mock for command: ${command}`);
-    return mockInvoke<T>(command, args);
+    try {
+      // This is mockable in Bun tests and works when SSR is hosted by Tauri.
+      return await tauriCoreInvoke<T>(command, args);
+    } catch (error) {
+      // The browser-only Tauri API throws when Next SSR has no window.
+      if (String(error).includes("window is not defined")) {
+        console.log(`[SSR] Using mock for command: ${command}`);
+        return mockInvoke<T>(command, args);
+      }
+      throw error;
+    }
   }
   
   const tauriAvailable = isTauri && tauriInvokeFunction;
@@ -190,11 +192,7 @@ const tauriInvoke = async <T>(command: string, args?: Record<string, unknown>): 
  * File service
  */
 export class FileService {
-  /**
-   * Set a custom invoke function for testing
-   * @param invokeFunc Custom invoke function or null to reset
-   */
-  static setTestInvokeOverride(invokeFunc: (<T>(command: string, args?: Record<string, unknown>) => Promise<T>) | null): void {
+  static setTestInvokeOverride(invokeFunc: typeof testInvokeOverride): void {
     testInvokeOverride = invokeFunc;
   }
   /**
@@ -283,15 +281,14 @@ export class FileService {
    * @param language Target language
    * @param content File content
    * @param dir Resource pack directory
-   * @param format File format ('json' or 'lang'), defaults to 'json'
    * @returns Success status
    */
   static async writeLangFile(
     modId: string,
     language: string,
-    content: Record<string, string>,
+    content: Record<string, unknown>,
     dir: string,
-    format?: 'json' | 'lang'
+    fileExtension: "json" | "lang" = "json"
   ): Promise<boolean> {
     try {
       return await tauriInvoke<boolean>("write_lang_file", { 
@@ -299,7 +296,7 @@ export class FileService {
         language, 
         content: JSON.stringify(content), 
         dir,
-        format: format || 'json'
+        fileExtension
       });
     } catch (error) {
       console.error("Failed to write language file:", error);

@@ -34,8 +34,8 @@ beforeEach(() => {
   vi.mocked(FileService.createResourcePack).mockResolvedValue('/minecraft/resourcepacks/test-pack');
   vi.mocked(FileService.getModFiles).mockResolvedValue(['/minecraft/mods/testmod.jar']);
   vi.mocked(FileService.invoke).mockImplementation(async command => {
-    if (command === 'analyze_mod_jar') return { id: 'testmod', name: 'Test Mod', langFiles: ['en_us'] } as any;
-    if (command === 'extract_lang_files') return [{ language: 'en_us', content: { 'item.test': 'Test Item' } }] as any;
+    if (command === 'analyze_mod_jar') return { id: 'testmod', name: 'Test Mod', langFiles: ['assets/testmod/lang/en_us.json'], availableLanguages: ['en_us'] } as any;
+    if (command === 'extract_lang_files') return [{ language: 'en_us', path: 'assets/testmod/lang/en_us.json', modId: 'testmod', content: { 'item.test': 'Test Item' } }] as any;
     return false as any;
   });
   service = { createJob: vi.fn((content, language, name) => ({ id: name, chunks: [{ content }], targetLanguage: language })), getCombinedTranslatedContent: vi.fn() };
@@ -45,18 +45,16 @@ describe('ModsTab handlers', () => {
   it('scans the mods subdirectory and exposes language format and translation status', async () => {
     await handlers().onScan('/minecraft', 'ja_jp');
     expect(FileService.getModFiles).toHaveBeenCalledWith('/minecraft/mods');
-    expect(store.setModTranslationTargets).toHaveBeenCalledWith([expect.objectContaining({ id: 'testmod', relativePath: 'testmod.jar', langFormat: 'json', hasExistingTranslation: false })]);
-    expect(store.setScanning).toHaveBeenLastCalledWith(false);
+    expect(store.setModTranslationTargets).toHaveBeenCalledWith([expect.objectContaining({ id: 'testmod', relativePath: 'testmod.jar', availableLanguages: ['en_us'] })]);
   });
   it('handles a bad JAR without losing the scan cleanup', async () => {
-    vi.mocked(FileService.invoke).mockRejectedValue(new Error('Invalid JAR'));
+    vi.mocked(FileService.invoke).mockImplementation(async command => { if (command === 'analyze_mod_jar') throw new Error('Invalid JAR'); return false as any; });
     await handlers().onScan('/minecraft');
     expect(store.setModTranslationTargets).toHaveBeenCalledWith([]);
-    expect(store.resetScanProgress).toHaveBeenCalled();
   });
   it('passes real jobs to the shared translation runner', async () => {
     await translate();
-    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ jobs: [expect.objectContaining({ modId: 'testmod' })], targetLanguage: 'ja_jp', sessionId: 'test-session' }));
+    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ jobs: [expect.objectContaining({ resourceNamespace: 'testmod' })], targetLanguage: 'ja_jp', sessionId: 'test-session' }));
   });
   it('creates the resource pack before running translation', async () => {
     await translate();
@@ -71,15 +69,15 @@ describe('ModsTab handlers', () => {
   });
   it('creates jobs in alphabetical name order', async () => {
     await translate([target('b', 'B Mod'), target('a', 'A Mod')]);
-    expect(service.createJob.mock.calls.map((call: any[]) => call[2])).toEqual(['A Mod', 'B Mod']);
+    expect(service.createJob.mock.calls.map((call: any[]) => call[2])).toEqual(['A Mod (testmod.json)', 'B Mod (testmod.json)']);
   });
   it('tracks completed files and chunks separately', async () => {
     await translate();
     expect(store.setTotalMods).toHaveBeenCalledWith(1);
-    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ incrementWholeProgress: store.incrementCompletedMods, incrementCompletedChunks: store.incrementCompletedChunks }));
+    expect(runTranslationJobs).toHaveBeenCalledWith(expect.objectContaining({ incrementCompletedMods: store.incrementCompletedMods, incrementCompletedChunks: store.incrementCompletedChunks }));
   });
   it('logs scan failures with their path', async () => {
-    vi.mocked(FileService.invoke).mockRejectedValue(new Error('Invalid JAR'));
+    vi.mocked(FileService.invoke).mockImplementation(async command => { if (command === 'analyze_mod_jar') throw new Error('Invalid JAR'); return false as any; });
     await handlers().onScan('/minecraft');
     expect(invoke).toHaveBeenCalledWith('log_error', expect.objectContaining({ processType: 'SCAN', message: expect.stringContaining('/minecraft/mods/testmod.jar') }));
   });

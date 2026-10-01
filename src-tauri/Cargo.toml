@@ -10,6 +10,10 @@ rust-version = "1.90"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
 [lib]
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -19,15 +23,17 @@ tauri-build = { version = "2.1.0", features = [] }
 
 [dependencies]
 sys-locale = "0.3.2"
+keyring = "4.2.0"
+tauri-plugin-opener = "2.5.5"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.4.0", features = ["test"] }
-tauri-plugin-log = "2.0.0-rc"
-tauri-plugin-dialog = "2.8.0"
-tauri-plugin-process = "2.4.0"
+tauri = { version = "=2.12.1", features = ["test"] }
+tauri-plugin-log = "2.7.0"
+tauri-plugin-dialog = "=2.8.1"
+tauri-plugin-process = "=2.4.0"
 tauri-plugin-shell = "2.0.0"
-tauri-plugin-updater = "2.13.0"
+tauri-plugin-updater = "=2.13.1"
 zip = "0.6"
 walkdir = "2.3"
 thiserror = "1.0"
@@ -35,7 +41,7 @@ regex = "1.9"
 chrono = "0.4"
 dirs = "5.0"
 rfd = "0.12"
-toml = "0.8"
+toml = "=0.8.20"
 
 [dev-dependencies]
 tempfile = "3.0"
