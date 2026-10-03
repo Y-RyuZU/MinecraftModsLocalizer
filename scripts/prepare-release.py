@@ -14,6 +14,39 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
+DOWNLOAD_NAMES = {
+    ("windows-x86_64", ".exe"): "01-Windows-Setup",
+    ("windows-x86_64", ".msi"): "02-Windows-MSI",
+    ("darwin-aarch64", ".dmg"): "03-macOS-Apple-Silicon",
+    ("darwin-x86_64", ".dmg"): "04-macOS-Intel",
+    ("linux-x86_64", ".AppImage"): "05-Linux",
+    ("linux-x86_64", ".deb"): "06-Linux-Debian-Ubuntu",
+    ("darwin-aarch64", ".app.tar.gz"): "Update-macOS-Apple-Silicon",
+    ("darwin-x86_64", ".app.tar.gz"): "Update-macOS-Intel",
+}
+
+
+def asset_name(platform, suffix, version):
+    return f"{DOWNLOAD_NAMES[platform, suffix]}-v{version}{suffix}"
+
+
+def release_notes(repository, tag):
+    version = check_versions(tag)
+    def link(platform, suffix):
+        return f"https://github.com/{repository}/releases/download/{tag}/{asset_name(platform, suffix, version)}"
+    return (
+        "## ダウンロード / Download\n\n"
+        f"### [Windows版をダウンロード（通常はこちら / Recommended）]({link('windows-x86_64', '.exe')})\n\n"
+        "| OS | インストーラー / Installer |\n| --- | --- |\n"
+        f"| macOS（Apple Silicon / M1以降） | [DMG]({link('darwin-aarch64', '.dmg')}) |\n"
+        f"| macOS（Intel） | [DMG]({link('darwin-x86_64', '.dmg')}) |\n"
+        f"| Linux | [AppImage]({link('linux-x86_64', '.AppImage')}) / [Debian・Ubuntu]({link('linux-x86_64', '.deb')}) |\n\n"
+        f"WindowsのMSIが必要な方は[こちら]({link('windows-x86_64', '.msi')})。\n\n"
+        "[画像付きの使い方 / Guide](https://github.com/" + repository + "/blob/main/docs/ja/getting-started.md)\n\n"
+        "`Update-*` と `latest.json` は自動更新用です。手動ダウンロードは上のリンクから選んでください。\n\n---\n\n"
+        + (ROOT / 'docs/releases' / f'{tag}.md').read_text(encoding='utf-8')
+    )
+
 TARGETS = {
     "windows-x86_64": ("x86_64-pc-windows-msvc", ".msi", (".msi", ".exe")),
     "darwin-x86_64": ("x86_64-apple-darwin", ".app.tar.gz", (".app.tar.gz", ".dmg")),
@@ -72,11 +105,9 @@ def prepare(artifacts, output, repository, tag):
                     raise ValueError(f"Wrong DMG architecture for {platform}: {bundle}")
             if suffix == ".app.tar.gz":
                 check_mac_bundle(bundle, platform, version)
-            name = bundle.name.removesuffix(suffix) + f"-{target}" + suffix
+            name = asset_name(platform, suffix, version)
             assets.append((bundle, name))
             signature_file = Path(f"{bundle}.sig")
-            if signature_file.is_file():
-                assets.append((signature_file, name + ".sig"))
             if suffix == updater_suffix or (platform == "windows-x86_64" and suffix == ".exe"):
                 signature = signature_file.read_text(encoding="utf-8").strip()
                 # Tauri signatures contain base64-encoded minisign text, never a URL.
@@ -121,8 +152,11 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("release-assets"))
     parser.add_argument("--repository", default="Y-RyuZU/MinecraftModsLocalizer")
     parser.add_argument("--tag")
+    parser.add_argument("--release-notes", type=Path)
     args = parser.parse_args()
-    if args.check_version:
+    if args.release_notes:
+        args.release_notes.write_text(release_notes(args.repository, args.tag), encoding="utf-8")
+    elif args.check_version:
         print(check_versions(args.tag))
     else:
         if not args.tag:

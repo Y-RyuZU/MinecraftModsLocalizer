@@ -213,6 +213,9 @@ jobs:
           name: release-assets
           path: release-assets
 
+      - name: Prepare download links
+        run: python scripts/prepare-release.py --tag "${{ github.ref_name }}" --repository "${{ github.repository }}" --release-notes release-notes.md
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -221,5 +224,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           fail_on_unmatched_files: true
-          files: release-assets/*
-          body_path: docs/releases/${{ github.ref_name }}.md
+          files: |
+            release-assets/*
+            !release-assets/SHA256SUMS.txt
+          body_path: release-notes.md

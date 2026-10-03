@@ -56,7 +56,10 @@ class ReleaseTests(unittest.TestCase):
         for entry in manifest["platforms"].values():
             bundle = self.output / unquote(entry["url"].rsplit("/", 1)[1])
             self.assertTrue(bundle.is_file())
-            self.assertEqual(entry["signature"], Path(f"{bundle}.sig").read_text())
+            self.assertTrue(base64.b64decode(entry["signature"]).startswith(b"untrusted comment:"))
+        self.assertFalse(list(self.output.glob("*.sig")))
+        self.assertEqual(sorted(p.name for p in self.output.iterdir())[0], f"01-Windows-Setup-v{self.version}.exe")
+        self.assertEqual(len(list(self.output.iterdir())), 10)
         for line in (self.output / "SHA256SUMS.txt").read_text().splitlines():
             digest, name = line.split("  ", 1)
             self.assertEqual(digest, release.hashlib.sha256((self.output / name).read_bytes()).hexdigest())
