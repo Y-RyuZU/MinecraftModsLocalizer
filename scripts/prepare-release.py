@@ -15,14 +15,14 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
 DOWNLOAD_NAMES = {
-    ("windows-x86_64", ".exe"): "01-Windows-Setup",
-    ("windows-x86_64", ".msi"): "02-Windows-MSI",
-    ("darwin-aarch64", ".dmg"): "03-macOS-Apple-Silicon",
-    ("darwin-x86_64", ".dmg"): "04-macOS-Intel",
-    ("linux-x86_64", ".AppImage"): "05-Linux",
-    ("linux-x86_64", ".deb"): "06-Linux-Debian-Ubuntu",
-    ("darwin-aarch64", ".app.tar.gz"): "Update-macOS-Apple-Silicon",
-    ("darwin-x86_64", ".app.tar.gz"): "Update-macOS-Intel",
+    ("windows-x86_64", ".exe"): "01-MinecraftModsLocalizer-Windows-Setup",
+    ("windows-x86_64", ".msi"): "02-MinecraftModsLocalizer-Windows-MSI",
+    ("darwin-aarch64", ".dmg"): "03-MinecraftModsLocalizer-macOS-Apple-Silicon",
+    ("darwin-x86_64", ".dmg"): "04-MinecraftModsLocalizer-macOS-Intel",
+    ("linux-x86_64", ".AppImage"): "05-MinecraftModsLocalizer-Linux",
+    ("linux-x86_64", ".deb"): "06-MinecraftModsLocalizer-Linux-Debian-Ubuntu",
+    ("darwin-aarch64", ".app.tar.gz"): "Update-MinecraftModsLocalizer-macOS-Apple-Silicon",
+    ("darwin-x86_64", ".app.tar.gz"): "Update-MinecraftModsLocalizer-macOS-Intel",
 }
 
 

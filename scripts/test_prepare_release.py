@@ -58,7 +58,7 @@ class ReleaseTests(unittest.TestCase):
             self.assertTrue(bundle.is_file())
             self.assertTrue(base64.b64decode(entry["signature"]).startswith(b"untrusted comment:"))
         self.assertFalse(list(self.output.glob("*.sig")))
-        self.assertEqual(sorted(p.name for p in self.output.iterdir())[0], f"01-Windows-Setup-v{self.version}.exe")
+        self.assertEqual(sorted(p.name for p in self.output.iterdir())[0], f"01-MinecraftModsLocalizer-Windows-Setup-v{self.version}.exe")
         self.assertEqual(len(list(self.output.iterdir())), 10)
         for line in (self.output / "SHA256SUMS.txt").read_text().splitlines():
             digest, name = line.split("  ", 1)
