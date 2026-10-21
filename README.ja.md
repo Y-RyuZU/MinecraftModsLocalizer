@@ -12,6 +12,23 @@ AIを使ってMinecraftのModやModpackを翻訳する、Windows・macOS・Linux
 
 ATM10 SKYのクエストを読み込んだ実際の画面です。一覧から翻訳したい項目を選べます。[クエスト・Mod・ガイドブックの使い方](docs/ja/getting-started.md)。
 
+## さまざまな言語でMinecraftを翻訳
+
+アプリの表示は以下の10言語に対応。翻訳先には独自のMinecraft言語IDも指定できます。
+
+| Language | Minecraft Mods Localizer |
+| --- | --- |
+| English | Translate Minecraft mods, modpacks, FTB Quests and Patchouli guidebooks with AI. |
+| 日本語 | マイクラのMod・Modpack・クエスト・ガイドブックをAIで翻訳・日本語化できます。 |
+| 简体中文 | 使用 AI 翻译 Minecraft（我的世界）模组、整合包、任务和指南书，制作中文汉化。 |
+| 한국어 | AI로 마인크래프트 모드, 모드팩, 퀘스트와 가이드북을 번역하고 한국어화할 수 있습니다. |
+| Deutsch | Minecraft-Mods, Modpacks, Quests und Handbücher mit KI ins Deutsche und in andere Sprachen übersetzen. |
+| Español | Traduce mods, modpacks, misiones y libros guía de Minecraft al español y a otros idiomas con IA. |
+| Français | Traduisez les mods, modpacks, quêtes et guides Minecraft en français et dans d’autres langues avec l’IA. |
+| Italiano | Traduci mod, modpack, missioni e guide di Minecraft in italiano e in altre lingue con l’IA. |
+| Português (Brasil) | Traduza mods, modpacks, missões e guias do Minecraft para português e outros idiomas com IA. |
+| Русский | Переводите моды, сборки, квесты и руководства Minecraft на русский и другие языки с помощью ИИ. |
+
 ## 主な機能
 
 - Modの言語ファイルから翻訳リソースパックを作成

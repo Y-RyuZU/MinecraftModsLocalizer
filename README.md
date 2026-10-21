@@ -16,6 +16,23 @@ This README describes v3. Check the version on the download page. Use the v3 ins
 
 Actual ATM10 SKY quests loaded in the app (Japanese interface shown; English is also available). Select the entries you want to translate from the list. [Short tutorial](docs/getting-started.md).
 
+## Minecraft translation in your language
+
+The interface supports the 10 languages below. Translation targets also accept custom Minecraft language IDs.
+
+| Language | Minecraft Mods Localizer |
+| --- | --- |
+| English | Translate Minecraft mods, modpacks, FTB Quests and Patchouli guidebooks with AI. |
+| 日本語 | マイクラのMod・Modpack・クエスト・ガイドブックをAIで翻訳・日本語化できます。 |
+| 简体中文 | 使用 AI 翻译 Minecraft（我的世界）模组、整合包、任务和指南书，制作中文汉化。 |
+| 한국어 | AI로 마인크래프트 모드, 모드팩, 퀘스트와 가이드북을 번역하고 한국어화할 수 있습니다. |
+| Deutsch | Minecraft-Mods, Modpacks, Quests und Handbücher mit KI ins Deutsche und in andere Sprachen übersetzen. |
+| Español | Traduce mods, modpacks, misiones y libros guía de Minecraft al español y a otros idiomas con IA. |
+| Français | Traduisez les mods, modpacks, quêtes et guides Minecraft en français et dans d’autres langues avec l’IA. |
+| Italiano | Traduci mod, modpack, missioni e guide di Minecraft in italiano e in altre lingue con l’IA. |
+| Português (Brasil) | Traduza mods, modpacks, missões e guias do Minecraft para português e outros idiomas com IA. |
+| Русский | Переводите моды, сборки, квесты и руководства Minecraft на русский и другие языки с помощью ИИ. |
+
 ## Features
 
 - **Mod Translation**: Translates mod language files and outputs them as resource packs
