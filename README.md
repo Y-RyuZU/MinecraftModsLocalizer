@@ -12,9 +12,15 @@ A cross-platform desktop app for AI-powered Minecraft mod and modpack localizati
 
 This README describes v3. Check the version on the download page. Use the v3 installer when upgrading from v2.
 
-![ATM10 SKY quests loaded and selected for translation in the Japanese interface](docs/assets/v3-tutorial-quests-ja.jpg)
+**ATM10 SKY quests loaded in the English interface**
 
-Actual ATM10 SKY quests loaded in the app (Japanese interface shown; English is also available). Select the entries you want to translate from the list. [Short tutorial](docs/getting-started.md).
+![ATM10 SKY quests in light mode](docs/assets/v3-quests-light-en.png)
+
+**Mods detected in the same modpack**
+
+![ATM10 SKY mods in the English interface, light mode](docs/assets/v3-mods-light-en.png)
+
+[Short tutorial](docs/getting-started.md).
 
 ## Minecraft translation in your language
 

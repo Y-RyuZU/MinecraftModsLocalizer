@@ -8,9 +8,15 @@ AIを使ってMinecraftのModやModpackを翻訳する、Windows・macOS・Linux
 
 このREADMEはv3の操作を説明しています。ダウンロード先でバージョンを確認してください。v2からはv3のインストーラーで導入します。
 
-![ATM10 SKYのクエストを読み込み、翻訳する項目を選択した画面](docs/assets/v3-tutorial-quests-ja.jpg)
+**ATM10 SKYのクエストを読み込んだ画面**
 
-ATM10 SKYのクエストを読み込んだ実際の画面です。一覧から翻訳したい項目を選べます。[クエスト・Mod・ガイドブックの使い方](docs/ja/getting-started.md)。
+![ライトモードで表示したATM10 SKYのクエスト一覧](docs/assets/v3-quests-light-ja.png)
+
+**同じModpackのMod一覧**
+
+![ライトモードで表示したATM10 SKYのMod一覧](docs/assets/v3-mods-light-ja.png)
+
+[クエスト・Mod・ガイドブックの使い方](docs/ja/getting-started.md)。
 
 ## さまざまな言語でMinecraftを翻訳
 
